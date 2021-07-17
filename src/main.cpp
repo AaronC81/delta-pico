@@ -1,9 +1,9 @@
 #include <TFT_eSPI.h>
 #include <Wire.h>
 
-#include "hardware.h"
+#include "hardware.hpp"
 #include "pcf8574.hpp"
-#include "button_matrix.h"
+#include "button_matrix.hpp"
 #include "animate.hpp"
 
 #define USE_DMA_TO_TFT

@@ -1,4 +1,4 @@
-#include "button_matrix.h"
+#include "button_matrix.hpp"
 
 void ButtonMatrix::begin(void) {
     // Set to input
