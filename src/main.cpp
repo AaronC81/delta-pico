@@ -62,7 +62,7 @@ void loop() {
   int startPoints[4] = { 40, 60,  10,  80 };
   int endPoints[4]   = { 10, 120, 100, 200 };
 
-  Animate<4> ease(startPoints, endPoints, 20);
+  Animate<4> ease(startPoints, endPoints, 20, Easing::EASE_OUT);
 
   while (ease.tick()) {
     sprite.fillScreen(0);
