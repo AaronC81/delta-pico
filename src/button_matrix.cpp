@@ -5,7 +5,7 @@ void ButtonMatrix::begin(void) {
     col.write(0xFF);
 }
 
-bool ButtonMatrix::getButton(uint8_t &pressedRow, uint8_t &pressedCol) {
+bool ButtonMatrix::getRawButton(uint8_t &pressedRow, uint8_t &pressedCol) {
     for (uint8_t r = 0; r < ROWS; r++) {
         // Set all bits except this row
         uint8_t rowValue = (uint8_t)~(1 << r);
@@ -35,5 +35,50 @@ bool ButtonMatrix::getButton(uint8_t &pressedRow, uint8_t &pressedCol) {
     }
 
     // Nothing pressed
+    return false;
+}
+
+bool ButtonMatrix::waitForEvent(uint8_t &eventRow, uint8_t &eventCol, ButtonEvent &event) {
+    // Was a button already being pressed?
+    if (currentlyPressed) {
+        // Is it no longer pressed?
+        if (!getRawButton(eventRow, eventCol)) {
+            // Is it still no longer pressed after the debounce time?
+            sleep_ms(DEBOUNCE_MS);
+            if (!getRawButton(eventRow, eventCol))
+            {
+                // The button has been released!
+                currentlyPressed = false;
+                event = ButtonEvent::RELEASE;
+                eventRow = currentlyPressedRow;
+                eventCol = currentlyPressedCol;
+                return true;
+            }
+        }
+
+        // Nothing happened
+        return false;
+    }
+
+    // Wait for a button to be pressed
+    while (!getRawButton(eventRow, eventCol));
+
+    // Is it still pressed after the debounce time?
+    uint8_t nowEventRow, nowEventCol;
+    sleep_ms(DEBOUNCE_MS);
+    if (getRawButton(nowEventRow, nowEventCol)
+        && eventRow == nowEventRow
+        && eventCol == nowEventCol)
+    {
+        // A new button is pressed!
+        currentlyPressed = true;
+        event = ButtonEvent::PRESS;
+        currentlyPressedRow = eventRow;
+        currentlyPressedCol = eventCol;
+        currentlyPressedTime = millis();
+        return true;
+    }
+
+    // Nothing happened
     return false;
 }

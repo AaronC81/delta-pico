@@ -3,10 +3,16 @@
 #include <Wire.h>
 #include "pcf8574.hpp"
 
+enum class ButtonEvent {
+    PRESS,
+    RELEASE,
+};
+
 class ButtonMatrix {
 public:
     const int ROWS = 7;
     const int COLS = 7;
+    const int DEBOUNCE_MS = 20;
     
     // The row/col wiring doesn't exactly correspond to PCF8574 pin numbers.
     // This array maps a PCF8574 bit to a row/col number.
@@ -15,7 +21,14 @@ public:
     ButtonMatrix(PCF8574 _row, PCF8574 _col) : row(_row), col(_col) {}
 
     void begin(void);
-    bool getButton(uint8_t &row, uint8_t &col);
+    bool getRawButton(uint8_t &pressedRow, uint8_t &pressedCol);
+    bool waitForEvent(uint8_t &pressedRow, uint8_t &pressedCol, ButtonEvent &event);
+
 protected:
     PCF8574 row, col;
+
+    bool currentlyPressed = false;
+    uint8_t currentlyPressedRow = 0;
+    uint8_t currentlyPressedCol = 0;
+    unsigned long currentlyPressedTime = 0;
 };

@@ -50,12 +50,14 @@ void loop() {
   tft.startWrite();
 
   uint8_t r, c;
-  if (buttons.getButton(r, c)) {
+  ButtonEvent event;
+  if (buttons.waitForEvent(r, c, event)) {
     Serial.println(r);
     Serial.println(c);
     Serial.println("-----");
     sprite.drawNumber(r, 10, y);
     sprite.drawNumber(c, 30, y);
+    sprite.drawString(event == ButtonEvent::PRESS ? "Press" : "Release", 100, y);
     tft.pushImageDMA(0, 0, IWIDTH, IHEIGHT, spriteData);
 
     Serial.println(y);
