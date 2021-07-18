@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string.h>
+#include <math.h>
 
 enum class Easing {
     LINEAR,
@@ -30,10 +31,7 @@ public:
         if (timeElapsed < timeFrame) {
             float thisStep[D];
             step(thisStep); 
-            Serial.print("Step: ");
-            Serial.print(thisStep[0]);
-            Serial.print(" ");
-            Serial.println(thisStep[1]);
+
             for (int i = 0; i < D; i++) {
                 currentFloatValue[i] += thisStep[i];
             }
