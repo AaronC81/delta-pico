@@ -6,6 +6,10 @@
 #include "button_matrix.hpp"
 #include "animate.hpp"
 
+extern "C" {
+  #include <rbop_bridge.h>
+}
+
 #define USE_DMA_TO_TFT
 #define COLOR_DEPTH 16
 

@@ -1,0 +1,14 @@
+[package]
+name = "delta-pico-rbop-bridge"
+version = "0.1.0"
+edition = "2018"
+build = "build.rs"
+
+[build-dependencies]
+cbindgen = "0.1.29"
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+rbop = { path = "../../rbop" }
