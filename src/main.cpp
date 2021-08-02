@@ -90,6 +90,8 @@ void resetSelectedAnimation() {
 }
 
 void setup() {
+  RbopContext *ctx = rbop_new();
+
   Serial.begin(115200);
   i2c.begin();
   buttons.begin();
