@@ -16,6 +16,7 @@ static ALLOCATOR: CAllocator = CAllocator;
 pub struct RbopContext {
     root: UnstructuredNodeRoot,
     nav_path: NavPath,
+    renderer: *mut RbopRendererInterface,
 }
 
 #[repr(C)]
@@ -27,7 +28,7 @@ pub struct RbopRendererInterface {
 
 impl Renderer for RbopRendererInterface {
     fn size(&mut self, glyph: Glyph) -> Area {
-        let text_character_size = Area { height: 8, width: 6 };
+        let text_character_size = Area { height: 8 * 3, width: 6 * 3 };
 
         match glyph {
             Glyph::Cursor { height } => Area { height, width: 1 },
@@ -89,10 +90,11 @@ fn panic(info: &PanicInfo) -> ! {
 
 /// Allocates and returns a new rbop context.
 #[no_mangle]
-pub extern "C" fn rbop_new() -> *mut RbopContext {
+pub extern "C" fn rbop_new(renderer: *mut RbopRendererInterface) -> *mut RbopContext {
     Box::into_raw(Box::new(RbopContext {
         root: UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![] } },
         nav_path: NavPath::new(vec![0]),
+        renderer,
     }))
 }
 
@@ -106,19 +108,94 @@ pub extern "C" fn rbop_free(ctx: *mut RbopContext) {
     unsafe { Box::from_raw(ctx); }
 }
 
+/// Renders an rbop context onto the screen.
 #[no_mangle]
-pub extern "C" fn rbop_foo(ctx: *mut RbopContext) {
+pub extern "C" fn rbop_render(ctx: *mut RbopContext) {
     unsafe {
         let ctx = ctx.as_mut().unwrap();
-        ctx.root.insert(&mut ctx.nav_path, UnstructuredNode::Token(Token::Digit(3)));
+        ctx.renderer.as_mut().unwrap().draw_all(&ctx.root, Some(&mut ctx.nav_path.to_navigator()));
     }
 }
 
-/// Renders an rbop context onto the screen.
+/// All possible user inputs.
+#[repr(C)]
+pub enum RbopInput {
+    None,
+
+    MoveLeft,
+    MoveRight,
+    MoveUp,
+    MoveDown,
+    Delete,
+
+    Digit0,
+    Digit1,
+    Digit2,
+    Digit3,
+    Digit4,
+    Digit5,
+    Digit6,
+    Digit7,
+    Digit8,
+    Digit9,
+
+    Add,
+    Subtract,
+    Multiply,
+    Fraction,
+}
+
+/// Manipulates an rbop context based on an input.
 #[no_mangle]
-pub extern "C" fn rbop_render(ctx: *mut RbopContext, renderer: *mut RbopRendererInterface) {
-    unsafe {
-        let ctx = ctx.as_mut().unwrap();
-        renderer.as_mut().unwrap().draw_all(&ctx.root, Some(&mut ctx.nav_path.to_navigator()));
+pub extern "C" fn rbop_input(ctx: *mut RbopContext, input: RbopInput) {
+    let ctx = unsafe { ctx.as_mut().unwrap() };
+    let renderer = unsafe { ctx.renderer.as_mut().unwrap()  };
+
+    let node_to_insert = match input {
+        RbopInput::None => None,
+
+        RbopInput::MoveLeft => {
+            ctx.root.move_left(&mut ctx.nav_path);
+            None
+        }
+        RbopInput::MoveRight => {
+            ctx.root.move_right(&mut ctx.nav_path);
+            None
+        }
+        RbopInput::MoveUp => {
+            ctx.root.move_up(&mut ctx.nav_path, renderer);
+            None
+        }
+        RbopInput::MoveDown => {
+            ctx.root.move_down(&mut ctx.nav_path, renderer);
+            None
+        }
+        RbopInput::Delete => {
+            ctx.root.delete(&mut ctx.nav_path);
+            None
+        }
+
+        RbopInput::Digit0 => Some(UnstructuredNode::Token(Token::Digit(0))),
+        RbopInput::Digit1 => Some(UnstructuredNode::Token(Token::Digit(1))),
+        RbopInput::Digit2 => Some(UnstructuredNode::Token(Token::Digit(2))),
+        RbopInput::Digit3 => Some(UnstructuredNode::Token(Token::Digit(3))),
+        RbopInput::Digit4 => Some(UnstructuredNode::Token(Token::Digit(4))),
+        RbopInput::Digit5 => Some(UnstructuredNode::Token(Token::Digit(5))),
+        RbopInput::Digit6 => Some(UnstructuredNode::Token(Token::Digit(6))),
+        RbopInput::Digit7 => Some(UnstructuredNode::Token(Token::Digit(7))),
+        RbopInput::Digit8 => Some(UnstructuredNode::Token(Token::Digit(8))),
+        RbopInput::Digit9 => Some(UnstructuredNode::Token(Token::Digit(9))),
+
+        RbopInput::Add => Some(UnstructuredNode::Token(Token::Add)),
+        RbopInput::Subtract => Some(UnstructuredNode::Token(Token::Subtract)),
+        RbopInput::Multiply => Some(UnstructuredNode::Token(Token::Multiply)),
+        RbopInput::Fraction => Some(UnstructuredNode::Fraction(
+            UnstructuredNodeList { items: vec![] },
+            UnstructuredNodeList { items: vec![] },
+        )),
+    };
+
+    if let Some(node) = node_to_insert {
+        ctx.root.insert(&mut ctx.nav_path, node);
     }
 }

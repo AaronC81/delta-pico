@@ -28,6 +28,20 @@ ButtonMatrix buttons(rowPcf, colPcf);
 TFT_eSprite sprite(&tft);
 uint16_t *spriteData;
 
+#define I RbopInput
+
+const RbopInput buttonMapping[7][7] = {
+  { I::None,      I::MoveUp,    I::None,      I::None,      I::None,      I::None,      I::None, },
+  { I::MoveLeft,  I::None,      I::MoveRight, I::None,      I::None,      I::None,      I::None, },
+  { I::None,      I::MoveDown,  I::None,      I::None,      I::None,      I::None,      I::None, },
+  { I::Digit7,    I::Digit8,    I::Digit9,    I::Delete,    I::None,      I::None,      I::None, },
+  { I::Digit4,    I::Digit5,    I::Digit6,    I::Multiply,  I::Fraction,  I::None,      I::None, },
+  { I::Digit1,    I::Digit2,    I::Digit3,    I::Add,       I::Subtract,  I::None,      I::None, },
+  { I::Digit0,    I::None,      I::None,      I::None,      I::None,      I::None,      I::None, },
+};
+
+#undef I
+
 void rbopRendererClear() {
   sprite.fillScreen(TFT_BLACK);
 }
@@ -41,6 +55,13 @@ void rbopRendererDrawChar(uint64_t x, uint64_t y, uint8_t c) {
   sprite.print((char)c);
 }
 
+RbopRendererInterface renderer = {
+  .clear = rbopRendererClear,
+  .draw_char = rbopRendererDrawChar,
+  .draw_line = rbopRendererDrawLine,
+};
+RbopContext *ctx;
+
 void rbopPanicHandler(const uint8_t *message) {
   sprite.setCursor(0, 0);
   sprite.println("PANIC!");
@@ -52,8 +73,7 @@ void rbopPanicHandler(const uint8_t *message) {
 
 void setup() {
   rbop_set_panic_handler(rbopPanicHandler);
-
-  RbopContext *ctx = rbop_new();
+  ctx = rbop_new(&renderer);
 
   Serial.begin(115200);
   i2c.begin();
@@ -68,19 +88,21 @@ void setup() {
   spriteData = (uint16_t*)sprite.createSprite(100, 100);
   sprite.setTextColor(TFT_WHITE);
   sprite.setTextDatum(MC_DATUM);
+  sprite.setTextSize(3);
+}
 
-  RbopRendererInterface renderer = {
-    .clear = rbopRendererClear,
-    .draw_char = rbopRendererDrawChar,
-    .draw_line = rbopRendererDrawLine,
-  };
-
-  rbop_foo(ctx);
-  rbop_render(ctx, &renderer);
+void loop() {
+  rbop_render(ctx);
 
   tft.startWrite();
   tft.pushImageDMA(10, 10, 100, 100, spriteData);
   tft.endWrite();
-}
 
-void loop() {}
+  uint8_t r, c;
+  ButtonEvent evt;
+  if (buttons.waitForEvent(r, c, evt) && evt == ButtonEvent::PRESS) {
+    RbopInput input;
+
+    rbop_input(ctx, buttonMapping[r][c]);
+  }
+}
