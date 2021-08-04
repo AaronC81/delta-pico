@@ -7,7 +7,7 @@ mod c_allocator;
 
 use core::panic::PanicInfo;
 use alloc::{boxed::Box, format, vec::Vec, vec};
-use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::UnstructuredNodeRoot, render::{Area, CalculatedPoint, Glyph, Renderer}};
+use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, CalculatedPoint, Glyph, Renderer}};
 use c_allocator::CAllocator;
 
 #[global_allocator]
@@ -197,5 +197,21 @@ pub extern "C" fn rbop_input(ctx: *mut RbopContext, input: RbopInput) {
 
     if let Some(node) = node_to_insert {
         ctx.root.insert(&mut ctx.nav_path, node);
+    }
+}
+
+/// Evaluates an rbop context.
+#[no_mangle]
+pub extern "C" fn rbop_evaluate(ctx: *mut RbopContext, result: *mut f64) -> bool {
+    let ctx = unsafe { ctx.as_mut().unwrap() };
+    if let Ok(structured) = ctx.root.upgrade() {
+        if let Ok(evaluation_result) = structured.evaluate() {
+            unsafe { *result = evaluation_result; }
+            true
+        } else {
+            false
+        }
+    } else {
+        false
     }
 }

@@ -3,3 +3,4 @@
 .vscode/launch.json
 test/bin
 rbop_bridge/target
+res/*.h

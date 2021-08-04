@@ -8,6 +8,7 @@
 
 extern "C" {
   #include <rbop_bridge.h>
+  #include <DroidSansMono-30.h>
 }
 
 #define USE_DMA_TO_TFT
@@ -15,6 +16,10 @@ extern "C" {
 
 #define IWIDTH  320
 #define IHEIGHT 240
+
+#define SPAD 10
+#define SWIDTH (IWIDTH - SPAD * 2)
+#define SHEIGHT (IHEIGHT - SPAD * 2)
 
 TFT_eSPI tft = TFT_eSPI();
 
@@ -67,7 +72,7 @@ void rbopPanicHandler(const uint8_t *message) {
   sprite.println("PANIC!");
   sprite.println((const char*)message);
   tft.startWrite();
-  tft.pushImageDMA(10, 10, 100, 100, spriteData);
+  tft.pushImageDMA(SPAD, SPAD, SWIDTH, SHEIGHT, spriteData);
   tft.endWrite();
 }
 
@@ -85,17 +90,23 @@ void setup() {
   tft.setRotation(3);
 
   sprite.setColorDepth(COLOR_DEPTH);
-  spriteData = (uint16_t*)sprite.createSprite(100, 100);
+  spriteData = (uint16_t*)sprite.createSprite(SWIDTH, SHEIGHT);
   sprite.setTextColor(TFT_WHITE);
   sprite.setTextDatum(MC_DATUM);
-  sprite.setTextSize(3);
+  sprite.loadFont(DroidSansMono_30_vlw);
 }
 
 void loop() {
   rbop_render(ctx);
 
+  double result;
+  if (rbop_evaluate(ctx, &result)) {
+    sprite.setCursor(0, SHEIGHT - 30);
+    sprite.print(result);
+  }
+
   tft.startWrite();
-  tft.pushImageDMA(10, 10, 100, 100, spriteData);
+  tft.pushImageDMA(SPAD, SPAD, SWIDTH, SHEIGHT, spriteData);
   tft.endWrite();
 
   uint8_t r, c;
