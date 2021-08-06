@@ -4,3 +4,6 @@
 test/bin
 rbop_bridge/target
 res/*.h
+cad/delta-pico/gerbers
+cad/delta-pico/*cache*
+cad/delta-pico/*-bak
