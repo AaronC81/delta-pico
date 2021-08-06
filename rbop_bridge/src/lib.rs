@@ -9,6 +9,7 @@ use core::panic::PanicInfo;
 use alloc::{boxed::Box, format, vec::Vec, vec};
 use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, CalculatedPoint, Glyph, Renderer}};
 use c_allocator::CAllocator;
+use rust_decimal::prelude::ToPrimitive;
 
 #[global_allocator]
 static ALLOCATOR: CAllocator = CAllocator;
@@ -206,7 +207,7 @@ pub extern "C" fn rbop_evaluate(ctx: *mut RbopContext, result: *mut f64) -> bool
     let ctx = unsafe { ctx.as_mut().unwrap() };
     if let Ok(structured) = ctx.root.upgrade() {
         if let Ok(evaluation_result) = structured.evaluate() {
-            unsafe { *result = evaluation_result; }
+            unsafe { *result = evaluation_result.to_f64().unwrap(); }
             true
         } else {
             false
