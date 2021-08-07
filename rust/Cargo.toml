@@ -1,5 +1,5 @@
 [package]
-name = "delta-pico-rbop-bridge"
+name = "delta-pico-rust"
 version = "0.1.0"
 edition = "2018"
 build = "build.rs"

@@ -2,7 +2,7 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 test/bin
-rbop_bridge/target
+rust/target
 res/*.h
 cad/delta-pico/gerbers
 cad/delta-pico/*cache*

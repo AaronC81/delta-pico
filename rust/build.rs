@@ -12,7 +12,7 @@ fn main() {
 
     let output_file = target_dir()
         .join("include")
-        .join("rbop_bridge.h")
+        .join("delta_pico_rust.h")
         .display()
         .to_string();
 

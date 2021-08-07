@@ -7,7 +7,7 @@
 #include "animate.hpp"
 
 extern "C" {
-  #include <rbop_bridge.h>
+  #include <delta_pico_rust.h>
   #include <DroidSansMono-30.h>
 }
 

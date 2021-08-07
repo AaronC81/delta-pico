@@ -4,10 +4,10 @@ Import("env")
 
 root_dir = env.GetLaunchDir()
 
-print("Building rbop_bridge...")
+print("Building Rust component...")
 
 # "cargo build" the bridge project
-bridge_dir = os.path.join(root_dir, "rbop_bridge")
+bridge_dir = os.path.join(root_dir, "rust")
 subprocess.check_output(["cargo", "build"], cwd=bridge_dir)
 
 print("Done!")

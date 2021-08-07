@@ -78,7 +78,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "delta-pico-rbop-bridge"
+name = "delta-pico-rust"
 version = "0.1.0"
 dependencies = [
  "cbindgen",
