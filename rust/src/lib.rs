@@ -34,6 +34,7 @@ impl Renderer for RbopRendererInterface {
         match glyph {
             Glyph::Cursor { height } => Area { height, width: 1 },
             Glyph::Digit { .. } => text_character_size,
+            Glyph::Point => text_character_size,
             Glyph::Add => text_character_size,
             Glyph::Subtract => text_character_size,
             Glyph::Multiply => text_character_size,
@@ -51,6 +52,7 @@ impl Renderer for RbopRendererInterface {
     fn draw(&mut self, glyph: Glyph, point: CalculatedPoint) {
         match glyph {
             Glyph::Digit { number } => (self.draw_char)(point.x, point.y, number + ('0' as u8)),
+            Glyph::Point => (self.draw_char)(point.x, point.y, '.' as u8),
             Glyph::Add => (self.draw_char)(point.x, point.y, '+' as u8),
             Glyph::Subtract => (self.draw_char)(point.x, point.y, '-' as u8),
             Glyph::Multiply => (self.draw_char)(point.x, point.y, '*' as u8),
@@ -140,6 +142,8 @@ pub enum RbopInput {
     Digit8,
     Digit9,
 
+    Point,
+
     Add,
     Subtract,
     Multiply,
@@ -186,6 +190,8 @@ pub extern "C" fn rbop_input(ctx: *mut RbopContext, input: RbopInput) {
         RbopInput::Digit7 => Some(UnstructuredNode::Token(Token::Digit(7))),
         RbopInput::Digit8 => Some(UnstructuredNode::Token(Token::Digit(8))),
         RbopInput::Digit9 => Some(UnstructuredNode::Token(Token::Digit(9))),
+
+        RbopInput::Point => Some(UnstructuredNode::Token(Token::Point)),
 
         RbopInput::Add => Some(UnstructuredNode::Token(Token::Add)),
         RbopInput::Subtract => Some(UnstructuredNode::Token(Token::Subtract)),

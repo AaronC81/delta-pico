@@ -42,7 +42,7 @@ const RbopInput buttonMapping[7][7] = {
   { I::Digit7,    I::Digit8,    I::Digit9,    I::Delete,    I::None,      I::None,      I::None, },
   { I::Digit4,    I::Digit5,    I::Digit6,    I::Multiply,  I::Fraction,  I::None,      I::None, },
   { I::Digit1,    I::Digit2,    I::Digit3,    I::Add,       I::Subtract,  I::None,      I::None, },
-  { I::Digit0,    I::None,      I::None,      I::None,      I::None,      I::None,      I::None, },
+  { I::Digit0,    I::Point,     I::None,      I::None,      I::None,      I::None,      I::None, },
 };
 
 #undef I
