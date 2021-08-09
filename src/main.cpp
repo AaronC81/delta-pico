@@ -18,8 +18,10 @@ extern "C" {
 #define IHEIGHT 240
 
 #define SPAD 10
-#define SWIDTH (IWIDTH - SPAD * 2)
-#define SHEIGHT (IHEIGHT - SPAD * 2)
+//#define SWIDTH (IWIDTH - SPAD * 2)
+//#define SHEIGHT (IHEIGHT - SPAD * 2)
+#define SWIDTH 100
+#define SHEIGHT 100
 
 TFT_eSPI tft = TFT_eSPI();
 
@@ -83,7 +85,7 @@ void rbopDebugHandler(const uint8_t *message) {
 void setup() {
   rbop_set_panic_handler(rbopPanicHandler);
   ctx = rbop_new(&renderer);
-  rbop_set_viewport(ctx, 100, 100);
+  rbop_set_viewport(ctx, SWIDTH, SHEIGHT);
 
   Serial.begin(115200);
   rbop_set_debug_handler(rbopDebugHandler);
@@ -101,6 +103,7 @@ void setup() {
   sprite.setTextColor(TFT_WHITE);
   sprite.setTextDatum(MC_DATUM);
   sprite.loadFont(DroidSansMono_30_vlw);
+  sprite.setTextWrap(false, false);
 }
 
 void loop() {
