@@ -51,9 +51,12 @@ impl Renderer for RbopRendererInterface {
     }
 
     fn draw(&mut self, glyph: ViewportGlyph) {
-        if glyph.visibility == ViewportVisibility::Invisible { return; }
-
         debug(format!("{:?}", glyph));
+
+        match glyph.visibility {
+            ViewportVisibility::Clipped { invisible, .. } if invisible => return,
+            _ => (),
+        }
 
         let point = glyph.point;
 
@@ -198,23 +201,23 @@ pub extern "C" fn rbop_input(ctx: *mut RbopContext, input: RbopInput) {
         RbopInput::None => None,
 
         RbopInput::MoveLeft => {
-            ctx.root.move_left(&mut ctx.nav_path);
+            ctx.root.move_left(&mut ctx.nav_path, renderer, ctx.viewport.as_mut());
             None
         }
         RbopInput::MoveRight => {
-            ctx.root.move_right(&mut ctx.nav_path);
+            ctx.root.move_right(&mut ctx.nav_path, renderer, ctx.viewport.as_mut());
             None
         }
         RbopInput::MoveUp => {
-            ctx.root.move_up(&mut ctx.nav_path, renderer);
+            ctx.root.move_up(&mut ctx.nav_path, renderer, ctx.viewport.as_mut());
             None
         }
         RbopInput::MoveDown => {
-            ctx.root.move_down(&mut ctx.nav_path, renderer);
+            ctx.root.move_down(&mut ctx.nav_path, renderer, ctx.viewport.as_mut());
             None
         }
         RbopInput::Delete => {
-            ctx.root.delete(&mut ctx.nav_path);
+            ctx.root.delete(&mut ctx.nav_path, renderer, ctx.viewport.as_mut());
             None
         }
 
@@ -241,7 +244,7 @@ pub extern "C" fn rbop_input(ctx: *mut RbopContext, input: RbopInput) {
     };
 
     if let Some(node) = node_to_insert {
-        ctx.root.insert(&mut ctx.nav_path, node);
+        ctx.root.insert(&mut ctx.nav_path, renderer, ctx.viewport.as_mut(), node);
     }
 }
 
