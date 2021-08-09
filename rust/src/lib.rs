@@ -50,11 +50,32 @@ impl Renderer for RbopRendererInterface {
         (self.clear)()
     }
 
-    fn draw(&mut self, glyph: ViewportGlyph) {
+    fn draw(&mut self, mut glyph: ViewportGlyph) {
         debug(format!("{:?}", glyph));
 
         match glyph.visibility {
             ViewportVisibility::Clipped { invisible, .. } if invisible => return,
+            ViewportVisibility::Clipped { left_clip, right_clip, .. } => {
+                // Re-align and shorten a left-clipped fraction line
+                if let Glyph::Fraction { inner_width } = glyph.glyph {
+                    if left_clip > 0 {
+                        glyph.glyph = Glyph::Fraction {
+                            inner_width: inner_width - left_clip
+                        };
+                        glyph.point.x = 0;
+                    }
+                }
+
+                // Shorten a right-clipped fraction line
+                // (The if-let binding is repeated to get a possibly updated inner_width)
+                if let Glyph::Fraction { inner_width } = glyph.glyph {
+                    if right_clip > 0 {
+                        glyph.glyph = Glyph::Fraction {
+                            inner_width: inner_width - right_clip
+                        };
+                    }
+                }                
+            }
             _ => (),
         }
 
