@@ -51,11 +51,11 @@ void rbopRendererClear() {
   sprite.fillScreen(TFT_BLACK);
 }
 
-void rbopRendererDrawLine(uint64_t x1, uint64_t y1, uint64_t x2, uint64_t y2) {
+void rbopRendererDrawLine(int64_t x1, int64_t y1, int64_t x2, int64_t y2) {
   sprite.drawLine(x1, y1, x2, y2, TFT_WHITE);
 }
 
-void rbopRendererDrawChar(uint64_t x, uint64_t y, uint8_t c) {
+void rbopRendererDrawChar(int64_t x, int64_t y, uint8_t c) {
   sprite.setCursor(x, y);
   sprite.print((char)c);
 }
@@ -76,11 +76,18 @@ void rbopPanicHandler(const uint8_t *message) {
   tft.endWrite();
 }
 
+void rbopDebugHandler(const uint8_t *message) {
+  Serial.println((const char*)message);
+}
+
 void setup() {
   rbop_set_panic_handler(rbopPanicHandler);
   ctx = rbop_new(&renderer);
+  rbop_set_viewport(ctx, 100, 100);
 
   Serial.begin(115200);
+  rbop_set_debug_handler(rbopDebugHandler);
+
   i2c.begin();
   buttons.begin();
 

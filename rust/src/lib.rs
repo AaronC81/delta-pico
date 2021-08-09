@@ -6,8 +6,8 @@ extern crate alloc;
 mod c_allocator;
 
 use core::panic::PanicInfo;
-use alloc::{boxed::Box, format, vec::Vec, vec};
-use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, CalculatedPoint, Glyph, Renderer}};
+use alloc::{boxed::Box, format, string::String, vec::Vec, vec};
+use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, CalculatedPoint, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility}};
 use c_allocator::CAllocator;
 use rust_decimal::prelude::ToPrimitive;
 
@@ -18,13 +18,14 @@ pub struct RbopContext {
     root: UnstructuredNodeRoot,
     nav_path: NavPath,
     renderer: *mut RbopRendererInterface,
+    viewport: Option<Viewport>,
 }
 
 #[repr(C)]
 pub struct RbopRendererInterface {
     clear: extern "C" fn() -> (),
-    draw_char: extern "C" fn(x: u64, y: u64, character: u8),
-    draw_line: extern "C" fn(x1: u64, y1: u64, x2: u64, y2: u64),
+    draw_char: extern "C" fn(x: i64, y: i64, character: u8),
+    draw_line: extern "C" fn(x1: i64, y1: i64, x2: i64, y2: i64),
 }
 
 impl Renderer for RbopRendererInterface {
@@ -49,8 +50,14 @@ impl Renderer for RbopRendererInterface {
         (self.clear)()
     }
 
-    fn draw(&mut self, glyph: Glyph, point: CalculatedPoint) {
-        match glyph {
+    fn draw(&mut self, glyph: ViewportGlyph) {
+        if glyph.visibility == ViewportVisibility::Invisible { return; }
+
+        debug(format!("{:?}", glyph));
+
+        let point = glyph.point;
+
+        match glyph.glyph {
             Glyph::Digit { number } => (self.draw_char)(point.x, point.y, number + ('0' as u8)),
             Glyph::Point => (self.draw_char)(point.x, point.y, '.' as u8),
             Glyph::Add => (self.draw_char)(point.x, point.y, '+' as u8),
@@ -59,10 +66,10 @@ impl Renderer for RbopRendererInterface {
             Glyph::Divide => (self.draw_char)(point.x, point.y, '/' as u8),
 
             Glyph::Fraction { inner_width } =>
-                (self.draw_line)(point.x, point.y, point.x + inner_width, point.y),
+                (self.draw_line)(point.x, point.y, point.x + inner_width as i64, point.y),
 
             Glyph::Cursor { height } =>
-                (self.draw_line)(point.x, point.y, point.x, point.y + height),
+                (self.draw_line)(point.x, point.y, point.x, point.y + height as i64),
 
             _ => todo!(),
         }
@@ -70,12 +77,21 @@ impl Renderer for RbopRendererInterface {
 }
 
 static mut PANIC_HANDLER_FN: Option<extern "C" fn(*const u8) -> ()> = None;
+static mut DEBUG_HANDLER_FN: Option<extern "C" fn(*const u8) -> ()> = None;
 
 /// Sets a function to be called when a Rust panic occurs.
 #[no_mangle]
 pub extern "C" fn rbop_set_panic_handler(func: extern "C" fn(*const u8) -> ()) {
     unsafe {
         PANIC_HANDLER_FN = Some(func);
+    }
+}
+
+/// Sets a function to be called when this library wishes to print debugging information.
+#[no_mangle]
+pub extern "C" fn rbop_set_debug_handler(func: extern "C" fn(*const u8) -> ()) {
+    unsafe {
+        DEBUG_HANDLER_FN = Some(func);
     }
 }
 
@@ -91,6 +107,15 @@ fn panic(info: &PanicInfo) -> ! {
     }
 }
 
+fn debug(info: String) {
+    unsafe {
+        let mut message_bytes = info.as_bytes().iter().cloned().collect::<Vec<_>>();
+        message_bytes.push(0);
+
+        (DEBUG_HANDLER_FN.unwrap())(message_bytes.as_ptr());
+    }
+}
+
 /// Allocates and returns a new rbop context.
 #[no_mangle]
 pub extern "C" fn rbop_new(renderer: *mut RbopRendererInterface) -> *mut RbopContext {
@@ -98,7 +123,16 @@ pub extern "C" fn rbop_new(renderer: *mut RbopRendererInterface) -> *mut RbopCon
         root: UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![] } },
         nav_path: NavPath::new(vec![0]),
         renderer,
+        viewport: None,
     }))
+}
+
+/// Sets up a new viewport for the given rbop context.
+#[no_mangle]
+pub extern "C" fn rbop_set_viewport(ctx: *mut RbopContext, width: u64, height: u64) {
+    unsafe {
+        ctx.as_mut().unwrap().viewport = Some(Viewport::new(Area::new(width, height)));
+    }
 }
 
 /// Frees an allocated rbop context.
@@ -116,7 +150,11 @@ pub extern "C" fn rbop_free(ctx: *mut RbopContext) {
 pub extern "C" fn rbop_render(ctx: *mut RbopContext) {
     unsafe {
         let ctx = ctx.as_mut().unwrap();
-        ctx.renderer.as_mut().unwrap().draw_all(&ctx.root, Some(&mut ctx.nav_path.to_navigator()));
+        ctx.renderer.as_mut().unwrap().draw_all(
+            &ctx.root, 
+            Some(&mut ctx.nav_path.to_navigator()),
+            ctx.viewport.as_ref(),
+        );
     }
 }
 
