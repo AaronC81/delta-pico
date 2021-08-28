@@ -64,6 +64,7 @@ void rbopPanicHandler(const uint8_t *message) {
 }
 
 void rbopDebugHandler(const uint8_t *message) {
+  Serial.println((const char*)message);
 }
 
 void setup() {
