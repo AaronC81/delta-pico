@@ -14,14 +14,12 @@ extern "C" {
 #define USE_DMA_TO_TFT
 #define COLOR_DEPTH 16
 
-#define IWIDTH  320
-#define IHEIGHT 240
+#define IWIDTH  240
+#define IHEIGHT 320
 
 #define SPAD 10
-//#define SWIDTH (IWIDTH - SPAD * 2)
-//#define SHEIGHT (IHEIGHT - SPAD * 2)
-#define SWIDTH 100
-#define SHEIGHT 100
+#define SWIDTH (IWIDTH - SPAD * 2)
+#define SHEIGHT (IHEIGHT - SPAD * 2)
 
 TFT_eSPI tft = TFT_eSPI();
 
@@ -37,6 +35,7 @@ uint16_t *spriteData;
 
 #define I RbopInput
 
+#ifdef DELTA_PICO_PROTOTYPE
 const RbopInput buttonMapping[7][7] = {
   { I::None,      I::MoveUp,    I::None,      I::None,      I::None,      I::None,      I::None, },
   { I::MoveLeft,  I::None,      I::MoveRight, I::None,      I::None,      I::None,      I::None, },
@@ -46,6 +45,19 @@ const RbopInput buttonMapping[7][7] = {
   { I::Digit1,    I::Digit2,    I::Digit3,    I::Add,       I::Subtract,  I::None,      I::None, },
   { I::Digit0,    I::Point,     I::None,      I::None,      I::None,      I::None,      I::None, },
 };
+#endif
+
+#ifdef DELTA_PICO_REV1
+const RbopInput buttonMapping[7][7] = {
+  { I::MoveUp, I::MoveRight, I::None, I::None, I::None, I::None, I::None, },
+  { I::MoveLeft, I::MoveDown, I::None, I::None, I::None, I::None, I::None, },
+  { I::Digit7, I::Digit8, I::Digit9, I::Delete, I::None, I::None, I::None, },
+  { I::Digit4, I::Digit5, I::Digit6, I::Multiply, I::None, I::None, I::Fraction, },
+  { I::None, I::None, I::None, I::None, I::None, I::None, I::None, },
+  { I::Digit0, I::None, I::None, I::None, I::None, I::None, I::None, },
+  { I::Digit1, I::Digit2, I::Digit3, I::Add, I::None, I::None, I::Subtract, },
+};
+#endif
 
 #undef I
 
@@ -79,7 +91,6 @@ void rbopPanicHandler(const uint8_t *message) {
 }
 
 void rbopDebugHandler(const uint8_t *message) {
-  Serial.println((const char*)message);
 }
 
 void setup() {
@@ -96,7 +107,7 @@ void setup() {
   tft.init();
   tft.fillScreen(TFT_BLACK);
   tft.initDMA();
-  tft.setRotation(3);
+  tft.setRotation(0);
 
   sprite.setColorDepth(COLOR_DEPTH);
   spriteData = (uint16_t*)sprite.createSprite(SWIDTH, SHEIGHT);
