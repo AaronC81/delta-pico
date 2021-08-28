@@ -1,5 +1,9 @@
 #pragma once
 
+extern "C" {
+    #include "delta_pico_rust.h"
+}
+
 #define I2C_SDA_PIN 20
 #define I2C_SCL_PIN 21
 
@@ -15,3 +19,5 @@
 #define SPAD 10
 #define SWIDTH (IWIDTH - SPAD * 2)
 #define SHEIGHT (IHEIGHT - SPAD * 2)
+
+extern const RbopInput buttonMapping[7][7];

@@ -3,6 +3,10 @@
 #include <Wire.h>
 #include "pcf8574.hpp"
 
+extern "C" {
+    #include "delta_pico_rust.h"
+}
+
 enum class ButtonEvent {
     PRESS,
     RELEASE,
@@ -21,8 +25,11 @@ public:
     ButtonMatrix(PCF8574 _row, PCF8574 _col) : row(_row), col(_col) {}
 
     void begin(void);
+
     bool getRawButton(uint8_t &pressedRow, uint8_t &pressedCol);
     bool waitForEvent(uint8_t &pressedRow, uint8_t &pressedCol, ButtonEvent &event);
+
+    bool waitForEventInput(RbopInput &input, ButtonEvent &event);
 
 protected:
     PCF8574 row, col;
