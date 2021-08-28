@@ -19,6 +19,7 @@ fn main() {
     let config = Config {
         namespace: Some(String::from("ffi")),
         language: Language::C,
+        include_guard: Some("DELTA_PICO_RUST".into()),
         ..Default::default()
     };
 
