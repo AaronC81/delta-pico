@@ -35,3 +35,5 @@ void ApplicationFramework::draw() {
 
 ButtonMatrix& ApplicationFramework::buttons() const { return *_buttons; }
 TFT_eSprite&  ApplicationFramework::sprite()  const { return *_sprite;  }
+
+ApplicationFramework ApplicationFramework::instance = {};

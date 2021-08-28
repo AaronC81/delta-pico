@@ -15,7 +15,11 @@ public:
     ButtonMatrix& buttons() const;
     TFT_eSprite&  sprite()  const;
 
+    static ApplicationFramework instance;
+    
 private:
+    ApplicationFramework() {}
+
     bool _initialized = false;
 
     TFT_eSPI *_tft;
