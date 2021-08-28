@@ -8,7 +8,7 @@
 
 extern "C" {
   #include <delta_pico_rust.h>
-  #include <DroidSansMono-30.h>
+  #include <DroidSansMono-20.h>
 }
 
 #define USE_DMA_TO_TFT
@@ -113,7 +113,7 @@ void setup() {
   spriteData = (uint16_t*)sprite.createSprite(SWIDTH, SHEIGHT);
   sprite.setTextColor(TFT_WHITE);
   sprite.setTextDatum(MC_DATUM);
-  sprite.loadFont(DroidSansMono_30_vlw);
+  sprite.loadFont(DroidSansMono_20_vlw);
   sprite.setTextWrap(false, false);
 }
 

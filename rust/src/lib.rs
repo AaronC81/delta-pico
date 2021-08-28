@@ -30,7 +30,7 @@ pub struct RbopRendererInterface {
 
 impl Renderer for RbopRendererInterface {
     fn size(&mut self, glyph: Glyph) -> Area {
-        let text_character_size = Area { height: 8 * 3, width: 6 * 3 };
+        let text_character_size = Area { height: 8 * 2, width: 6 * 2 };
 
         match glyph {
             Glyph::Cursor { height } => Area { height, width: 1 },
