@@ -54,6 +54,9 @@ auto framework_interface = ApplicationFrameworkInterface {
   .panic_handler = panicHandler,
   .debug_handler = debugHandler,
   .display = DisplayInterface {
+    .width = IWIDTH,
+    .height = IHEIGHT,
+
     .fill_screen = displayFillScreen,
     .draw_char = displayDrawChar,
     .draw_line = displayDrawLine,

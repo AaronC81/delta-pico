@@ -16,8 +16,4 @@ extern "C" {
 #define IWIDTH  240
 #define IHEIGHT 320
 
-#define SPAD 10
-#define SWIDTH (IWIDTH - SPAD * 2)
-#define SHEIGHT (IHEIGHT - SPAD * 2)
-
 extern const RbopInput buttonMapping[7][7];

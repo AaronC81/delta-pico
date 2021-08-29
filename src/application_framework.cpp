@@ -19,7 +19,7 @@ void ApplicationFramework::initialize() {
     _tft->setRotation(0);
 
     _sprite->setColorDepth(COLOR_DEPTH);
-    _spriteData = (uint16_t*)_sprite->createSprite(SWIDTH, SHEIGHT);
+    _spriteData = (uint16_t*)_sprite->createSprite(IWIDTH, IHEIGHT);
     _sprite->setTextColor(TFT_WHITE);
     _sprite->setTextDatum(MC_DATUM);
     _sprite->setTextWrap(false, false);
@@ -29,7 +29,7 @@ void ApplicationFramework::initialize() {
 
 void ApplicationFramework::draw() {
     _tft->startWrite();
-    _tft->pushImageDMA(SPAD, SPAD, SWIDTH, SHEIGHT, _spriteData);
+    _tft->pushImageDMA(0, 0, IWIDTH, IHEIGHT, _spriteData);
     _tft->endWrite();
 }
 

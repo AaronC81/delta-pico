@@ -7,7 +7,7 @@ mod c_allocator;
 
 use core::panic::PanicInfo;
 use alloc::{boxed::Box, format, string::{String, ToString}, vec::Vec, vec};
-use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, CalculatedPoint, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility}};
+use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, CalculatedPoint, Glyph, Renderer, Viewport, ViewportGlyph, ViewportPoint, ViewportVisibility}};
 use c_allocator::CAllocator;
 use rust_decimal::prelude::ToPrimitive;
 
@@ -44,6 +44,9 @@ pub struct ApplicationFrameworkInterface {
 
 #[repr(C)]
 pub struct DisplayInterface {
+    width: u64,
+    height: u64,
+
     fill_screen: extern "C" fn(c: u16),
     draw_char: extern "C" fn(x: i64, y: i64, character: u8),
     draw_line: extern "C" fn(x1: i64, y1: i64, x2: i64, y2: i64, c: u16),
@@ -100,8 +103,12 @@ impl Renderer for ApplicationFrameworkInterface {
         (self.display.fill_screen)(0);
     }
 
-    fn draw(&mut self, mut glyph: ViewportGlyph) {
-        debug(format!("{:?}", glyph));
+    fn draw(&mut self, glyph: ViewportGlyph) {
+        // Apply padding
+        let mut glyph = ViewportGlyph {
+            point: glyph.point.dx(PADDING as i64).dy(PADDING as i64),
+            ..glyph
+        };
 
         match glyph.visibility {
             ViewportVisibility::Clipped { invisible, .. } if invisible => return,
@@ -167,6 +174,8 @@ fn debug(info: String) {
     (framework().debug_handler)(message_bytes.as_ptr());
 }
 
+const PADDING: u64 = 10;
+
 #[no_mangle]
 pub extern "C" fn delta_pico_main() {
     debug("Rust main!".into());
@@ -175,7 +184,10 @@ pub extern "C" fn delta_pico_main() {
     let mut rbop_ctx = RbopContext {
         root: UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![] } },
         nav_path: NavPath::new(vec![0]),
-        viewport: Some(Viewport::new(Area::new(220, 300))), // TODO: use C constants here
+        viewport: Some(Viewport::new(Area::new(
+            framework().display.width - PADDING * 2,
+            framework().display.height - PADDING * 2,
+        ))),
     };
 
     loop {
@@ -203,7 +215,10 @@ pub extern "C" fn delta_pico_main() {
             let mut result_chars = result_str.as_bytes().to_vec();
             result_chars.push(0);
 
-            (framework().display.set_cursor)(0, 300 - 30);
+            (framework().display.set_cursor)(
+                0,
+                (framework().display.height - PADDING * 2 - 30) as i64
+            );
             (framework().display.print)(result_chars.as_ptr());
         }
 
