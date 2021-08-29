@@ -7,11 +7,6 @@ extern "C" {
     #include "delta_pico_rust.h"
 }
 
-enum class ButtonEvent {
-    PRESS,
-    RELEASE,
-};
-
 class ButtonMatrix {
 public:
     const int ROWS = 7;

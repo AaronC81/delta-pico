@@ -50,7 +50,7 @@ bool ButtonMatrix::waitForEvent(uint8_t &eventRow, uint8_t &eventCol, ButtonEven
             {
                 // The button has been released!
                 currentlyPressed = false;
-                event = ButtonEvent::RELEASE;
+                event = ButtonEvent::Release;
                 eventRow = currentlyPressedRow;
                 eventCol = currentlyPressedCol;
                 return true;
@@ -73,7 +73,7 @@ bool ButtonMatrix::waitForEvent(uint8_t &eventRow, uint8_t &eventCol, ButtonEven
     {
         // A new button is pressed!
         currentlyPressed = true;
-        event = ButtonEvent::PRESS;
+        event = ButtonEvent::Press;
         currentlyPressedRow = eventRow;
         currentlyPressedCol = eventCol;
         currentlyPressedTime = millis();
