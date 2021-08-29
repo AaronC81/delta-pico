@@ -16,4 +16,4 @@ extern "C" {
 #define IWIDTH  240
 #define IHEIGHT 320
 
-extern const RbopInput buttonMapping[7][7];
+extern const ButtonInput buttonMapping[7][7];

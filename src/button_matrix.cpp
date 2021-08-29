@@ -84,7 +84,7 @@ bool ButtonMatrix::waitForEvent(uint8_t &eventRow, uint8_t &eventCol, ButtonEven
     return false;
 }
 
-bool ButtonMatrix::waitForEventInput(RbopInput &input, ButtonEvent &event) {
+bool ButtonMatrix::waitForEventInput(ButtonInput &input, ButtonEvent &event) {
     uint8_t r, c;
     if (ButtonMatrix::waitForEvent(r, c, event)) {
         input = buttonMapping[r][c];

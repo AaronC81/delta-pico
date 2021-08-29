@@ -24,7 +24,7 @@ public:
     bool getRawButton(uint8_t &pressedRow, uint8_t &pressedCol);
     bool waitForEvent(uint8_t &pressedRow, uint8_t &pressedCol, ButtonEvent &event);
 
-    bool waitForEventInput(RbopInput &input, ButtonEvent &event);
+    bool waitForEventInput(ButtonInput &input, ButtonEvent &event);
 
 protected:
     PCF8574 row, col;

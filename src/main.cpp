@@ -30,7 +30,7 @@ void displayDraw() {
   ApplicationFramework::instance.draw();
 }
 
-bool buttonsPollInputEvent(RbopInput *input, ButtonEvent *event) {
+bool buttonsPollInputEvent(ButtonInput *input, ButtonEvent *event) {
   return ApplicationFramework::instance.buttons().waitForEventInput(*input, *event);
 }
 
