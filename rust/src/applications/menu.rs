@@ -21,6 +21,7 @@ impl Application for MenuApplication {
         (framework().display.fill_screen)(0);
         (framework().display.set_cursor)(0, 0);
         framework().display.print("1: Calculator\n".into());
+        framework().display.print("2: Bootloader\n".into());
         framework().display.print("\n".into());
         framework().display.print("MENU: Close\n".into());
 
@@ -29,6 +30,7 @@ impl Application for MenuApplication {
         if let Some(btn) = framework().buttons.poll_press() {
             match btn {
                 ButtonInput::Digit1 => os().launch_application(0),
+                ButtonInput::Digit2 => os().reboot_into_bootloader(),
                 _ => (),
             }
         }
