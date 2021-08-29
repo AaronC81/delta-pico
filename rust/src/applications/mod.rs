@@ -35,3 +35,4 @@ impl ApplicationList {
 
 pub mod menu;
 pub mod calculator;
+pub mod bootloader;

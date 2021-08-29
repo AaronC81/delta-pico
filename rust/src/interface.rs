@@ -32,8 +32,11 @@ pub struct DisplayInterface {
     pub fill_screen: extern "C" fn(c: u16),
     pub draw_char: extern "C" fn(x: i64, y: i64, character: u8),
     pub draw_line: extern "C" fn(x1: i64, y1: i64, x2: i64, y2: i64, c: u16),
+    pub draw_rect: extern "C" fn(x1: i64, y1: i64, x2: i64, y2: i64, c: u16, fill: bool, radius: u16),
+
     pub print: extern "C" fn(s: *const u8),
     pub set_cursor: extern "C" fn(x: i64, y: i64),
+
     pub draw: extern "C" fn(),
 }
 
@@ -83,6 +86,7 @@ pub enum ButtonInput {
     None,
 
     Menu,
+    Exe,
 
     MoveLeft,
     MoveRight,

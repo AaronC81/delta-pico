@@ -5,7 +5,9 @@ use crate::{interface::ButtonInput, operating_system::os, rbop_impl::{RbopContex
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
-pub struct MenuApplication {}
+pub struct MenuApplication {
+    selected_index: usize,
+}
 
 impl Application for MenuApplication {
     fn info() -> ApplicationInfo {
@@ -15,22 +17,54 @@ impl Application for MenuApplication {
         }
     }
 
-    fn new() -> Self where Self: Sized { Self {} }
+    fn new() -> Self where Self: Sized {
+        Self {
+            selected_index: 0
+        }
+    }
 
     fn tick(&mut self) {
         (framework().display.fill_screen)(0);
-        (framework().display.set_cursor)(0, 0);
-        framework().display.print("1: Calculator\n".into());
-        framework().display.print("2: Bootloader\n".into());
-        framework().display.print("\n".into());
-        framework().display.print("MENU: Close\n".into());
+
+        // Draw heading
+        (framework().display.draw_rect)(
+            0, 0, framework().display.width as i64, 30,
+            crate::graphics::colour::ORANGE, true, 0
+        );
+        (framework().display.set_cursor)(5, 7);
+        framework().display.print("Menu".into());
+
+        // Draw items
+        let mut y = 40;
+        for (i, (app, _)) in os().application_list.applications.iter().enumerate() {
+            if i == self.selected_index {
+                (framework().display.draw_rect)(
+                    5, y, framework().display.width as i64 - 5 * 2, 25,
+                    crate::graphics::colour::BLUE, true, 7
+                );
+            }
+            (framework().display.set_cursor)(10, y + 4);
+            framework().display.print(app.name.clone());
+
+            y += 30;
+        }
 
         (framework().display.draw)();
 
         if let Some(btn) = framework().buttons.poll_press() {
             match btn {
-                ButtonInput::Digit1 => os().launch_application(0),
-                ButtonInput::Digit2 => os().reboot_into_bootloader(),
+                ButtonInput::MoveUp => {
+                    self.selected_index += 1;
+                    self.selected_index %= os().application_list.applications.len();
+                }
+                ButtonInput::MoveDown => {
+                    if self.selected_index == 0 {
+                        self.selected_index = os().application_list.applications.len() - 1;
+                    } else {
+                        self.selected_index -= 1;
+                    }
+                }
+                ButtonInput::Exe => os().launch_application(self.selected_index),
                 _ => (),
             }
         }

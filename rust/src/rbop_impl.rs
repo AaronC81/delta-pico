@@ -59,6 +59,8 @@ impl RbopContext {
                 UnstructuredNodeList { items: vec![] },
             )),
 
+            ButtonInput::Exe => return,
+
             // Handled higher up
             ButtonInput::Menu => panic!("Unhandled MENU keypress"),
         };

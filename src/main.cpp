@@ -18,6 +18,14 @@ void displayDrawChar(int64_t x, int64_t y, uint8_t c) {
     ApplicationFramework::instance.sprite().print((char)c);
 }
 
+void displayDrawRect(int64_t x, int64_t y, int64_t w, int64_t h, uint16_t colour, bool fill, uint16_t radius) {
+  if (fill) {
+    ApplicationFramework::instance.sprite().fillRoundRect(x, y, w, h, radius, colour);
+  } else {
+    ApplicationFramework::instance.sprite().drawRoundRect(x, y, w, h, radius, colour);
+  }
+}
+
 void displayPrint(const uint8_t *s) {
   ApplicationFramework::instance.sprite().print((char*)s);
 }
@@ -60,8 +68,11 @@ auto framework_interface = ApplicationFrameworkInterface {
     .fill_screen = displayFillScreen,
     .draw_char = displayDrawChar,
     .draw_line = displayDrawLine,
+    .draw_rect = displayDrawRect,
+
     .print = displayPrint,
     .set_cursor = displaySetCursor,
+
     .draw = displayDraw,
   },
   .buttons = ButtonsInterface {
