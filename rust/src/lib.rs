@@ -28,7 +28,7 @@ pub fn framework() -> &'static mut ApplicationFrameworkInterface {
 }
 
 #[no_mangle]
-pub extern "C" fn rbop_set_framework(fw: *mut ApplicationFrameworkInterface) {
+pub extern "C" fn delta_pico_set_framework(fw: *mut ApplicationFrameworkInterface) {
     unsafe {
         FRAMEWORK = fw;
     }

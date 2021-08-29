@@ -67,10 +67,11 @@ auto framework_interface = ApplicationFrameworkInterface {
 };
 
 void setup() {
+  // TODO: if serial isn't connected, the entire calculator eventually hangs
   Serial.begin(115200);
 
   ApplicationFramework::instance.initialize();
-  rbop_set_framework(&framework_interface);
+  delta_pico_set_framework(&framework_interface);
 
   ApplicationFramework::instance.sprite().loadFont(DroidSansMono_20_vlw);
 
