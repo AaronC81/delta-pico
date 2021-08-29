@@ -2,7 +2,7 @@ use alloc::{string::{String, ToString}, vec};
 use rbop::{UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 
 use crate::rbop_impl::{RbopContext, PADDING};
-use super::Application;
+use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
 pub struct CalculatorApplication {
@@ -10,8 +10,12 @@ pub struct CalculatorApplication {
 }
 
 impl Application for CalculatorApplication {
-    fn name() -> String { "Calculator".into() }
-    fn visible() -> bool { true }
+    fn info() -> ApplicationInfo {
+        ApplicationInfo {
+            name: "Calculator".into(),
+            visible: true,
+        }
+    }
 
     fn new() -> Self {
         Self {

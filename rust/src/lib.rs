@@ -7,7 +7,7 @@ mod c_allocator;
 
 use core::panic::PanicInfo;
 use alloc::{format, string::{String}, vec::Vec};
-use applications::Application;
+use applications::{Application, ApplicationList};
 use c_allocator::CAllocator;
 
 mod interface;
@@ -40,7 +40,10 @@ fn debug(info: String) {
 pub extern "C" fn delta_pico_main() {
     debug("Rust main!".into());
 
-    let mut app = applications::calculator::CalculatorApplication::new();
+    let mut app_list = ApplicationList::new();
+    app_list.add::<applications::calculator::CalculatorApplication>();
+
+    let mut app = app_list.applications[0].1();
 
     loop {
         app.tick();
