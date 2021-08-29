@@ -106,6 +106,8 @@ pub enum ButtonInput {
     Digit9,
 
     Point,
+    LeftParen,
+    RightParen,
 
     Add,
     Subtract,

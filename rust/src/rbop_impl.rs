@@ -2,6 +2,8 @@ use alloc::{format, vec};
 use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot}, render::{Area, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility}};
 use crate::{debug, interface::{ApplicationFrameworkInterface, ButtonInput, framework}};
 
+use core::cmp::max;
+
 pub const PADDING: u64 = 10;
 
 pub struct RbopContext {
@@ -50,6 +52,9 @@ impl RbopContext {
             ButtonInput::Digit9 => Some(UnstructuredNode::Token(Token::Digit(9))),
     
             ButtonInput::Point => Some(UnstructuredNode::Token(Token::Point)),
+            ButtonInput::LeftParen | ButtonInput::RightParen => Some(UnstructuredNode::Parentheses(
+                UnstructuredNodeList { items: vec![] },
+            )),
     
             ButtonInput::Add => Some(UnstructuredNode::Token(Token::Add)),
             ButtonInput::Subtract => Some(UnstructuredNode::Token(Token::Subtract)),
@@ -71,6 +76,8 @@ impl RbopContext {
     }
 }
 
+const MINIMUM_PAREN_HEIGHT: u64 = 16;
+
 impl Renderer for ApplicationFrameworkInterface {
     fn size(&mut self, glyph: Glyph) -> Area {
         let text_character_size = Area { height: 8 * 2, width: 6 * 2 };
@@ -85,7 +92,10 @@ impl Renderer for ApplicationFrameworkInterface {
             Glyph::Divide => text_character_size,
             Glyph::Fraction { inner_width } => Area { height: 1, width: inner_width },
 
-            _ => unimplemented!(),
+            Glyph::LeftParenthesis { inner_height } => Area { width: 5, height: max(inner_height, MINIMUM_PAREN_HEIGHT) },
+            Glyph::RightParenthesis { inner_height } => Area { width: 5, height: max(inner_height, MINIMUM_PAREN_HEIGHT) },
+
+            Glyph::Sqrt { .. } => unimplemented!(),
         }
     }
 
@@ -144,7 +154,30 @@ impl Renderer for ApplicationFrameworkInterface {
             Glyph::Cursor { height } =>
                 (self.display.draw_line)(point.x, point.y, point.x, point.y + height as i64, 0xFFFF),
 
-            _ => todo!(),
+            Glyph::LeftParenthesis { inner_height } => {
+                let inner_height = max(MINIMUM_PAREN_HEIGHT, inner_height) as i64;
+                
+                (self.display.draw_line)(point.x + 3, point.y, point.x + 3, point.y + 1, 0xFFFF);
+                (self.display.draw_line)(point.x + 2, point.y + 2, point.x + 2, point.y + 6, 0xFFFF);
+
+                (self.display.draw_line)(point.x + 1, point.y + 7, point.x + 1, point.y + inner_height - 8, 0xFFFF);
+
+                (self.display.draw_line)(point.x + 3, point.y + inner_height - 2, point.x + 3, point.y + inner_height - 1, 0xFFFF);
+                (self.display.draw_line)(point.x + 2, point.y + inner_height - 7, point.x + 2, point.y + inner_height - 3, 0xFFFF);
+            }
+            Glyph::RightParenthesis { inner_height } => {
+                let inner_height = max(MINIMUM_PAREN_HEIGHT, inner_height) as i64;
+                
+                (self.display.draw_line)(point.x + 1, point.y, point.x + 1, point.y + 1, 0xFFFF);
+                (self.display.draw_line)(point.x + 2, point.y + 2, point.x + 2, point.y + 6, 0xFFFF);
+
+                (self.display.draw_line)(point.x + 3, point.y + 7, point.x + 3, point.y + inner_height - 8, 0xFFFF);
+
+                (self.display.draw_line)(point.x + 1, point.y + inner_height - 2, point.x + 1, point.y + inner_height - 1, 0xFFFF);
+                (self.display.draw_line)(point.x + 2, point.y + inner_height - 7, point.x + 2, point.y + inner_height - 3, 0xFFFF);
+            }
+
+            Glyph::Sqrt { .. } => unimplemented!(),
         }
     }
 }

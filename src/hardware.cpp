@@ -17,7 +17,7 @@ const ButtonInput buttonMapping[7][7] = {
 #ifdef DELTA_PICO_REV1
 const ButtonInput buttonMapping[7][7] = {
   { I::MoveUp, I::MoveRight, I::Menu, I::None, I::None, I::None, I::None, },
-  { I::MoveLeft, I::MoveDown, I::None, I::None, I::None, I::None, I::None, },
+  { I::MoveLeft, I::MoveDown, I::None, I::LeftParen, I::None, I::None, I::RightParen, },
   { I::Digit7, I::Digit8, I::Digit9, I::Delete, I::None, I::None, I::None, },
   { I::Digit4, I::Digit5, I::Digit6, I::Multiply, I::None, I::None, I::Fraction, },
   { I::None, I::None, I::None, I::None, I::None, I::None, I::None, },
