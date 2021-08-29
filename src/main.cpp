@@ -2,7 +2,7 @@
 
 extern "C" {
   #include <delta_pico_rust.h>
-  #include <DroidSansMono-20.h>
+  #include <DroidSans-20.h>
 }
 
 void displayFillScreen(uint16_t colour) {
@@ -76,7 +76,7 @@ void setup() {
   ApplicationFramework::instance.initialize();
   delta_pico_set_framework(&framework_interface);
 
-  ApplicationFramework::instance.sprite().loadFont(DroidSansMono_20_vlw);
+  ApplicationFramework::instance.sprite().loadFont(DroidSans_20_vlw);
 
   delta_pico_main();
 }
