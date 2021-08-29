@@ -11,10 +11,12 @@ use applications::{Application, ApplicationList};
 use c_allocator::CAllocator;
 
 mod interface;
+mod operating_system;
 mod rbop_impl;
 mod applications;
 
 use interface::framework;
+use operating_system::os;
 
 #[global_allocator]
 static ALLOCATOR: CAllocator = CAllocator;
@@ -40,12 +42,9 @@ fn debug(info: String) {
 pub extern "C" fn delta_pico_main() {
     debug("Rust main!".into());
 
-    let mut app_list = ApplicationList::new();
-    app_list.add::<applications::calculator::CalculatorApplication>();
-
-    let mut app = app_list.applications[0].1();
+    os().application_list.add::<applications::calculator::CalculatorApplication>();
 
     loop {
-        app.tick();
+        os().application_to_tick().tick();
     }
 }

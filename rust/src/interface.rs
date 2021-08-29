@@ -1,3 +1,5 @@
+use alloc::string::String;
+
 static mut FRAMEWORK: *mut ApplicationFrameworkInterface = 0 as *mut _;
 pub fn framework() -> &'static mut ApplicationFrameworkInterface {
     unsafe {
@@ -31,6 +33,14 @@ pub struct DisplayInterface {
     pub print: extern "C" fn(s: *const u8),
     pub set_cursor: extern "C" fn(x: i64, y: i64),
     pub draw: extern "C" fn(),
+}
+
+impl DisplayInterface {
+    pub fn print(&self, s: String) {
+        let mut bytes = s.as_bytes().to_vec();
+        bytes.push(0);
+        (self.print)(bytes.as_ptr())
+    }
 }
 
 #[repr(C)]
