@@ -1,5 +1,7 @@
 use alloc::string::String;
 
+use crate::operating_system::os;
+
 static mut FRAMEWORK: *mut ApplicationFrameworkInterface = 0 as *mut _;
 pub fn framework() -> &'static mut ApplicationFrameworkInterface {
     unsafe {
@@ -62,7 +64,12 @@ impl ButtonsInterface {
         let mut event: ButtonEvent = ButtonEvent::Release;
 
         if (self.poll_input_event)(&mut input as *mut _, &mut event as *mut _) && event == ButtonEvent::Press {
-            Some(input)
+            if input == ButtonInput::Menu {
+                os().toggle_menu();
+                None
+            } else {
+                Some(input)
+            }
         } else {
             None
         }
@@ -71,8 +78,11 @@ impl ButtonsInterface {
 
 /// All possible user inputs.
 #[repr(C)]
+#[derive(PartialEq, Eq)]
 pub enum ButtonInput {
     None,
+
+    Menu,
 
     MoveLeft,
     MoveRight,

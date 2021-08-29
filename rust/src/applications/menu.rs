@@ -1,7 +1,7 @@
 use alloc::{string::{String, ToString}, vec};
 use rbop::{UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 
-use crate::{operating_system::os, rbop_impl::{RbopContext, PADDING}};
+use crate::{interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext, PADDING}};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -18,13 +18,19 @@ impl Application for MenuApplication {
     fn new() -> Self where Self: Sized { Self {} }
 
     fn tick(&mut self) {
+        (framework().display.fill_screen)(0);
         (framework().display.set_cursor)(0, 0);
-        framework().display.print("Press any key".into());
+        framework().display.print("1: Calculator\n".into());
+        framework().display.print("\n".into());
+        framework().display.print("MENU: Close\n".into());
 
         (framework().display.draw)();
 
-        if framework().buttons.poll_press().is_some() {
-            os().launch_application(0);
+        if let Some(btn) = framework().buttons.poll_press() {
+            match btn {
+                ButtonInput::Digit1 => os().launch_application(0),
+                _ => (),
+            }
         }
     }
 }

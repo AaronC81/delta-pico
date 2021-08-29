@@ -58,6 +58,9 @@ impl RbopContext {
                 UnstructuredNodeList { items: vec![] },
                 UnstructuredNodeList { items: vec![] },
             )),
+
+            // Handled higher up
+            ButtonInput::Menu => panic!("Unhandled MENU keypress"),
         };
     
         if let Some(node) = node_to_insert {
