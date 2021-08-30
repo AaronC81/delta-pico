@@ -20,13 +20,11 @@ impl Application for CalculatorApplication {
     fn new() -> Self {
         Self {
             rbop_ctx: RbopContext {
-                root: UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![] } },
-                nav_path: NavPath::new(vec![0]),
                 viewport: Some(Viewport::new(Area::new(
                     framework().display.width - PADDING * 2,
                     framework().display.height - PADDING * 2,
                 ))),
-                input_shift: false,
+                ..RbopContext::new()
             }
         }
     }

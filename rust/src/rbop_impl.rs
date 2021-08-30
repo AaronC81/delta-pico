@@ -15,6 +15,15 @@ pub struct RbopContext {
 }
 
 impl RbopContext {
+    pub fn new() -> RbopContext {
+        RbopContext {
+            root: UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![] } },
+            nav_path: NavPath::new(vec![0]),
+            viewport: None,
+            input_shift: false,
+        }
+    }
+
     pub fn input(&mut self, input: ButtonInput) {
         let renderer = framework();
 
