@@ -110,9 +110,6 @@ impl Application for GraphApplication {
                 if let Ok(this_y) = values[this_x] {
                     let next_y = values[next_x].as_ref().unwrap_or(&this_y);
         
-                    let display_this_y = framework().display.height as i64 + -1 * this_y.to_i64().unwrap();
-                    let display_next_y = framework().display.height as i64 + -1 * next_y.to_i64().unwrap();
-        
                     (framework().display.draw_line)(
                         this_x as i64, self.view_window.y_to_screen(this_y),
                         next_x as i64, self.view_window.y_to_screen(*next_y),
