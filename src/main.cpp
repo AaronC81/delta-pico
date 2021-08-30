@@ -51,7 +51,19 @@ void panicHandler(const uint8_t *message) {
 
   ApplicationFramework::instance.sprite().setCursor(0, 0);
   ApplicationFramework::instance.sprite().println("PANIC!");
-  ApplicationFramework::instance.sprite().println((const char*)message);
+
+  // Chunk the string into 20-character lines
+  String result;
+  uint32_t idx = 0;
+  while (message[idx] != 0) {
+    result.concat((char)message[idx]);
+    idx++;
+    if (idx % 20 == 0) {
+      result.concat("\n");
+    }
+  }
+
+  ApplicationFramework::instance.sprite().println(result.c_str());
   
   ApplicationFramework::instance.draw();
 }
