@@ -2,12 +2,13 @@
 
 extern crate cbindgen;
 
-use std::env;
+use std::{env, process::Command};
 use std::path::PathBuf;
 use cbindgen::{Config, Language};
 
 
 fn main() {
+    // Run cbindgen
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
 
     let output_file = target_dir()
@@ -26,6 +27,23 @@ fn main() {
     cbindgen::generate_with_config(&crate_dir, config)
       .unwrap()
       .write_to_file(&output_file);
+
+    // Set GIT_VERSION environment variable
+    let git_hash_output = Command::new("git")
+        .args(&["rev-parse", "--short", "HEAD"])
+        .output()
+        .unwrap();
+    let git_hash = String::from_utf8(git_hash_output.stdout).unwrap();
+    let git_modified = Command::new("git")
+        .args(&["diff-index", "--quiet", "HEAD"])
+        .status()
+        .unwrap()
+        .code().unwrap() != 0;
+    let git_modified = true;
+
+    let git_version = format!("{}{}", git_hash.trim(), if git_modified { "-modified" } else { "" });
+
+    println!("cargo:rustc-env=GIT_VERSION={}", git_version);
 }
 
 /// Find the location of the `target/` directory. Note that this may be 

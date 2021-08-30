@@ -32,7 +32,7 @@ impl Application for MenuApplication {
             crate::graphics::colour::ORANGE, true, 0
         );
         (framework().display.set_cursor)(5, 7);
-        framework().display.print("Menu".into());
+        framework().display.print("Menu");
 
         // Draw items
         let mut y = 40;
@@ -54,15 +54,15 @@ impl Application for MenuApplication {
         if let Some(btn) = framework().buttons.poll_press() {
             match btn {
                 ButtonInput::MoveUp => {
-                    self.selected_index += 1;
-                    self.selected_index %= os().application_list.applications.len();
-                }
-                ButtonInput::MoveDown => {
                     if self.selected_index == 0 {
                         self.selected_index = os().application_list.applications.len() - 1;
                     } else {
                         self.selected_index -= 1;
                     }
+                }
+                ButtonInput::MoveDown => {
+                    self.selected_index += 1;
+                    self.selected_index %= os().application_list.applications.len();
                 }
                 ButtonInput::Exe => os().launch_application(self.selected_index),
                 _ => (),

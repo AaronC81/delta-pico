@@ -41,8 +41,8 @@ pub struct DisplayInterface {
 }
 
 impl DisplayInterface {
-    pub fn print(&self, s: String) {
-        let mut bytes = s.as_bytes().to_vec();
+    pub fn print(&self, s: impl Into<String>) {
+        let mut bytes = s.into().as_bytes().to_vec();
         bytes.push(0);
         (self.print)(bytes.as_ptr())
     }
