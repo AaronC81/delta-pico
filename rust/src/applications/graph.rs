@@ -78,6 +78,7 @@ impl ViewWindow {
 pub struct GraphApplication {
     rbop_ctx: RbopContext,
     view_window: ViewWindow,
+    edit_mode: bool,
 }
 
 impl Application for GraphApplication {
@@ -98,6 +99,7 @@ impl Application for GraphApplication {
                 ..RbopContext::new()
             },
             view_window: ViewWindow::new(),
+            edit_mode: true,
         }
     }
 
@@ -149,7 +151,20 @@ impl Application for GraphApplication {
 
         // Poll for input
         if let Some(input) = framework().buttons.poll_press() {
-            self.rbop_ctx.input(input);
+            if input == ButtonInput::Exe {
+                self.edit_mode = !self.edit_mode;        
+            } else if self.edit_mode {
+                self.rbop_ctx.input(input);
+            } else {
+                match input {
+                    ButtonInput::MoveLeft => self.view_window.pan_x += Decimal::TEN,
+                    ButtonInput::MoveRight => self.view_window.pan_x -= Decimal::TEN,
+                    ButtonInput::MoveUp => self.view_window.pan_y -= Decimal::TEN,
+                    ButtonInput::MoveDown => self.view_window.pan_y += Decimal::TEN,
+
+                    _ => (),
+                }
+            }
         }
     }
 }
