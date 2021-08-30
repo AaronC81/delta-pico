@@ -87,6 +87,7 @@ pub enum ButtonInput {
 
     Menu,
     Exe,
+    Shift,
 
     MoveLeft,
     MoveRight,

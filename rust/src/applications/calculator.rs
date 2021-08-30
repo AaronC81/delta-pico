@@ -26,6 +26,7 @@ impl Application for CalculatorApplication {
                     framework().display.width - PADDING * 2,
                     framework().display.height - PADDING * 2,
                 ))),
+                input_shift: false,
             }
         }
     }
