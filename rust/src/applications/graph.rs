@@ -24,6 +24,13 @@ impl ViewWindow {
         }
     }
 
+    fn axis_screen_coords(&self) -> (i64, i64) {
+        (
+            self.x_to_screen(Decimal::ZERO),
+            self.y_to_screen(Decimal::ZERO)
+        )
+    }
+
     /// Returns the X values which can currently be seen on the screen. The
     /// vector contains one value per X pixel; to calculate all necessary graph
     /// values, iterate over these.
@@ -38,6 +45,19 @@ impl ViewWindow {
         (0..framework().display.width)
             .map(|i| x_start + Decimal::from_u64(i).unwrap() * x_delta)
             .collect::<Vec<_>>()
+    }
+
+    /// Given a X value in the graph space, returns a X value on the screen.
+    fn x_to_screen(&self, mut x: Decimal) -> i64 {
+        // Apply scale
+        x *= self.scale_x;
+
+        // Apply user-specified pan
+        x += self.pan_x;
+
+        // Squash into an integer, and pan so that (0, 0) is in the middle of
+        // the screen
+        x.to_i64().unwrap() + framework().display.width as i64 / 2
     }
 
     /// Given a Y value in the graph space, returns a Y value on the screen.
@@ -90,6 +110,11 @@ impl Application for GraphApplication {
             Some(&mut self.rbop_ctx.nav_path.to_navigator()),
             self.rbop_ctx.viewport.as_ref(),
         );
+
+        // Draw axes
+        let (x_axis, y_axis) = self.view_window.axis_screen_coords();
+        (framework().display.draw_line)(x_axis, 0, x_axis, framework().display.height as i64, colour::BLUE);
+        (framework().display.draw_line)(0, y_axis, framework().display.width as i64, y_axis, colour::BLUE);
 
         // Upgrade, substitute, and draw graph
         if let Ok(sn) = self.rbop_ctx.root.upgrade() {
