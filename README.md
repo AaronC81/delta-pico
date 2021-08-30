@@ -45,3 +45,6 @@ The KiCad files for the Delta Pico hardware can be found in the `cad` directory.
 There is one error with the first hardware revision; a missing trace in the
 button matrix, between the down arrow button and diode D8. This can be easily
 fixed with a small piece of wire:
+
+![A small piece of wire between the down arrow button and diode
+D8.](img/wire-fix.png)
