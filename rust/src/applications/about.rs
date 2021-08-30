@@ -1,7 +1,7 @@
 use alloc::{format, string::{String, ToString}, vec};
 use rbop::{UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 
-use crate::{interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext, PADDING}};
+use crate::{interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 use crate::graphics::colour;

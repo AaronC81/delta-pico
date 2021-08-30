@@ -2,10 +2,12 @@ use alloc::{format, string::{String, ToString}, vec::{self, Vec}};
 use rbop::{StructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 use rust_decimal::{Decimal, prelude::{FromPrimitive, ToPrimitive}};
 
-use crate::{interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext, PADDING}};
+use crate::{interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 use crate::graphics::colour;
+
+const PADDING: u64 = 10;
 
 pub struct ViewWindow {
     pan_x: Decimal,

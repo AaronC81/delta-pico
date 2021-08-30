@@ -1,10 +1,8 @@
 use alloc::{format, vec};
-use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot}, render::{Area, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility}};
+use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot}, render::{Area, CalculatedPoint, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility}};
 use crate::{debug, interface::{ApplicationFrameworkInterface, ButtonInput, framework}};
 
 use core::cmp::max;
-
-pub const PADDING: u64 = 10;
 
 pub struct RbopContext {
     pub root: UnstructuredNodeRoot,
@@ -145,7 +143,7 @@ impl Renderer for ApplicationFrameworkInterface {
     fn draw(&mut self, glyph: ViewportGlyph) {
         // Apply padding
         let mut glyph = ViewportGlyph {
-            point: glyph.point.dx(PADDING as i64).dy(PADDING as i64),
+            point: glyph.point.dx(self.rbop_location_x as i64).dy(self.rbop_location_x as i64),
             ..glyph
         };
 

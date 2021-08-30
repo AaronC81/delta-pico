@@ -1,4 +1,5 @@
 use alloc::string::String;
+use rbop::render::CalculatedPoint;
 
 use crate::operating_system::os;
 
@@ -22,6 +23,10 @@ pub struct ApplicationFrameworkInterface {
     pub debug_handler: extern "C" fn(*const u8) -> (),
     pub display: DisplayInterface,
     pub buttons: ButtonsInterface,
+
+    // Bit of a hack to have these here... ah well
+    pub rbop_location_x: u64,
+    pub rbop_location_y: u64,
 }
 
 #[repr(C)]
