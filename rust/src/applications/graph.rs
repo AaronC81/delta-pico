@@ -95,7 +95,7 @@ impl Application for GraphApplication {
         Self {
             rbop_ctx: RbopContext {
                 viewport: Some(Viewport::new(Area::new(
-                    framework().display.width - PADDING * 2,
+                    framework().display.width - PADDING * 2 - 30,
                     framework().display.height - PADDING * 2,
                 ))),
                 ..RbopContext::new()
@@ -107,43 +107,56 @@ impl Application for GraphApplication {
 
     fn tick(&mut self) {
         (framework().display.fill_screen)(colour::BLACK);
-        
-        // Draw rbop input
-        framework().draw_all(
-            &self.rbop_ctx.root, 
-            Some(&mut self.rbop_ctx.nav_path.to_navigator()),
-            self.rbop_ctx.viewport.as_ref(),
-        );
 
-        // Draw axes
-        let (x_axis, y_axis) = self.view_window.axis_screen_coords();
-        (framework().display.draw_line)(x_axis, 0, x_axis, framework().display.height as i64, colour::BLUE);
-        (framework().display.draw_line)(0, y_axis, framework().display.width as i64, y_axis, colour::BLUE);
+        if self.edit_mode {
+            os().ui_draw_title("Graph");
 
-        // Upgrade, substitute, and draw graph
-        if let Ok(sn) = self.rbop_ctx.root.upgrade() {
-            let func = |x| {
-                let sn_clone = sn.substitute_variable(
-                    'x',
-                    &StructuredNode::Number(x)
-                );
-                sn_clone.evaluate()
-            };
-            let values = self.view_window.x_coords_on_screen()
-                .iter().map(|i| func(*i)).collect::<Vec<_>>();
-    
-            for this_x in 0..(values.len() - 1) {
-                let next_x = this_x + 1;
+            // Draw rbop input
+            framework().rbop_location_x = PADDING + 30;
+            framework().rbop_location_y = PADDING + 30;
+            let block = framework().draw_all(
+                &self.rbop_ctx.root, 
+                Some(&mut self.rbop_ctx.nav_path.to_navigator()),
+                self.rbop_ctx.viewport.as_ref(),
+            );
 
-                values[this_x].as_ref().unwrap();
-                if let Ok(this_y) = values[this_x] {
-                    let next_y = values[next_x].as_ref().unwrap_or(&this_y);
-        
-                    (framework().display.draw_line)(
-                        this_x as i64, self.view_window.y_to_screen(this_y),
-                        next_x as i64, self.view_window.y_to_screen(*next_y),
-                        colour::WHITE
+            // Draw "y="
+            (framework().display.set_cursor)(PADDING as i64, PADDING as i64 + 30 + block.baseline as i64 - 8);
+            framework().display.print("y=");
+
+            (framework().display.set_cursor)(23, 290);
+            framework().display.print("EXE: Toggle edit/view");
+        } else {
+            // Draw axes
+            let (x_axis, y_axis) = self.view_window.axis_screen_coords();
+            (framework().display.draw_line)(x_axis, 0, x_axis, framework().display.height as i64, colour::BLUE);
+            (framework().display.draw_line)(0, y_axis, framework().display.width as i64, y_axis, colour::BLUE);
+
+            // Upgrade, substitute, and draw graph
+            if let Ok(sn) = self.rbop_ctx.root.upgrade() {
+                let func = |x| {
+                    let sn_clone = sn.substitute_variable(
+                        'x',
+                        &StructuredNode::Number(x)
                     );
+                    sn_clone.evaluate()
+                };
+                let values = self.view_window.x_coords_on_screen()
+                    .iter().map(|i| func(*i)).collect::<Vec<_>>();
+        
+                for this_x in 0..(values.len() - 1) {
+                    let next_x = this_x + 1;
+
+                    values[this_x].as_ref().unwrap();
+                    if let Ok(this_y) = values[this_x] {
+                        let next_y = values[next_x].as_ref().unwrap_or(&this_y);
+            
+                        (framework().display.draw_line)(
+                            this_x as i64, self.view_window.y_to_screen(this_y),
+                            next_x as i64, self.view_window.y_to_screen(*next_y),
+                            colour::WHITE
+                        );
+                    }
                 }
             }
         }

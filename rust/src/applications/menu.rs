@@ -25,14 +25,7 @@ impl Application for MenuApplication {
 
     fn tick(&mut self) {
         (framework().display.fill_screen)(0);
-
-        // Draw heading
-        (framework().display.draw_rect)(
-            0, 0, framework().display.width as i64, 30,
-            crate::graphics::colour::ORANGE, true, 0
-        );
-        (framework().display.set_cursor)(5, 7);
-        framework().display.print("Menu");
+        os().ui_draw_title("Menu");
 
         // Draw items
         let mut y = 40;

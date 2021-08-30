@@ -1,7 +1,7 @@
-use alloc::{boxed::Box, vec};
+use alloc::{boxed::Box, string::String, vec};
 use core::mem;
 
-use crate::applications::{Application, ApplicationList, menu::MenuApplication};
+use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, interface::framework};
 
 static mut OPERATING_SYSTEM_INTERFACE: Option<OperatingSystemInterface> = None;
 pub fn os() -> &'static mut OperatingSystemInterface {
@@ -69,5 +69,14 @@ impl OperatingSystemInterface {
             usb_boot_fn(0, 0);
         }
         panic!("failed to access bootloader")
+    }
+
+    pub fn ui_draw_title(&mut self, s: impl Into<String>) {
+        (framework().display.draw_rect)(
+            0, 0, framework().display.width as i64, 30,
+            crate::graphics::colour::ORANGE, true, 0
+        );
+        (framework().display.set_cursor)(5, 7);
+        framework().display.print(s);
     }
 }
