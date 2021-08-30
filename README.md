@@ -8,7 +8,7 @@ components of the calculator, such as its display and the Pico, are also beside
 it.](img/table.jpg)
 
 A follow-on project from my [Delta
-Zero](https://github.com/AaronC81/delta-zero), this calculator is much larger
+M0](https://github.com/AaronC81/delta-m0), this calculator is much larger
 and significantly more capable, with a 2.8" 240x320 colour display and 30 keys.
 
 The Delta Pico is powered by the [rbop](https://github.com/AaronC81/rbop)
