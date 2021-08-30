@@ -43,9 +43,11 @@ bool buttonsPollInputEvent(ButtonInput *input, ButtonEvent *event) {
 }
 
 void panicHandler(const uint8_t *message) {
-  Serial.println("=== PANIC ===");
-  Serial.println((char*)message);
-  Serial.println("=== PANIC ===");
+  // if (Serial.available()) {
+  //   Serial.println("=== PANIC ===");
+  //   Serial.println((char*)message);
+  //   Serial.println("=== PANIC ===");
+  // }
 
   ApplicationFramework::instance.sprite().setCursor(0, 0);
   ApplicationFramework::instance.sprite().println("PANIC!");
@@ -55,7 +57,9 @@ void panicHandler(const uint8_t *message) {
 }
 
 void debugHandler(const uint8_t *message) {
-  Serial.println((const char*)message);
+  // if (Serial.available()) {
+  //   Serial.println((const char*)message);
+  // }
 }
 
 auto framework_interface = ApplicationFrameworkInterface {
