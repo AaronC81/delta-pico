@@ -38,9 +38,9 @@ impl ViewWindow {
         // Delta between X pixels is 1 / scale
         let x_delta = Decimal::ONE / self.scale_x;
 
-        let x_start = Decimal::from_i64(
+        let x_start = (Decimal::from_i64(
             framework().display.width as i64 / -2
-        ).unwrap() + self.pan_x;
+        ).unwrap() - self.pan_x) * x_delta;
 
         (0..framework().display.width)
             .map(|i| x_start + Decimal::from_u64(i).unwrap() * x_delta)
