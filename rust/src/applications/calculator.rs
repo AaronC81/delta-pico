@@ -1,7 +1,7 @@
 use alloc::{string::{String, ToString}, vec};
 use rbop::{UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, CalculatedPoint, Renderer, Viewport}};
 
-use crate::rbop_impl::{RbopContext};
+use crate::{graphics::colour, rbop_impl::{RbopContext}};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -32,6 +32,9 @@ impl Application for CalculatorApplication {
     }
 
     fn tick(&mut self) {
+        // Clear screen
+        (framework().display.fill_screen)(colour::BLACK);
+        
         // Draw
         framework().rbop_location_x = PADDING;
         framework().rbop_location_y = PADDING;
