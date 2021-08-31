@@ -118,7 +118,7 @@ impl Renderer for ApplicationFrameworkInterface {
         let text_character_size = Area { height: 8 * 2, width: 6 * 2 };
 
         match glyph {
-            Glyph::Cursor { height } => Area { height, width: 1 },
+            Glyph::Cursor { height } => Area { height, width: 0 },
             Glyph::Digit { .. } => text_character_size,
             Glyph::Variable { .. } => text_character_size,
 
