@@ -81,7 +81,7 @@ impl OperatingSystemInterface {
         framework().display.print(s);
     }
 
-    pub fn ui_open_menu(&mut self, items: &[String]) -> usize {
+    pub fn ui_open_menu(&mut self, items: &[String], can_close: bool) -> Option<usize> {
         const ITEM_GAP: i64 = 30;
         let mut selected_index = 0;
 
@@ -121,7 +121,8 @@ impl OperatingSystemInterface {
                         selected_index += 1;
                         selected_index %= items.len();
                     }
-                    ButtonInput::Exe => return selected_index,
+                    ButtonInput::Exe => return Some(selected_index),
+                    ButtonInput::List if can_close => return None,
                     _ => (),
                 }
             }
