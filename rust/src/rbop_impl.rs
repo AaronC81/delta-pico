@@ -122,7 +122,7 @@ impl Renderer for ApplicationFrameworkInterface {
             Glyph::Digit { .. } => text_character_size,
             Glyph::Variable { .. } => text_character_size,
 
-            Glyph::Point => text_character_size,
+            Glyph::Point => Area { width: text_character_size.width / 2, ..text_character_size },
             Glyph::Add => text_character_size,
             Glyph::Subtract => text_character_size,
             Glyph::Multiply => text_character_size,
