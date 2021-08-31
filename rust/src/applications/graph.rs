@@ -1,4 +1,4 @@
-use alloc::{format, string::{String, ToString}, vec::{self, Vec}};
+use alloc::{format, string::{String, ToString}, vec, vec::{Vec}};
 use rbop::{StructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 use rust_decimal::{Decimal, prelude::{FromPrimitive, ToPrimitive}};
 
@@ -106,6 +106,32 @@ impl Application for GraphApplication {
     }
 
     fn tick(&mut self) {
+        self.draw();
+
+        // Poll for input
+        if let Some(input) = framework().buttons.poll_press() {
+            if input == ButtonInput::Exe {
+                self.edit_mode = !self.edit_mode;        
+            } else if self.edit_mode {
+                self.rbop_ctx.input(input);
+            } else {
+                match input {
+                    ButtonInput::MoveLeft => self.view_window.pan_x += Decimal::TEN,
+                    ButtonInput::MoveRight => self.view_window.pan_x -= Decimal::TEN,
+                    ButtonInput::MoveUp => self.view_window.pan_y -= Decimal::TEN,
+                    ButtonInput::MoveDown => self.view_window.pan_y += Decimal::TEN,
+
+                    ButtonInput::List => self.open_menu(),
+
+                    _ => (),
+                }
+            }
+        }
+    }
+}
+
+impl GraphApplication {
+    fn draw(&mut self) {
         (framework().display.fill_screen)(colour::BLACK);
 
         if self.edit_mode {
@@ -163,23 +189,51 @@ impl Application for GraphApplication {
 
         // Push to screen
         (framework().display.draw)();
+    }
 
-        // Poll for input
-        if let Some(input) = framework().buttons.poll_press() {
-            if input == ButtonInput::Exe {
-                self.edit_mode = !self.edit_mode;        
-            } else if self.edit_mode {
-                self.rbop_ctx.input(input);
-            } else {
-                match input {
-                    ButtonInput::MoveLeft => self.view_window.pan_x += Decimal::TEN,
-                    ButtonInput::MoveRight => self.view_window.pan_x -= Decimal::TEN,
-                    ButtonInput::MoveUp => self.view_window.pan_y -= Decimal::TEN,
-                    ButtonInput::MoveDown => self.view_window.pan_y += Decimal::TEN,
+    fn open_menu(&mut self) {
+        let idx = os().ui_open_menu(&vec![
+            "View window".into(),
+        ], true);
+        self.draw();
 
-                    _ => (),
+        match idx {
+            Some(0) => {
+                let idx = os().ui_open_menu(&vec![
+                    "X scale".into(),
+                    "Y scale".into(),
+                ], true);
+                self.draw();
+
+                match idx {
+                    Some(0) => {
+                        self.view_window.scale_x = os().ui_input_expression(
+                            "X scale:",
+                            |n| n
+                                .upgrade()
+                                .map_err(|e| format!("{:?}", e))
+                                .and_then(|sn| sn
+                                    .evaluate()
+                                    .map_err(|e| format!("{:?}", e)))
+                        )
+                    }
+                    Some(1) => {
+                        self.view_window.scale_y = os().ui_input_expression(
+                            "Y scale:",
+                            |n| n
+                                .upgrade()
+                                .map_err(|e| format!("{:?}", e))
+                                .and_then(|sn| sn
+                                    .evaluate()
+                                    .map_err(|e| format!("{:?}", e)))
+                        )
+                    }
+                    None => (),
+                    _ => unreachable!()
                 }
-            }
+            },
+            None => (),
+            _ => unreachable!()
         }
     }
 }
