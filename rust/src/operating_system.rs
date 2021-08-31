@@ -1,7 +1,8 @@
 use alloc::{boxed::Box, string::String, vec};
+use rbop::{UnstructuredNode, node::unstructured::UnstructuredNodeRoot, render::{Area, Renderer, Viewport}};
 use core::mem;
 
-use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, graphics::colour, interface::{ButtonInput, framework}};
+use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, graphics::colour, interface::{ButtonInput, framework}, rbop_impl::RbopContext};
 
 static mut OPERATING_SYSTEM_INTERFACE: Option<OperatingSystemInterface> = None;
 pub fn os() -> &'static mut OperatingSystemInterface {
@@ -122,6 +123,68 @@ impl OperatingSystemInterface {
                     }
                     ButtonInput::Exe => return selected_index,
                     _ => (),
+                }
+            }
+        }
+    }
+
+    pub fn ui_input_expression<R>(
+        &mut self,
+        title: impl Into<String>,
+        transformer: impl Fn(UnstructuredNodeRoot) -> Result<R, String>,
+    ) -> R {
+        const PADDING: u64 = 10;
+        
+        let mut rbop_ctx = RbopContext {
+            viewport: Some(Viewport::new(Area::new(
+                framework().display.width - PADDING * 2,
+                framework().display.height - PADDING * 2,
+            ))),
+            ..RbopContext::new()
+        };
+
+        let title = title.into();
+        
+        loop {
+            // Calculate layout in advance so we know height
+            let layout = framework().layout(
+                &rbop_ctx.root,
+                Some(&mut rbop_ctx.nav_path.to_navigator()),
+            );
+
+            // Draw background
+            let y = framework().display.height
+                - layout.area(framework()).height
+                - 30
+                - PADDING * 2;
+            (framework().display.draw_rect)(0, y as i64, 240, 400, colour::GREY, true, 10);
+            (framework().display.draw_rect)(0, y as i64, 240, 400, colour::WHITE, false, 10);      
+            
+            // Draw title
+            (framework().display.set_cursor)(PADDING as i64, (y + PADDING) as i64);
+            framework().display.print(title.clone());
+
+            // Draw expression
+            framework().rbop_location_x = PADDING;
+            framework().rbop_location_y = y + 30 + PADDING;
+            framework().draw_all(
+                &rbop_ctx.root, 
+                Some(&mut rbop_ctx.nav_path.to_navigator()),
+                rbop_ctx.viewport.as_ref(),
+            );
+
+            // Push to screen
+            (framework().display.draw)();
+
+            // Poll for input
+            if let Some(input) = framework().buttons.poll_press() {
+                if ButtonInput::Exe == input {
+                    match transformer(rbop_ctx.root) {
+                        Ok(result) => return result,
+                        Err(_) => todo!() // TODO: error dialog
+                    }
+                } else {
+                    rbop_ctx.input(input);
                 }
             }
         }
