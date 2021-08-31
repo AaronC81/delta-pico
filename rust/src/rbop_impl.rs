@@ -75,6 +75,7 @@ impl RbopContext {
                 )),
 
                 ButtonInput::Exe => return,
+                ButtonInput::List => return,
                 ButtonInput::Shift => {
                     self.input_shift = true;
                     None
