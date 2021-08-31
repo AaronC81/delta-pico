@@ -190,4 +190,31 @@ impl OperatingSystemInterface {
             }
         }
     }
+
+    pub fn ui_text_dialog(&mut self, s: impl Into<String>) {
+        const H_PADDING: i64 = 30;
+        const H_INNER_PADDING: i64 = 10;
+        const V_PADDING: i64 = 10;
+        let w = framework().display.width as i64 - H_PADDING * 2;
+        let (lines, ch, h) = framework().display.wrap_text(s, w - H_INNER_PADDING * 2);
+        let y_start = (framework().display.height as i64 - h) / 2;
+
+        (framework().display.draw_rect)(
+            H_PADDING, y_start,
+            w, h + V_PADDING * 2,
+            colour::GREY, true, 10
+        );
+        (framework().display.draw_rect)(
+            H_PADDING, y_start,
+            w, h + V_PADDING * 2,
+            colour::WHITE, false, 10
+        );
+        
+        for (i, line) in lines.iter().enumerate() {
+            (framework().display.set_cursor)(H_PADDING + H_INNER_PADDING, y_start + V_PADDING + ch * i as i64);
+            framework().display.print(line);
+        }
+
+        // TODO: input
+    }
 }

@@ -34,6 +34,11 @@ void displaySetCursor(int64_t x, int64_t y) {
   ApplicationFramework::instance.sprite().setCursor(x, y);
 }
 
+void displayGetCursor(int64_t *x, int64_t *y) {
+  *x = ApplicationFramework::instance.sprite().getCursorX();
+  *y = ApplicationFramework::instance.sprite().getCursorY();
+}
+
 void displayDraw() {
   ApplicationFramework::instance.draw();
 }
@@ -88,6 +93,7 @@ auto framework_interface = ApplicationFrameworkInterface {
 
     .print = displayPrint,
     .set_cursor = displaySetCursor,
+    .get_cursor = displayGetCursor,
 
     .draw = displayDraw,
   },
