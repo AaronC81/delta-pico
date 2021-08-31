@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, string::String, vec};
 use core::mem;
 
-use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, interface::framework};
+use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, graphics::colour, interface::{ButtonInput, framework}};
 
 static mut OPERATING_SYSTEM_INTERFACE: Option<OperatingSystemInterface> = None;
 pub fn os() -> &'static mut OperatingSystemInterface {
@@ -78,5 +78,52 @@ impl OperatingSystemInterface {
         );
         (framework().display.set_cursor)(5, 7);
         framework().display.print(s);
+    }
+
+    pub fn ui_open_menu(&mut self, items: &[String]) -> usize {
+        const ITEM_GAP: i64 = 30;
+        let mut selected_index = 0;
+
+        loop {
+            // Draw background
+            let mut y = (framework().display.height as i64 - ITEM_GAP * items.len() as i64 - 10) as i64;
+            (framework().display.draw_rect)(0, y, 240, 400, colour::GREY, true, 10);
+            (framework().display.draw_rect)(0, y, 240, 400, colour::WHITE, false, 10);
+
+            // Draw items
+            y += 10;
+            for (i, item) in items.iter().enumerate() {
+                if i == selected_index {
+                    (framework().display.draw_rect)(
+                        5, y, framework().display.width as i64 - 5 * 2, 25,
+                        crate::graphics::colour::BLUE, true, 7
+                    );
+                }
+                (framework().display.set_cursor)(10, y as i64 + 4);
+                framework().display.print(item);
+
+                y += ITEM_GAP;
+            }
+
+            (framework().display.draw)();
+
+            if let Some(btn) = framework().buttons.poll_press() {
+                match btn {
+                    ButtonInput::MoveUp => {
+                        if selected_index == 0 {
+                            selected_index = items.len() - 1;
+                        } else {
+                            selected_index -= 1;
+                        }
+                    }
+                    ButtonInput::MoveDown => {
+                        selected_index += 1;
+                        selected_index %= items.len();
+                    }
+                    ButtonInput::Exe => return selected_index,
+                    _ => (),
+                }
+            }
+        }
     }
 }
