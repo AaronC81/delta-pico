@@ -129,11 +129,7 @@ impl OperatingSystemInterface {
         }
     }
 
-    pub fn ui_input_expression<R>(
-        &mut self,
-        title: impl Into<String>,
-        transformer: impl Fn(UnstructuredNodeRoot) -> Result<R, String>,
-    ) -> R {
+    pub fn ui_input_expression(&mut self, title: impl Into<String>, root: Option<UnstructuredNodeRoot>) -> UnstructuredNodeRoot {
         const PADDING: u64 = 10;
         
         let mut rbop_ctx = RbopContext {
@@ -143,6 +139,10 @@ impl OperatingSystemInterface {
             ))),
             ..RbopContext::new()
         };
+
+        if let Some(unr) = root {
+            rbop_ctx.root = unr;
+        }
 
         let title = title.into();
         
@@ -180,10 +180,7 @@ impl OperatingSystemInterface {
             // Poll for input
             if let Some(input) = framework().buttons.poll_press() {
                 if ButtonInput::Exe == input {
-                    match transformer(rbop_ctx.root) {
-                        Ok(result) => return result,
-                        Err(_) => todo!() // TODO: error dialog
-                    }
+                    return rbop_ctx.root;
                 } else {
                     rbop_ctx.input(input);
                 }
@@ -215,6 +212,16 @@ impl OperatingSystemInterface {
             framework().display.print(line);
         }
 
-        // TODO: input
+        // Push to screen
+        (framework().display.draw)();
+
+        // Poll for input
+        loop {
+            if let Some(input) = framework().buttons.poll_press() {
+                if ButtonInput::Exe == input {
+                    break;
+                }
+            }
+        }
     }
 }

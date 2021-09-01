@@ -26,7 +26,6 @@ impl Application for MenuApplication {
     fn tick(&mut self) {
         (framework().display.fill_screen)(0);
         os().ui_draw_title("Menu");
-        os().ui_text_dialog("here is some text which will hopefully wrap");
 
         // Draw items
         let mut y = 40;
