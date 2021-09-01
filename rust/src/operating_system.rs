@@ -1,5 +1,6 @@
-use alloc::{boxed::Box, string::String, vec};
-use rbop::{UnstructuredNode, node::unstructured::UnstructuredNodeRoot, render::{Area, Renderer, Viewport}};
+use alloc::{boxed::Box, format, string::String, vec};
+use rbop::{UnstructuredNode, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
+use rust_decimal::Decimal;
 use core::mem;
 
 use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, graphics::colour, interface::{ButtonInput, framework}, rbop_impl::RbopContext};
@@ -183,6 +184,37 @@ impl OperatingSystemInterface {
                     return rbop_ctx.root;
                 } else {
                     rbop_ctx.input(input);
+                }
+            }
+        }
+    }
+
+    pub fn ui_input_expression_and_evaluate(
+        &mut self,
+        title: impl Into<String>,
+        root: Option<UnstructuredNodeRoot>,
+        mut redraw: impl FnMut(),
+    ) -> Decimal {
+        let title = title.into();
+        let mut unr = root;
+        loop {
+            redraw();
+            unr = Some(os().ui_input_expression(title.clone(), unr));
+            match unr
+                .as_ref()
+                .unwrap()
+                .upgrade()
+                .map_err(|e| format!("{:?}", e))
+                .and_then(|sn| sn
+                    .evaluate()
+                    .map_err(|e| format!("{:?}", e))) {
+                
+                Ok(d) => {
+                    return d;
+                }
+                Err(s) => {
+                    redraw();
+                    os().ui_text_dialog(s);
                 }
             }
         }

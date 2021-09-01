@@ -206,54 +206,18 @@ impl GraphApplication {
 
                 match idx {
                     Some(0) => {
-                        let mut unr = None;
-                        loop {
-                            self.draw();
-                            unr = Some(os().ui_input_expression("X scale:", unr));
-                            match unr
-                                .as_ref()
-                                .unwrap()
-                                .upgrade()
-                                .map_err(|e| format!("{:?}", e))
-                                .and_then(|sn| sn
-                                    .evaluate()
-                                    .map_err(|e| format!("{:?}", e))) {
-                                
-                                Ok(d) => {
-                                    self.view_window.scale_x = d;
-                                    break;
-                                }
-                                Err(s) => {
-                                    self.draw();
-                                    os().ui_text_dialog(s);
-                                }
-                            }
-                        }
+                        self.view_window.scale_x = os().ui_input_expression_and_evaluate(
+                            "X scale:",
+                            None,
+                            || self.draw(),
+                        );
                     }
                     Some(1) => {
-                        let mut unr = None;
-                        loop {
-                            self.draw();
-                            unr = Some(os().ui_input_expression("Y scale:", unr));
-                            match unr
-                                .as_ref()
-                                .unwrap()
-                                .upgrade()
-                                .map_err(|e| format!("{:?}", e))
-                                .and_then(|sn| sn
-                                    .evaluate()
-                                    .map_err(|e| format!("{:?}", e))) {
-                                
-                                Ok(d) => {
-                                    self.view_window.scale_y = d;
-                                    break;
-                                }
-                                Err(s) => {
-                                    self.draw();
-                                    os().ui_text_dialog(s);
-                                }
-                            }
-                        }
+                        self.view_window.scale_y = os().ui_input_expression_and_evaluate(
+                            "Y scale:",
+                            None,
+                            || self.draw(),
+                        );
                     }
                     None => (),
                     _ => unreachable!()
