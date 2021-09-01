@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, format, string::String, vec};
 use rbop::{UnstructuredNode, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 use rust_decimal::Decimal;
-use core::mem;
+use core::{cmp::max, mem};
 
 use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, graphics::colour, interface::{ButtonInput, framework}, rbop_impl::RbopContext};
 
@@ -161,6 +161,10 @@ impl OperatingSystemInterface {
         }
 
         let title = title.into();
+
+        // Don't let the box get any shorter than the maximum height it has achieved, or you'll get
+        // ghost boxes if the height reduces since we don't redraw the whole frame
+        let mut minimum_height = 0;
         
         loop {
             // Calculate layout in advance so we know height
@@ -168,10 +172,15 @@ impl OperatingSystemInterface {
                 &rbop_ctx.root,
                 Some(&mut rbop_ctx.nav_path.to_navigator()),
             );
+            let height = max(layout.area(framework()).height, minimum_height);
+
+            if height > minimum_height {
+                minimum_height = height;
+            }
 
             // Draw background
             let y = framework().display.height
-                - layout.area(framework()).height
+                - height
                 - 30
                 - PADDING * 2;
             (framework().display.draw_rect)(0, y as i64, 240, 400, colour::GREY, true, 10);
