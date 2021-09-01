@@ -28,11 +28,15 @@ pub struct OperatingSystemInterface {
 }
 
 impl OperatingSystemInterface {
+    /// Replaces the currently-running application with a new instance of the application at `index`
+    /// in `application_list`.
     pub fn launch_application(&mut self, index: usize) {
         self.showing_menu = false;
         self.active_application = Some(self.application_list.applications[index].1());
     }
 
+    /// Returns a reference to the application which should be ticked. This is typically the running
+    /// application, unless showing the menu, in which case it is the menu application itself.
     pub fn application_to_tick(&mut self) -> &mut dyn Application {
         if self.showing_menu {
             &mut self.menu
@@ -43,10 +47,13 @@ impl OperatingSystemInterface {
         }
     }
 
+    /// Toggles whether the global menu is currently being shown.
     pub fn toggle_menu(&mut self) {
         self.showing_menu = !self.showing_menu;
     }
 
+    /// Reboots the Raspberry Pi Pico into its bootloader. This halts the software and cannot be
+    /// exited without a power cycle.
     pub fn reboot_into_bootloader(&mut self) -> ! {
         // Awww, yeah!
         // This is a translation of the parts of...
@@ -73,6 +80,7 @@ impl OperatingSystemInterface {
         panic!("failed to access bootloader")
     }
 
+    /// Draws a title bar to the top of the screen, with the text `s`.
     pub fn ui_draw_title(&mut self, s: impl Into<String>) {
         (framework().display.draw_rect)(
             0, 0, framework().display.width as i64, 30,
@@ -82,6 +90,11 @@ impl OperatingSystemInterface {
         framework().display.print(s);
     }
 
+    /// Opens a menu with the items in the slice `items`. The user can navigate the menu with the
+    /// up and down keys, and select an item with EXE.
+    /// Returns Some(the index of the item selected).
+    /// These menus are typically to be opened with the LIST key. If `can_close` is true, pressing
+    /// LIST will return None.
     pub fn ui_open_menu(&mut self, items: &[String], can_close: bool) -> Option<usize> {
         const ITEM_GAP: i64 = 30;
         let mut selected_index = 0;
@@ -130,6 +143,8 @@ impl OperatingSystemInterface {
         }
     }
 
+    /// Opens an rbop input box with the given `title` and optionally starts the node tree at the
+    /// given `root`. When the user presses EXE, returns the current node tree.
     pub fn ui_input_expression(&mut self, title: impl Into<String>, root: Option<UnstructuredNodeRoot>) -> UnstructuredNodeRoot {
         const PADDING: u64 = 10;
         
@@ -189,6 +204,10 @@ impl OperatingSystemInterface {
         }
     }
 
+    /// A variant of `ui_input_expression` which upgrades and evaluates the input.
+    /// If this causes an error, a dialog will be displayed with `ui_text_dialog`, which will
+    /// require redrawing the screen once dismissed. As such, this takes a `redraw` function which
+    /// will be called each time before displaying the input prompt (including the first time).
     pub fn ui_input_expression_and_evaluate(
         &mut self,
         title: impl Into<String>,
@@ -220,6 +239,7 @@ impl OperatingSystemInterface {
         }
     }
 
+    /// Opens a text dialog in the centre of the screen which can be dismissed with EXE.
     pub fn ui_text_dialog(&mut self, s: impl Into<String>) {
         const H_PADDING: i64 = 30;
         const H_INNER_PADDING: i64 = 10;
