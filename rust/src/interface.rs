@@ -23,6 +23,7 @@ pub struct ApplicationFrameworkInterface {
     pub debug_handler: extern "C" fn(*const u8) -> (),
     pub display: DisplayInterface,
     pub buttons: ButtonsInterface,
+    pub storage: StorageInterface,
 
     // Bit of a hack to have these here... ah well
     pub rbop_location_x: u64,
@@ -168,4 +169,31 @@ pub enum ButtonInput {
     Subtract,
     Multiply,
     Fraction,
+}
+
+#[repr(C)]
+pub struct StorageInterface {
+    pub connected: extern "C" fn() -> bool,
+    pub busy: extern "C" fn() -> bool,
+    pub write: extern "C" fn(address: u16, count: u8, buffer: *const u8) -> bool,
+    pub read: extern "C" fn(address: u16, count: u8, buffer: *mut u8) -> bool,
+}
+
+impl StorageInterface {
+    pub fn read(&self, address: u16, count: u8) -> Option<Vec<u8>> {
+        let mut buffer = vec![0; count as usize];
+        if (self.read)(address, count, buffer.as_mut_ptr()) {
+            Some(buffer)
+        } else {
+            None
+        }
+    }
+
+    pub fn write(&self, address: u16, bytes: &[u8]) -> Option<()> {
+        if (self.write)(address, bytes.len() as u8, bytes.as_ptr()) {
+            Some(())
+        } else {
+            None
+        }
+    }
 }

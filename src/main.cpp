@@ -47,6 +47,22 @@ bool buttonsPollInputEvent(ButtonInput *input, ButtonEvent *event) {
   return ApplicationFramework::instance.buttons().waitForEventInput(*input, *event);
 }
 
+bool storageConnected() {
+  return ApplicationFramework::instance.storage().connected();
+}
+
+bool storageBusy() {
+  return ApplicationFramework::instance.storage().busy();
+}
+
+bool storageWrite(uint16_t address, uint8_t count, const uint8_t *buffer) {
+  return ApplicationFramework::instance.storage().write(address, count, buffer);
+}
+
+bool storageRead(uint16_t address, uint8_t count, uint8_t *buffer) {
+  return ApplicationFramework::instance.storage().read(address, count, buffer);
+}
+
 void panicHandler(const uint8_t *message) {
   // if (Serial.available()) {
   //   Serial.println("=== PANIC ===");
@@ -99,6 +115,12 @@ auto framework_interface = ApplicationFrameworkInterface {
   },
   .buttons = ButtonsInterface {
     .poll_input_event = buttonsPollInputEvent,
+  },
+  .storage = {
+    .connected = storageConnected,
+    .busy = storageBusy,
+    .write = storageWrite,
+    .read = storageRead,
   }
 };
 

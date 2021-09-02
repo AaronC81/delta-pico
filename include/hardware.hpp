@@ -10,6 +10,8 @@ extern "C" {
 #define I2C_EXPANDER_ADDRESS_1 0x38
 #define I2C_EXPANDER_ADDRESS_2 0x3E
 
+#define CAT24C_ADDRESS 0x50
+
 #define USE_DMA_TO_TFT
 #define COLOR_DEPTH 16
 

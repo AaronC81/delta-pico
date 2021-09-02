@@ -9,6 +9,7 @@ void ApplicationFramework::initialize() {
     _rowPcf = new PCF8574(*_i2c, I2C_EXPANDER_ADDRESS_2);
     _buttons = new ButtonMatrix(*_rowPcf, *_colPcf);
     _sprite = new TFT_eSprite(_tft);
+    _storage = new CAT24C(*_i2c, CAT24C_ADDRESS);
 
     _i2c->begin();
     _buttons->begin();
@@ -35,5 +36,6 @@ void ApplicationFramework::draw() {
 
 ButtonMatrix& ApplicationFramework::buttons() const { return *_buttons; }
 TFT_eSprite&  ApplicationFramework::sprite()  const { return *_sprite;  }
+CAT24C&       ApplicationFramework::storage() const { return *_storage; }
 
 ApplicationFramework ApplicationFramework::instance = {};

@@ -19,6 +19,8 @@ mod graphics;
 use interface::framework;
 use operating_system::os;
 
+use crate::interface::ButtonInput;
+
 #[global_allocator]
 static ALLOCATOR: CAllocator = CAllocator;
 
@@ -29,7 +31,12 @@ fn panic(info: &PanicInfo) -> ! {
     message_bytes.push(0);
 
     (framework().panic_handler)(message_bytes.as_ptr());
-    loop {}
+
+    loop {
+        if let Some(ButtonInput::Exe) = framework().buttons.poll_press() {
+            os().reboot_into_bootloader();
+        }
+    }
 }
 
 fn debug(info: String) {
@@ -47,6 +54,14 @@ pub extern "C" fn delta_pico_main() {
     os().application_list.add::<applications::graph::GraphApplication>();
     os().application_list.add::<applications::about::AboutApplication>();
     os().application_list.add::<applications::bootloader::BootloaderApplication>();
+
+    if !(framework().storage.connected)() {
+        os().ui_text_dialog("Unable to communicate with storage.");
+    }
+
+    let boot_number = framework().storage.read(123, 1).unwrap()[0];
+    os().ui_text_dialog(format!("Boot: {}", boot_number));
+    framework().storage.write(123, &[boot_number.wrapping_add(1)]);//.unwrap();
 
     loop {
         os().application_to_tick().tick();

@@ -7,6 +7,7 @@
 #include "pcf8574.hpp"
 #include "button_matrix.hpp"
 #include "animate.hpp"
+#include "cat24c.hpp"
 
 class ApplicationFramework {
 public:
@@ -14,6 +15,7 @@ public:
     void draw();
     ButtonMatrix& buttons() const;
     TFT_eSprite&  sprite()  const;
+    CAT24C&       storage() const;
 
     static ApplicationFramework instance;
     
@@ -28,4 +30,5 @@ private:
     ButtonMatrix *_buttons;
     TFT_eSprite *_sprite;
     uint16_t *_spriteData;
+    CAT24C *_storage;
 };
