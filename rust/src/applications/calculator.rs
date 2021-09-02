@@ -1,5 +1,5 @@
 use alloc::{string::{String, ToString}, vec, vec::{Vec}};
-use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, CalculatedPoint, Renderer, Viewport}};
+use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{MoveResult, UnstructuredNodeRoot, Upgradable}, render::{Area, CalculatedPoint, Renderer, Viewport}};
 use rust_decimal::Decimal;
 
 use crate::{graphics::colour, rbop_impl::{RbopContext}};
@@ -9,7 +9,8 @@ use crate::interface::framework;
 const PADDING: u64 = 10;
 
 pub struct CalculatorApplication {
-    calculation_history: Vec<(UnstructuredNodeRoot, Decimal)>,
+    calculations: Vec<(UnstructuredNodeRoot, Option<Decimal>)>,
+    current_calculation_idx: usize,
     rbop_ctx: RbopContext,
 }
 
@@ -31,18 +32,20 @@ impl Application for CalculatorApplication {
                 ..RbopContext::new()
             },
             // TODO
-            calculation_history: vec![
+            calculations: vec![
                 (UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![
                     UnstructuredNode::Token(Token::Digit(1)),
                     UnstructuredNode::Token(Token::Add),
                     UnstructuredNode::Token(Token::Digit(2)),
-                ] } }, Decimal::TWO + Decimal::ONE),
+                ] } }, Some(Decimal::TWO + Decimal::ONE)),
                 (UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![
                     UnstructuredNode::Token(Token::Digit(3)),
                     UnstructuredNode::Token(Token::Add),
                     UnstructuredNode::Token(Token::Digit(4)),
-                ] } }, Decimal::TWO + Decimal::TWO + Decimal::TWO + Decimal::ONE),
+                ] } }, Some(Decimal::TWO + Decimal::TWO + Decimal::TWO + Decimal::ONE)),
+                (UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![] } }, None),
             ],
+            current_calculation_idx: 2,
         }
     }
 
@@ -56,37 +59,84 @@ impl Application for CalculatorApplication {
         
         // Draw history
         // TODO: clone is undoubtedly very inefficient here, but it makes the borrow checker happy
-        let items = self.calculation_history.iter().cloned().collect::<Vec<_>>();
-        for (node, result) in items {
-            // Draw nodes
+        let items = self.calculations.iter().cloned().enumerate().collect::<Vec<_>>();
+        for (i, (node, result)) in &items {
+            // Set up rbop location
             framework().rbop_location_x = PADDING;
             framework().rbop_location_y = calc_start_y + PADDING;
-            let layout = framework().draw_all(
-                &node, None, None,
-            );
+            
+            // Is this item being edited?
+            let (layout, result) = if self.current_calculation_idx == *i {
+                // Draw active nodes
+                let layout = framework().draw_all(
+                    &self.rbop_ctx.root, 
+                    Some(&mut self.rbop_ctx.nav_path.to_navigator()),
+                    self.rbop_ctx.viewport.as_ref(),
+                );
+
+                // Evaluate
+                let result = if let Ok(structured) = self.rbop_ctx.root.upgrade() {
+                    if let Ok(evaluation_result) = structured.evaluate() {
+                        Some(evaluation_result)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+
+                (layout, result)
+            } else {
+                // Draw stored nodes
+                let layout = framework().draw_all(
+                    node, None, None,
+                );
+
+                (layout, result.clone())
+            };
+
             calc_start_y += layout.area(framework()).height + PADDING;
-
+            
             // Draw result
-            calc_start_y += self.draw_result(calc_start_y, Some(result.clone()));
+            calc_start_y += self.draw_result(calc_start_y, result.clone());
 
-            // Draw a big line
-            (framework().display.draw_line)(
-                0, calc_start_y as i64,
-                framework().display.width as i64, calc_start_y as i64,
-                colour::WHITE,
-            )
+            // Draw a big line, unless this is the last item
+            if i != &(items.len() - 1) {
+                (framework().display.draw_line)(
+                    0, calc_start_y as i64,
+                    framework().display.width as i64, calc_start_y as i64,
+                    colour::WHITE,
+                )
+            }
         }
 
-        // Draw
-        framework().rbop_location_x = PADDING;
-        framework().rbop_location_y = calc_start_y + PADDING;
-        let layout = framework().draw_all(
-            &self.rbop_ctx.root, 
-            Some(&mut self.rbop_ctx.nav_path.to_navigator()),
-            self.rbop_ctx.viewport.as_ref(),
-        );
-        let input_end_y = framework().rbop_location_y + layout.area(framework()).height;
-        
+        // Push to screen
+        (framework().display.draw)();
+
+        // Poll for input
+        if let Some(input) = framework().buttons.poll_press() {
+            let move_result = self.rbop_ctx.input(input);
+            // Move calculations if needed
+            if let Some((dir, MoveResult::MovedOut)) = move_result {
+                match dir {
+                    MoveVerticalDirection::Up => if self.current_calculation_idx != 0 {
+                        self.save_current();
+                        self.current_calculation_idx -= 1;
+                        self.load_current();
+                    },
+                    MoveVerticalDirection::Down => if self.current_calculation_idx != self.calculations.len() - 1 {
+                        self.save_current();
+                        self.current_calculation_idx += 1;
+                        self.load_current();
+                    },
+                }
+            }
+        }
+    }
+}
+
+impl CalculatorApplication {
+    fn save_current(&mut self) {
         // Evaluate
         let result = if let Ok(structured) = self.rbop_ctx.root.upgrade() {
             if let Ok(evaluation_result) = structured.evaluate() {
@@ -98,20 +148,23 @@ impl Application for CalculatorApplication {
             None
         };
 
-        // Draw result
-        self.draw_result(input_end_y, result);
-
-        // Push to screen
-        (framework().display.draw)();
-
-        // Poll for input
-        if let Some(input) = framework().buttons.poll_press() {
-            self.rbop_ctx.input(input);
-        }
+        // Save into array
+        self.calculations[self.current_calculation_idx].0 = self.rbop_ctx.root.clone();
+        self.calculations[self.current_calculation_idx].1 = result;
     }
-}
+    
+    fn load_current(&mut self) {
+        // Reset rbop context
+        self.rbop_ctx = RbopContext {
+            viewport: Some(Viewport::new(Area::new(
+                framework().display.width - PADDING * 2,
+                framework().display.height - PADDING * 2,
+            ))),
+            root: self.calculations[self.current_calculation_idx].0.clone(),
+            ..RbopContext::new()
+        };
+    }
 
-impl CalculatorApplication {
     fn draw_result(&mut self, y: u64, result: Option<Decimal>) -> u64 {
         // Draw a line
         (framework().display.draw_line)(

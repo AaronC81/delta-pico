@@ -1,6 +1,6 @@
 use alloc::{format, vec};
-use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot}, render::{Area, CalculatedPoint, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility}};
-use crate::{debug, interface::{ApplicationFrameworkInterface, ButtonInput, framework}};
+use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{UnstructuredNodeRoot, MoveResult}, render::{Area, CalculatedPoint, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility}};
+use crate::{debug, interface::{ApplicationFrameworkInterface, ButtonInput, framework}, operating_system::os};
 
 use core::cmp::max;
 
@@ -22,7 +22,7 @@ impl RbopContext {
         }
     }
 
-    pub fn input(&mut self, input: ButtonInput) {
+    pub fn input(&mut self, input: ButtonInput) -> Option<(MoveVerticalDirection, MoveResult)> {
         let renderer = framework();
 
         let node_to_insert = if !self.input_shift {
@@ -38,12 +38,16 @@ impl RbopContext {
                     None
                 }
                 ButtonInput::MoveUp => {
-                    self.root.move_up(&mut self.nav_path, renderer, self.viewport.as_mut());
-                    None
+                    return Some((
+                        MoveVerticalDirection::Up,
+                        self.root.move_up(&mut self.nav_path, renderer, self.viewport.as_mut())
+                    ));
                 }
                 ButtonInput::MoveDown => {
-                    self.root.move_down(&mut self.nav_path, renderer, self.viewport.as_mut());
-                    None
+                    return Some((
+                        MoveVerticalDirection::Down,
+                        self.root.move_down(&mut self.nav_path, renderer, self.viewport.as_mut())
+                    ));
                 }
                 ButtonInput::Delete => {
                     self.root.delete(&mut self.nav_path, renderer, self.viewport.as_mut());
@@ -74,8 +78,8 @@ impl RbopContext {
                     UnstructuredNodeList { items: vec![] },
                 )),
 
-                ButtonInput::Exe => return,
-                ButtonInput::List => return,
+                ButtonInput::Exe => return None,
+                ButtonInput::List => return None,
                 ButtonInput::Shift => {
                     self.input_shift = true;
                     None
@@ -108,7 +112,9 @@ impl RbopContext {
     
         if let Some(node) = node_to_insert {
             self.root.insert(&mut self.nav_path, renderer, self.viewport.as_mut(), node);
-        }    
+        }
+
+        None
     }
 }
 
