@@ -4,6 +4,6 @@
 test/bin
 rust/target
 res/*.h
-cad/delta-pico/gerbers
-cad/delta-pico/*cache*
-cad/delta-pico/*-bak
+cad/*/gerbers
+cad/*/*cache*
+cad/*/*-bak
