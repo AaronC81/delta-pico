@@ -33,6 +33,19 @@ impl Application for AboutApplication {
 
         (framework().display.draw)();
 
-        framework().buttons.poll_press();
+        if let Some(input) = framework().buttons.poll_press() {
+            if input == ButtonInput::List {
+                match os().ui_open_menu(&["Clear memory".into()], true) {
+                    Some(0) => {
+                        if framework().storage.clear().is_some() {
+                            os().ui_text_dialog("Memory cleared.");
+                        } else {
+                            os().ui_text_dialog("Failed to clear memory.");
+                        }
+                    },
+                    _ => (),
+                }
+            }
+        };
     }
 }
