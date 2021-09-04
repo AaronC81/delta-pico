@@ -233,24 +233,28 @@ impl CalculatorApplication {
 
         // Write result
         let mut result_str_height = 0;
-        if let Some(result) = result {
+        let result_str = if let Some(result) = result {
             // Convert decimal to string and truncate
             let mut result_str = result.to_string();
             if result_str.len() > 15 {
                 result_str = result_str[0..15].to_string();
             }
-            
-            // Calculate length for right-alignment
-            let (result_str_len, h) = framework().display.string_size(&result_str);
-            result_str_height = h;
+                
+            result_str
+        } else {
+            " ".into()
+        };
 
-            // Write text
-            (framework().display.set_cursor)(
-                (framework().display.width - PADDING) as i64 - result_str_len,
-                y + PADDING as i64 * 2
-            );
-            framework().display.print(result_str);
-        }
+        // Calculate length for right-alignment
+        let (result_str_len, h) = framework().display.string_size(&result_str);
+        result_str_height = h;
+
+        // Write text
+        (framework().display.set_cursor)(
+            (framework().display.width - PADDING) as i64 - result_str_len,
+            y + PADDING as i64 * 2
+        );
+        framework().display.print(result_str);
 
         PADDING * 3 + result_str_height as u64
     }
