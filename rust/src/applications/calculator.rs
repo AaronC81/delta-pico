@@ -2,14 +2,14 @@ use alloc::{string::{String, ToString}, vec, vec::{Vec}};
 use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{MoveResult, UnstructuredNodeRoot, Upgradable}, render::{Area, CalculatedPoint, Renderer, Viewport}};
 use rust_decimal::Decimal;
 
-use crate::{filesystem::ChunkIndex, graphics::colour, interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}};
+use crate::{filesystem::{Calculation, ChunkIndex}, graphics::colour, interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
 const PADDING: u64 = 10;
 
 pub struct CalculatorApplication {
-    calculations: Vec<(UnstructuredNodeRoot, Option<Decimal>)>,
+    calculations: Vec<Calculation>,
     current_calculation_idx: usize,
     rbop_ctx: RbopContext,
 }
@@ -32,8 +32,8 @@ impl Application for CalculatorApplication {
         
         // Add empty calculation onto the end if it is not already empty, or if there are no
         // calculations at all
-        let needs_empty_adding = if let Some((calc, _)) = calculations.last() {
-            if calc.root.items.is_empty() {
+        let needs_empty_adding = if let Some(Calculation { root, .. }) = calculations.last() {
+            if root.root.items.is_empty() {
                 false
             } else {
                 true
@@ -42,14 +42,11 @@ impl Application for CalculatorApplication {
             true
         };
         if needs_empty_adding {
-            calculations.push((
-                UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![] } },
-                None,
-            ));
+            calculations.push(Calculation::blank());
         }
 
         let current_calculation_idx = calculations.len() - 1;
-        let root = calculations[current_calculation_idx].0.clone();
+        let root = calculations[current_calculation_idx].root.clone();
         Self {
             rbop_ctx: RbopContext {
                 viewport: Some(Viewport::new(Area::new(
@@ -75,7 +72,7 @@ impl Application for CalculatorApplication {
         // Draw history
         // TODO: clone is undoubtedly very inefficient here, but it makes the borrow checker happy
         let items = self.calculations.iter().cloned().enumerate().collect::<Vec<_>>();
-        for (i, (node, result)) in &items {
+        for (i, Calculation { root, result }) in &items {
             // Set up rbop location
             framework().rbop_location_x = PADDING;
             framework().rbop_location_y = calc_start_y + PADDING;
@@ -104,7 +101,7 @@ impl Application for CalculatorApplication {
             } else {
                 // Draw stored nodes
                 let layout = framework().draw_all(
-                    node, None, None,
+                    root, None, None,
                 );
 
                 (layout, result.clone())
@@ -132,10 +129,7 @@ impl Application for CalculatorApplication {
         if let Some(input) = framework().buttons.poll_press() {
             if input == ButtonInput::Exe {
                 self.save_current();
-                self.calculations.push((
-                    UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![] } },
-                    None,
-                ));
+                self.calculations.push(Calculation::blank());
                 self.current_calculation_idx += 1;
                 self.load_current();  
                 self.save_current();
@@ -175,14 +169,13 @@ impl CalculatorApplication {
         };
 
         // Save into array
-        self.calculations[self.current_calculation_idx].0 = self.rbop_ctx.root.clone();
-        self.calculations[self.current_calculation_idx].1 = result;
+        self.calculations[self.current_calculation_idx].root = self.rbop_ctx.root.clone();
+        self.calculations[self.current_calculation_idx].result = result;
 
         // Save to storage
         os().filesystem.calculations.write_calculation_at_index(
             ChunkIndex(self.current_calculation_idx as u16),
-            self.rbop_ctx.root.clone(),
-            result
+            self.calculations[self.current_calculation_idx].clone()
         );
     }
     
@@ -193,7 +186,7 @@ impl CalculatorApplication {
                 framework().display.width - PADDING * 2,
                 framework().display.height - PADDING * 2,
             ))),
-            root: self.calculations[self.current_calculation_idx].0.clone(),
+            root: self.calculations[self.current_calculation_idx].root.clone(),
             ..RbopContext::new()
         };
     }

@@ -1,7 +1,7 @@
 use core::convert::TryInto;
 
 use alloc::{format, vec, vec::Vec};
-use rbop::node::unstructured::{UnstructuredNodeRoot, Serializable};
+use rbop::{UnstructuredNodeList, node::unstructured::{UnstructuredNodeRoot, Serializable}};
 use rust_decimal::Decimal;
 
 use crate::{interface::StorageInterface, operating_system::os};
@@ -72,12 +72,12 @@ impl<'a> ChunkTable<'a> {
     }
 
     pub fn write_bytes(&mut self, address: ChunkAddress, data: Vec<u8>) -> Option<()> {
-        for (_, chunk) in data.chunks(16).enumerate() {
+        for (i, chunk) in data.chunks(16).enumerate() {
             let mut buffer = [0_u8; 16];
             for (i, b) in chunk.iter().enumerate() {
                 buffer[i] = *b;
             }
-            self.write_chunk(address, &buffer)?;
+            self.write_chunk(ChunkAddress(address.0 + i as u16), &buffer)?;
         }
         Some(())
     }
@@ -236,10 +236,52 @@ pub struct CalculationHistory<'a> {
     pub table: ChunkTable<'a>,
 }
 
-impl<'a> CalculationHistory<'a> {
-    // TODO: we don't serialize decimals yet, they're just 0
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct Calculation {
+    pub root: UnstructuredNodeRoot,
+    pub result: Option<Decimal>,
+}
 
-    pub fn read_calculations(&self) -> Option<Vec<(UnstructuredNodeRoot, Option<Decimal>)>> {
+impl Calculation {
+    pub fn blank() -> Self {
+        Self {
+            root: UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![] } },
+            result: None,
+        }
+    }
+}
+
+impl Serializable for Calculation {
+    fn serialize(&self) -> Vec<u8> {
+        let mut bytes = self.root.serialize();
+        if let Some(result) = self.result {
+            bytes.push(1);
+            bytes.append(&mut result.serialize().to_vec());
+        } else {
+            bytes.push(0);
+        }
+        bytes
+    }
+
+    fn deserialize(bytes: &mut dyn Iterator<Item = u8>) -> Option<Self> {
+        let root = UnstructuredNodeRoot::deserialize(bytes)?;
+        let result = match bytes.next() {
+            Some(1) => {
+                let dec_bytes_vec = bytes.take(16).collect::<Vec<_>>();
+                if dec_bytes_vec.len() != 16 { return None; }
+                let dec_bytes: [u8; 16] = dec_bytes_vec.try_into().unwrap();
+                Some(Decimal::deserialize(dec_bytes))
+            }
+            Some(0) => None,
+            _ => return None
+        };
+
+        Some(Calculation { root, result })
+    }
+}
+
+impl<'a> CalculationHistory<'a> {
+    pub fn read_calculations(&self) -> Option<Vec<Calculation>> {
         let mut idx = ChunkIndex(0);
         let mut result = vec![];
         while let Some(calc) = self.read_calculation_at_index(idx) {
@@ -250,18 +292,16 @@ impl<'a> CalculationHistory<'a> {
         Some(result)
     }
 
-    pub fn read_calculation_at_index(&self, idx: ChunkIndex) -> Option<(UnstructuredNodeRoot, Option<Decimal>)> {
-        let chunk = self.table.chunk_for_index(idx)?;
-        let mut iterator = self.table.iter_bytes(chunk);
-        
-        Some((UnstructuredNodeRoot::deserialize(&mut iterator)?, None))
+    pub fn read_calculation_at_index(&self, idx: ChunkIndex) -> Option<Calculation> {
+        let chunk = self.table.chunk_for_index(idx)?;        
+        Calculation::deserialize(&mut self.table.iter_bytes(chunk))
     }
 
     fn calculation_area_at_index(&self, idx: ChunkIndex) -> Option<(ChunkAddress, u16)> {
         // TODO: deduplicate
         let chunk = self.table.chunk_for_index(idx)?;
         let mut iterator = self.table.iter_bytes(chunk);
-        UnstructuredNodeRoot::deserialize(&mut iterator)?;
+        Calculation::deserialize(&mut iterator)?;
 
         let chunks = (iterator.chunk.0 - chunk.0) + 1;
 
@@ -271,8 +311,7 @@ impl<'a> CalculationHistory<'a> {
     pub fn write_calculation_at_index(
         &mut self,
         idx: ChunkIndex,
-        root: UnstructuredNodeRoot,
-        result: Option<Decimal>,
+        calc: Calculation,
     ) -> Option<()> {
         // If this index was already allocated, free the heap space
         if let Some((address, length)) = self.calculation_area_at_index(idx) {
@@ -280,7 +319,7 @@ impl<'a> CalculationHistory<'a> {
         }
 
         // Serialize new value
-        let bytes = root.serialize();
+        let bytes = calc.serialize();
         
         // Allocate
         let address = self.table.allocate_chunks(self.table.chunks_required_for_bytes(bytes.len()))?;
