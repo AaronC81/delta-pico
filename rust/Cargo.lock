@@ -222,6 +222,7 @@ dependencies = [
 name = "rbop"
 version = "0.1.0"
 dependencies = [
+ "num-traits",
  "rust_decimal",
 ]
 
