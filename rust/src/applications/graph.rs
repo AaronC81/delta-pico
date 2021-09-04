@@ -138,8 +138,8 @@ impl GraphApplication {
             os().ui_draw_title("Graph");
 
             // Draw rbop input
-            framework().rbop_location_x = PADDING + 30;
-            framework().rbop_location_y = PADDING + 30;
+            framework().rbop_location_x = PADDING as i64 + 30;
+            framework().rbop_location_y = PADDING as i64 + 30;
             let block = framework().draw_all(
                 &self.rbop_ctx.root, 
                 Some(&mut self.rbop_ctx.nav_path.to_navigator()),

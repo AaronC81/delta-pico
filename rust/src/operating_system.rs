@@ -201,8 +201,8 @@ impl<'a> OperatingSystemInterface<'a> {
             framework().display.print(title.clone());
 
             // Draw expression
-            framework().rbop_location_x = PADDING;
-            framework().rbop_location_y = y + 30 + PADDING;
+            framework().rbop_location_x = PADDING as i64;
+            framework().rbop_location_y = (y + 30 + PADDING) as i64;
             framework().draw_all(
                 &rbop_ctx.root, 
                 Some(&mut rbop_ctx.nav_path.to_navigator()),

@@ -26,8 +26,8 @@ pub struct ApplicationFrameworkInterface {
     pub storage: StorageInterface,
 
     // Bit of a hack to have these here... ah well
-    pub rbop_location_x: u64,
-    pub rbop_location_y: u64,
+    pub rbop_location_x: i64,
+    pub rbop_location_y: i64,
 }
 
 #[repr(C)]

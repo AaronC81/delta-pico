@@ -148,7 +148,7 @@ impl Renderer for ApplicationFrameworkInterface {
     fn draw(&mut self, glyph: ViewportGlyph) {
         // Apply padding
         let mut glyph = ViewportGlyph {
-            point: glyph.point.dx(self.rbop_location_x as i64).dy(self.rbop_location_y as i64),
+            point: glyph.point.dx(self.rbop_location_x).dy(self.rbop_location_y),
             ..glyph
         };
 

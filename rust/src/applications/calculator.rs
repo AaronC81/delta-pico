@@ -66,15 +66,14 @@ impl Application for CalculatorApplication {
 
         // Clear screen
         (framework().display.fill_screen)(colour::BLACK);
-        os().ui_draw_title("Calculator");
 
-        let calc_threshold_y = 30;
         let mut calc_block_start_y = framework().display.height as i64;
 
         let result_string_height = framework().display.string_size("A").1;
         
         // Draw history
         // TODO: clone is undoubtedly very inefficient here, but it makes the borrow checker happy
+        // TODO: can prune calculations which are entirely off the screen
         let items = self.calculations.iter().cloned().enumerate().rev().collect::<Vec<_>>();
         for (i, Calculation { root, result }) in &items {
             // Lay out this note, so we can work out height
@@ -103,7 +102,7 @@ impl Application for CalculatorApplication {
             };
 
             // Work out Y position to draw everything from
-            let calc_start_y =
+            let mut calc_start_y =
                 // Global start
                 calc_block_start_y - (
                     // Node
@@ -112,16 +111,11 @@ impl Application for CalculatorApplication {
                     PADDING * 3 + result_string_height as u64
                 ) as i64;
             
-            // TODO: because rbop location is unsigned, we can't partially show something
-            if calc_start_y < 0 {
-                break;
-            }
             calc_block_start_y = calc_start_y;
-            let mut calc_start_y = calc_start_y as u64;
 
             // Set up rbop location
-            framework().rbop_location_x = PADDING;
-            framework().rbop_location_y = calc_start_y + PADDING;
+            framework().rbop_location_x = PADDING as i64;
+            framework().rbop_location_y = calc_start_y + PADDING as i64;
             
             // Is this item being edited?
             let (layout, result) = if self.current_calculation_idx == *i {
@@ -142,10 +136,10 @@ impl Application for CalculatorApplication {
                 (layout, result.clone())
             };
 
-            calc_start_y += layout.area(framework()).height + PADDING;
+            calc_start_y += (layout.area(framework()).height + PADDING) as i64;
             
             // Draw result
-            calc_start_y += self.draw_result(calc_start_y, result.clone());
+            calc_start_y += self.draw_result(calc_start_y, result.clone()) as i64;
 
             // Draw a big line, unless this is the last item
             if i != &(items.len() - 1) {
@@ -156,6 +150,9 @@ impl Application for CalculatorApplication {
                 )
             }
         }
+
+        // Write title
+        os().ui_draw_title("Calculator");
 
         // Push to screen
         (framework().display.draw)();
@@ -226,11 +223,11 @@ impl CalculatorApplication {
         };
     }
 
-    fn draw_result(&mut self, y: u64, result: Option<Decimal>) -> u64 {
+    fn draw_result(&mut self, y: i64, result: Option<Decimal>) -> u64 {
         // Draw a line
         (framework().display.draw_line)(
-            PADDING as i64, (y + PADDING) as i64,
-            (framework().display.width - PADDING) as i64, (y + PADDING) as i64,
+            PADDING as i64, y + PADDING as i64,
+            (framework().display.width - PADDING) as i64, y + PADDING as i64,
             colour::GREY
         );
 
@@ -250,7 +247,7 @@ impl CalculatorApplication {
             // Write text
             (framework().display.set_cursor)(
                 (framework().display.width - PADDING) as i64 - result_str_len,
-                (y + PADDING * 2) as i64
+                y + PADDING as i64 * 2
             );
             framework().display.print(result_str);
         }
