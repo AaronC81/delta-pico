@@ -3,10 +3,10 @@ use rbop::{UnstructuredNode, node::unstructured::{UnstructuredNodeRoot, Upgradab
 use rust_decimal::Decimal;
 use core::{cmp::max, mem};
 
-use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, graphics::colour, interface::{ButtonInput, framework}, rbop_impl::RbopContext};
+use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, filesystem::{CalculationHistory, ChunkTable, Filesystem}, graphics::colour, interface::{ButtonInput, framework}, rbop_impl::RbopContext};
 
 static mut OPERATING_SYSTEM_INTERFACE: Option<OperatingSystemInterface> = None;
-pub fn os() -> &'static mut OperatingSystemInterface {
+pub fn os() -> &'static mut OperatingSystemInterface<'static> {
     unsafe {
         if OPERATING_SYSTEM_INTERFACE.is_none() {
             OPERATING_SYSTEM_INTERFACE = Some(OperatingSystemInterface {
@@ -14,20 +14,30 @@ pub fn os() -> &'static mut OperatingSystemInterface {
                 active_application: None, 
                 menu: MenuApplication::new(),
                 showing_menu: true,
+                filesystem: Filesystem {
+                    calculations: CalculationHistory {
+                        table: ChunkTable {
+                            start_address: 0x1000,
+                            chunks: 1024,
+                            storage: &mut framework().storage
+                        }
+                    }
+                }
             });
         }
         OPERATING_SYSTEM_INTERFACE.as_mut().unwrap()
     }
 }
 
-pub struct OperatingSystemInterface {
+pub struct OperatingSystemInterface<'a> {
     pub application_list: ApplicationList,
     pub menu: MenuApplication,
     pub showing_menu: bool,
     pub active_application: Option<Box<dyn Application>>,
+    pub filesystem: Filesystem<'a>,
 }
 
-impl OperatingSystemInterface {
+impl<'a> OperatingSystemInterface<'a> {
     /// Replaces the currently-running application with a new instance of the application at `index`
     /// in `application_list`.
     pub fn launch_application(&mut self, index: usize) {

@@ -2,7 +2,7 @@ use alloc::{string::{String, ToString}, vec, vec::{Vec}};
 use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{MoveResult, UnstructuredNodeRoot, Upgradable}, render::{Area, CalculatedPoint, Renderer, Viewport}};
 use rust_decimal::Decimal;
 
-use crate::{graphics::colour, rbop_impl::{RbopContext}};
+use crate::{filesystem::ChunkIndex, graphics::colour, interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -23,29 +23,44 @@ impl Application for CalculatorApplication {
     }
 
     fn new() -> Self {
+        let mut calculations = if let Some(c) = os().filesystem.calculations.read_calculations() {
+            c
+        } else {
+            os().ui_text_dialog("Failed to load calculation history.");
+            vec![]
+        };
+        
+        // Add empty calculation onto the end if it is not already empty, or if there are no
+        // calculations at all
+        let needs_empty_adding = if let Some((calc, _)) = calculations.last() {
+            if calc.root.items.is_empty() {
+                false
+            } else {
+                true
+            }
+        } else {
+            true
+        };
+        if needs_empty_adding {
+            calculations.push((
+                UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![] } },
+                None,
+            ));
+        }
+
+        let current_calculation_idx = calculations.len() - 1;
+        let root = calculations[current_calculation_idx].0.clone();
         Self {
             rbop_ctx: RbopContext {
                 viewport: Some(Viewport::new(Area::new(
                     framework().display.width - PADDING * 2,
                     framework().display.height - PADDING * 2,
                 ))),
+                root,
                 ..RbopContext::new()
             },
-            // TODO
-            calculations: vec![
-                (UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![
-                    UnstructuredNode::Token(Token::Digit(1)),
-                    UnstructuredNode::Token(Token::Add),
-                    UnstructuredNode::Token(Token::Digit(2)),
-                ] } }, Some(Decimal::TWO + Decimal::ONE)),
-                (UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![
-                    UnstructuredNode::Token(Token::Digit(3)),
-                    UnstructuredNode::Token(Token::Add),
-                    UnstructuredNode::Token(Token::Digit(4)),
-                ] } }, Some(Decimal::TWO + Decimal::TWO + Decimal::TWO + Decimal::ONE)),
-                (UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![] } }, None),
-            ],
-            current_calculation_idx: 2,
+            calculations,
+            current_calculation_idx,
         }
     }
 
@@ -115,20 +130,31 @@ impl Application for CalculatorApplication {
 
         // Poll for input
         if let Some(input) = framework().buttons.poll_press() {
-            let move_result = self.rbop_ctx.input(input);
-            // Move calculations if needed
-            if let Some((dir, MoveResult::MovedOut)) = move_result {
-                match dir {
-                    MoveVerticalDirection::Up => if self.current_calculation_idx != 0 {
-                        self.save_current();
-                        self.current_calculation_idx -= 1;
-                        self.load_current();
-                    },
-                    MoveVerticalDirection::Down => if self.current_calculation_idx != self.calculations.len() - 1 {
-                        self.save_current();
-                        self.current_calculation_idx += 1;
-                        self.load_current();
-                    },
+            if input == ButtonInput::Exe {
+                self.save_current();
+                self.calculations.push((
+                    UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![] } },
+                    None,
+                ));
+                self.current_calculation_idx += 1;
+                self.load_current();  
+                self.save_current();
+            } else {
+                let move_result = self.rbop_ctx.input(input);
+                // Move calculations if needed
+                if let Some((dir, MoveResult::MovedOut)) = move_result {
+                    match dir {
+                        MoveVerticalDirection::Up => if self.current_calculation_idx != 0 {
+                            self.save_current();
+                            self.current_calculation_idx -= 1;
+                            self.load_current();
+                        },
+                        MoveVerticalDirection::Down => if self.current_calculation_idx != self.calculations.len() - 1 {
+                            self.save_current();
+                            self.current_calculation_idx += 1;
+                            self.load_current();
+                        },
+                    }
                 }
             }
         }
@@ -151,6 +177,13 @@ impl CalculatorApplication {
         // Save into array
         self.calculations[self.current_calculation_idx].0 = self.rbop_ctx.root.clone();
         self.calculations[self.current_calculation_idx].1 = result;
+
+        // Save to storage
+        os().filesystem.calculations.write_calculation_at_index(
+            ChunkIndex(self.current_calculation_idx as u16),
+            self.rbop_ctx.root.clone(),
+            result
+        );
     }
     
     fn load_current(&mut self) {

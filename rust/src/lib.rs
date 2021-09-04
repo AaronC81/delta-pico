@@ -15,6 +15,7 @@ mod operating_system;
 mod rbop_impl;
 mod applications;
 mod graphics;
+mod filesystem;
 
 use interface::framework;
 use operating_system::os;
@@ -54,14 +55,11 @@ pub extern "C" fn delta_pico_main() {
     os().application_list.add::<applications::graph::GraphApplication>();
     os().application_list.add::<applications::about::AboutApplication>();
     os().application_list.add::<applications::bootloader::BootloaderApplication>();
+    os().application_list.add::<applications::memory::MemoryApplication>();
 
     if !(framework().storage.connected)() {
         os().ui_text_dialog("Unable to communicate with storage.");
     }
-
-    let boot_number = framework().storage.read(123, 1).unwrap()[0];
-    os().ui_text_dialog(format!("Boot: {}", boot_number));
-    framework().storage.write(123, &[boot_number.wrapping_add(1)]);//.unwrap();
 
     loop {
         os().application_to_tick().tick();
