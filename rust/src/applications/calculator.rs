@@ -151,7 +151,7 @@ impl Application for CalculatorApplication {
             let t = (framework().millis)();
             
             // Draw result
-            calc_start_y += self.draw_result(calc_start_y, result.clone()) as i64;
+            calc_start_y += self.draw_result(calc_start_y, &result) as i64;
 
             // Draw a big line, unless this is the last item
             if i != &(items.len() - 1) {
@@ -246,7 +246,7 @@ impl CalculatorApplication {
         };
     }
 
-    fn draw_result(&mut self, y: i64, result: Option<Decimal>) -> u64 {
+    fn draw_result(&mut self, y: i64, result: &Option<Decimal>) -> u64 {
         // Draw a line
         (framework().display.draw_line)(
             PADDING as i64, y + PADDING as i64,
@@ -254,8 +254,7 @@ impl CalculatorApplication {
             colour::GREY
         );
 
-        // Write result
-        let mut result_str_height = 0;
+        // Calculate result text
         let result_str = if let Some(result) = result {
             // Convert decimal to string and truncate
             let mut result_str = result.to_string();
@@ -270,7 +269,7 @@ impl CalculatorApplication {
 
         // Calculate length for right-alignment
         let (result_str_len, h) = framework().display.string_size(&result_str);
-        result_str_height = h;
+        let result_str_height = h;
 
         // Write text
         (framework().display.set_cursor)(
