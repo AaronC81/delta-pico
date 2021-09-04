@@ -78,14 +78,15 @@ impl Application for CalculatorApplication {
         // Draw history
         // TODO: clone is undoubtedly very inefficient here, but it makes the borrow checker happy
         // TODO: can prune calculations which are entirely off the screen
-        let items = self.calculations.iter().cloned().enumerate().rev().collect::<Vec<_>>();
-        for (i, Calculation { root, result }) in &items {
+        let calculation_count = self.calculations.len();
+        let items = self.calculations.iter().enumerate().rev();
+        for (i, Calculation { root, result }) in items {
             let t = (framework().millis)();
 
             // Lay out this note, so we can work out height
             // We'll also calculate a result here since we might as well
             let navigator = &mut self.rbop_ctx.nav_path.to_navigator();
-            let (layout, result) = if self.current_calculation_idx == *i {
+            let (layout, result) = if self.current_calculation_idx == i {
                 // If this is the calculation currently being edited, there is a possibly edited
                 // version in the rbop context, so use that for layout and such
                 let layout = framework().layout(&self.rbop_ctx.root, Some(navigator));
@@ -127,7 +128,7 @@ impl Application for CalculatorApplication {
             framework().rbop_location_y = calc_start_y + PADDING as i64;
             
             // Is this item being edited?
-            if self.current_calculation_idx == *i {
+            if self.current_calculation_idx == i {
                 // Draw active nodes
                 framework().draw_all_by_layout(
                     &layout,
@@ -147,7 +148,7 @@ impl Application for CalculatorApplication {
             calc_start_y += self.draw_result(calc_start_y, &result) as i64;
 
             // Draw a big line, unless this is the last item
-            if i != &(items.len() - 1) {
+            if i != calculation_count - 1 {
                 (framework().display.draw_line)(
                     0, calc_start_y as i64,
                     framework().display.width as i64, calc_start_y as i64,
@@ -239,7 +240,7 @@ impl CalculatorApplication {
         };
     }
 
-    fn draw_result(&mut self, y: i64, result: &Option<Decimal>) -> u64 {
+    fn draw_result(&self, y: i64, result: &Option<Decimal>) -> u64 {
         // Draw a line
         (framework().display.draw_line)(
             PADDING as i64, y + PADDING as i64,
