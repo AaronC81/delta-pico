@@ -66,8 +66,9 @@ impl Application for CalculatorApplication {
 
         // Clear screen
         (framework().display.fill_screen)(colour::BLACK);
+        os().ui_draw_title("Calculator");
 
-        let mut calc_start_y = 0_u64;
+        let mut calc_start_y = 30_u64;
         
         // Draw history
         // TODO: clone is undoubtedly very inefficient here, but it makes the borrow checker happy
