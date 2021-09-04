@@ -1,5 +1,5 @@
 use alloc::{string::{String, ToString}, vec, vec::{Vec}};
-use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{MoveResult, UnstructuredNodeRoot, Upgradable}, render::{Area, CalculatedPoint, Renderer, Viewport}};
+use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{MoveResult, UnstructuredNodeRoot, Upgradable}, render::{Area, CalculatedPoint, Layoutable, Renderer, Viewport}};
 use rust_decimal::Decimal;
 
 use crate::{filesystem::{Calculation, ChunkIndex}, graphics::colour, interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}};
@@ -68,12 +68,57 @@ impl Application for CalculatorApplication {
         (framework().display.fill_screen)(colour::BLACK);
         os().ui_draw_title("Calculator");
 
-        let mut calc_start_y = 30_u64;
+        let calc_threshold_y = 30;
+        let mut calc_block_start_y = framework().display.height as i64;
+
+        let result_string_height = framework().display.string_size("A").1;
         
         // Draw history
         // TODO: clone is undoubtedly very inefficient here, but it makes the borrow checker happy
-        let items = self.calculations.iter().cloned().enumerate().collect::<Vec<_>>();
+        let items = self.calculations.iter().cloned().enumerate().rev().collect::<Vec<_>>();
         for (i, Calculation { root, result }) in &items {
+            // Lay out this note, so we can work out height
+            // We'll also calculate a result here since we might as well
+            let navigator = &mut self.rbop_ctx.nav_path.to_navigator();
+            let (layout, result) = if self.current_calculation_idx == *i {
+                // If this is the calculation currently being edited, there is a possibly edited
+                // version in the rbop context, so use that for layout and such
+                let layout = framework().layout(&self.rbop_ctx.root, Some(navigator));
+                let result = if let Ok(structured) = self.rbop_ctx.root.upgrade() {
+                    if let Ok(evaluation_result) = structured.evaluate() {
+                        Some(evaluation_result)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+
+                (layout, result)
+            } else {
+                let layout = framework().layout(
+                    root, None,
+                );
+                (layout, *result)
+            };
+
+            // Work out Y position to draw everything from
+            let calc_start_y =
+                // Global start
+                calc_block_start_y - (
+                    // Node
+                    layout.area(framework()).height + PADDING +
+                    // Result
+                    PADDING * 3 + result_string_height as u64
+                ) as i64;
+            
+            // TODO: because rbop location is unsigned, we can't partially show something
+            if calc_start_y < 0 {
+                break;
+            }
+            calc_block_start_y = calc_start_y;
+            let mut calc_start_y = calc_start_y as u64;
+
             // Set up rbop location
             framework().rbop_location_x = PADDING;
             framework().rbop_location_y = calc_start_y + PADDING;
@@ -86,17 +131,6 @@ impl Application for CalculatorApplication {
                     Some(&mut self.rbop_ctx.nav_path.to_navigator()),
                     self.rbop_ctx.viewport.as_ref(),
                 );
-
-                // Evaluate
-                let result = if let Ok(structured) = self.rbop_ctx.root.upgrade() {
-                    if let Ok(evaluation_result) = structured.evaluate() {
-                        Some(evaluation_result)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                };
 
                 (layout, result)
             } else {
