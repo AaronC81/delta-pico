@@ -28,10 +28,10 @@ bool CAT24C::write(uint16_t address, uint8_t count, const uint8_t *buffer) {
 
     //Break the buffer into page sized chunks
     uint16_t recorded = 0;
-    while (recorded < PAGE_SIZE)
+    while (recorded < count)
     {
         //Limit the amount to write to either the page size or the Arduino limit of 30
-        int amtToWrite = PAGE_SIZE - recorded;
+        int amtToWrite = count - recorded;
 
         if (amtToWrite > 1)
         {
