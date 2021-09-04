@@ -1,4 +1,4 @@
-use alloc::{string::{String, ToString}, vec, vec::{Vec}};
+use alloc::{format, string::{String, ToString}, vec, vec::{Vec}};
 use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{MoveResult, UnstructuredNodeRoot, Upgradable}, render::{Area, CalculatedPoint, Layoutable, Renderer, Viewport}};
 use rust_decimal::Decimal;
 
@@ -70,12 +70,18 @@ impl Application for CalculatorApplication {
         let mut calc_block_start_y = framework().display.height as i64;
 
         let result_string_height = framework().display.string_size("A").1;
+
+        let mut height_calc_time = 0; 
+        let mut draw_node_time = 0; 
+        let mut draw_result_time = 0;
         
         // Draw history
         // TODO: clone is undoubtedly very inefficient here, but it makes the borrow checker happy
         // TODO: can prune calculations which are entirely off the screen
         let items = self.calculations.iter().cloned().enumerate().rev().collect::<Vec<_>>();
         for (i, Calculation { root, result }) in &items {
+            let t = (framework().millis)();
+
             // Lay out this note, so we can work out height
             // We'll also calculate a result here since we might as well
             let navigator = &mut self.rbop_ctx.nav_path.to_navigator();
@@ -113,6 +119,9 @@ impl Application for CalculatorApplication {
             
             calc_block_start_y = calc_start_y;
 
+            height_calc_time += (framework().millis)() - t;
+            let t = (framework().millis)();
+        
             // Set up rbop location
             framework().rbop_location_x = PADDING as i64;
             framework().rbop_location_y = calc_start_y + PADDING as i64;
@@ -137,6 +146,9 @@ impl Application for CalculatorApplication {
             };
 
             calc_start_y += (layout.area(framework()).height + PADDING) as i64;
+
+            draw_node_time += (framework().millis)() - t;
+            let t = (framework().millis)();
             
             // Draw result
             calc_start_y += self.draw_result(calc_start_y, result.clone()) as i64;
@@ -149,10 +161,21 @@ impl Application for CalculatorApplication {
                     colour::WHITE,
                 )
             }
+
+            draw_result_time += (framework().millis)() - t;
         }
 
         // Write title
         os().ui_draw_title("Calculator");
+
+        // Show timings
+        (framework().display.set_cursor)(0, 35);
+        framework().display.print(format!(
+            "Calc: {}\nDraw node: {}\nDraw res: {}",
+            height_calc_time,
+            draw_node_time,
+            draw_result_time,
+        ));
 
         // Push to screen
         (framework().display.draw)();
