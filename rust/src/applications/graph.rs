@@ -1,6 +1,6 @@
 use alloc::{format, string::{String, ToString}, vec, vec::{Vec}};
 use rbop::{StructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
-use rust_decimal::{Decimal, prelude::{FromPrimitive, ToPrimitive}};
+use rust_decimal::{Decimal, prelude::{FromPrimitive, One, ToPrimitive, Zero}};
 
 use crate::{interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}};
 use super::{Application, ApplicationInfo};
@@ -19,17 +19,17 @@ pub struct ViewWindow {
 impl ViewWindow {
     fn new() -> ViewWindow {
         ViewWindow {
-            pan_x: Decimal::ZERO,
-            pan_y: Decimal::ZERO,
-            scale_x: Decimal::ONE,
-            scale_y: Decimal::ONE,
+            pan_x: Decimal::zero(),
+            pan_y: Decimal::zero(),
+            scale_x: Decimal::one(),
+            scale_y: Decimal::one(),
         }
     }
 
     fn axis_screen_coords(&self) -> (i64, i64) {
         (
-            self.x_to_screen(Decimal::ZERO),
-            self.y_to_screen(Decimal::ZERO)
+            self.x_to_screen(Decimal::zero()),
+            self.y_to_screen(Decimal::zero())
         )
     }
 
@@ -38,7 +38,7 @@ impl ViewWindow {
     /// values, iterate over these.
     fn x_coords_on_screen(&self) -> Vec<Decimal> {
         // Delta between X pixels is 1 / scale
-        let x_delta = Decimal::ONE / self.scale_x;
+        let x_delta = Decimal::one() / self.scale_x;
 
         let x_start = (Decimal::from_i64(
             framework().display.width as i64 / -2
@@ -115,11 +115,12 @@ impl Application for GraphApplication {
             } else if self.edit_mode {
                 self.rbop_ctx.input(input);
             } else {
+                let ten = Decimal::from_u8(10).unwrap();
                 match input {
-                    ButtonInput::MoveLeft => self.view_window.pan_x += Decimal::TEN,
-                    ButtonInput::MoveRight => self.view_window.pan_x -= Decimal::TEN,
-                    ButtonInput::MoveUp => self.view_window.pan_y -= Decimal::TEN,
-                    ButtonInput::MoveDown => self.view_window.pan_y += Decimal::TEN,
+                    ButtonInput::MoveLeft => self.view_window.pan_x += ten,
+                    ButtonInput::MoveRight => self.view_window.pan_x -= ten,
+                    ButtonInput::MoveUp => self.view_window.pan_y -= ten,
+                    ButtonInput::MoveDown => self.view_window.pan_y += ten,
 
                     ButtonInput::List => self.open_menu(),
 

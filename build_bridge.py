@@ -8,6 +8,6 @@ print("Building Rust component...")
 
 # "cargo build" the bridge project
 bridge_dir = os.path.join(root_dir, "rust")
-subprocess.check_output(["cargo", "build"], cwd=bridge_dir)
+subprocess.check_output(["cargo", "build", "--release"], cwd=bridge_dir)
 
 print("Done!")
