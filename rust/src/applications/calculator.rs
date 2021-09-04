@@ -127,23 +127,16 @@ impl Application for CalculatorApplication {
             framework().rbop_location_y = calc_start_y + PADDING as i64;
             
             // Is this item being edited?
-            let (layout, result) = if self.current_calculation_idx == *i {
+            if self.current_calculation_idx == *i {
                 // Draw active nodes
-                let layout = framework().draw_all(
-                    &self.rbop_ctx.root, 
-                    Some(&mut self.rbop_ctx.nav_path.to_navigator()),
+                framework().draw_all_by_layout(
+                    &layout,
                     self.rbop_ctx.viewport.as_ref(),
                 );
-
-                (layout, result)
             } else {
                 // Draw stored nodes
-                let layout = framework().draw_all(
-                    root, None, None,
-                );
-
-                (layout, result.clone())
-            };
+                framework().draw_all_by_layout(&layout, None);
+            }
 
             calc_start_y += (layout.area(framework()).height + PADDING) as i64;
 
