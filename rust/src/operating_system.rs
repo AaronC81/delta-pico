@@ -22,7 +22,8 @@ pub fn os() -> &'static mut OperatingSystemInterface<'static> {
                             storage: &mut framework().storage
                         }
                     }
-                }
+                },
+                last_title_millis: 0,
             });
         }
         OPERATING_SYSTEM_INTERFACE.as_mut().unwrap()
@@ -35,6 +36,7 @@ pub struct OperatingSystemInterface<'a> {
     pub showing_menu: bool,
     pub active_application: Option<Box<dyn Application>>,
     pub filesystem: Filesystem<'a>,
+    pub last_title_millis: u32,
 }
 
 impl<'a> OperatingSystemInterface<'a> {
@@ -92,12 +94,16 @@ impl<'a> OperatingSystemInterface<'a> {
 
     /// Draws a title bar to the top of the screen, with the text `s`.
     pub fn ui_draw_title(&mut self, s: impl Into<String>) {
+        let now_millis = (framework().millis)();
+        let millis_elapsed = now_millis - self.last_title_millis;
+        self.last_title_millis = now_millis;
+
         (framework().display.draw_rect)(
             0, 0, framework().display.width as i64, 30,
             crate::graphics::colour::ORANGE, true, 0
         );
         (framework().display.set_cursor)(5, 7);
-        framework().display.print(s);
+        framework().display.print(format!("{} ({} ms)", s.into(), millis_elapsed));
     }
 
     /// Opens a menu with the items in the slice `items`. The user can navigate the menu with the

@@ -98,6 +98,7 @@ void debugHandler(const uint8_t *message) {
 auto framework_interface = ApplicationFrameworkInterface {
   .panic_handler = panicHandler,
   .debug_handler = debugHandler,
+  .millis = millis,
   .display = DisplayInterface {
     .width = IWIDTH,
     .height = IHEIGHT,
