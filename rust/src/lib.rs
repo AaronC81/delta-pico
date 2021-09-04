@@ -53,9 +53,9 @@ pub extern "C" fn delta_pico_main() {
 
     os().application_list.add::<applications::calculator::CalculatorApplication>();
     os().application_list.add::<applications::graph::GraphApplication>();
+    os().application_list.add::<applications::storage::StorageApplication>();
     os().application_list.add::<applications::about::AboutApplication>();
     os().application_list.add::<applications::bootloader::BootloaderApplication>();
-    os().application_list.add::<applications::memory::MemoryApplication>();
 
     if !(framework().storage.connected)() {
         os().ui_text_dialog("Unable to communicate with storage.");
