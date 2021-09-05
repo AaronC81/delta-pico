@@ -39,10 +39,16 @@ pub struct DisplayInterface {
     pub width: u64,
     pub height: u64,
 
+    pub new_sprite: extern "C" fn(width: i16, height: i16) -> *mut u8,
+    pub free_sprite: extern "C" fn(*mut u8),
+    pub switch_to_sprite: extern "C" fn(*mut u8),
+    pub switch_to_screen: extern "C" fn(),
+
     pub fill_screen: extern "C" fn(c: u16),
     pub draw_char: extern "C" fn(x: i64, y: i64, character: u8),
     pub draw_line: extern "C" fn(x1: i64, y1: i64, x2: i64, y2: i64, c: u16),
     pub draw_rect: extern "C" fn(x1: i64, y1: i64, w: i64, h: i64, c: u16, fill: bool, radius: u16),
+    pub draw_sprite: extern "C" fn(x: i64, y: i64, sprite: *mut u8),
 
     pub print: extern "C" fn(s: *const u8),
     pub set_cursor: extern "C" fn(x: i64, y: i64),

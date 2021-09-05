@@ -108,10 +108,21 @@ auto framework_interface = ApplicationFrameworkInterface {
     .width = IWIDTH,
     .height = IHEIGHT,
 
+    .new_sprite = [](int16_t w, int16_t h){ return (uint8_t*)ApplicationFramework::instance.newSprite(w, h); },
+    .free_sprite = [](uint8_t* s){ ApplicationFramework::instance.freeSprite((TFT_eSprite*)s); },
+    .switch_to_sprite = [](uint8_t* s){ ApplicationFramework::instance.switchToSprite((TFT_eSprite*)s); },
+    .switch_to_screen = []{ ApplicationFramework::instance.switchToScreen(); },
+
     .fill_screen = displayFillScreen,
     .draw_char = displayDrawChar,
     .draw_line = displayDrawLine,
     .draw_rect = displayDrawRect,
+    .draw_sprite = [](int64_t x, int64_t y, uint8_t *s){
+      auto sprite = (TFT_eSprite*)s;
+      ApplicationFramework::instance.sprite().pushImageDMA(
+        x, y, sprite->width(), sprite->height(), (uint16_t*)sprite->getPointer()
+      );
+    },
 
     .print = displayPrint,
     .set_cursor = displaySetCursor,

@@ -13,6 +13,11 @@ class ApplicationFramework {
 public:
     void initialize();
     void draw();
+    TFT_eSprite* newSprite(int16_t width, int16_t height);
+    void freeSprite(TFT_eSprite* sprite);
+    void switchToSprite(TFT_eSprite *new_sprite);
+    void switchToScreen();
+
     ButtonMatrix& buttons() const;
     TFT_eSprite&  sprite()  const;
     CAT24C&       storage() const;
@@ -29,6 +34,6 @@ private:
     PCF8574 *_colPcf, *_rowPcf;
     ButtonMatrix *_buttons;
     TFT_eSprite *_sprite;
-    uint16_t *_spriteData;
+    TFT_eSprite *_screenSprite;
     CAT24C *_storage;
 };
