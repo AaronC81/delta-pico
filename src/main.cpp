@@ -44,7 +44,11 @@ void displayDraw() {
 }
 
 bool buttonsWaitInputEvent(ButtonInput *input, ButtonEvent *event) {
-  return ApplicationFramework::instance.buttons().waitForEventInput(*input, *event);
+  return ApplicationFramework::instance.buttons().getEventInput(*input, *event, true);
+}
+
+bool buttonsImmediateInputEvent(ButtonInput *input, ButtonEvent *event) {
+  return ApplicationFramework::instance.buttons().getEventInput(*input, *event, false);
 }
 
 bool storageConnected() {
@@ -116,6 +120,7 @@ auto framework_interface = ApplicationFrameworkInterface {
   },
   .buttons = ButtonsInterface {
     .wait_input_event = buttonsWaitInputEvent,
+    .immediate_input_event = buttonsImmediateInputEvent,
   },
   .storage = {
     .connected = storageConnected,

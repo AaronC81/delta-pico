@@ -22,9 +22,9 @@ public:
     void begin(void);
 
     bool getRawButton(uint8_t &pressedRow, uint8_t &pressedCol);
-    bool waitForEvent(uint8_t &pressedRow, uint8_t &pressedCol, ButtonEvent &event);
+    bool getEvent(uint8_t &pressedRow, uint8_t &pressedCol, ButtonEvent &event, bool wait);
 
-    bool waitForEventInput(ButtonInput &input, ButtonEvent &event);
+    bool getEventInput(ButtonInput &input, ButtonEvent &event, bool wait);
 
 protected:
     PCF8574 row, col;

@@ -39,7 +39,7 @@ bool ButtonMatrix::getRawButton(uint8_t &pressedRow, uint8_t &pressedCol) {
     return false;
 }
 
-bool ButtonMatrix::waitForEvent(uint8_t &eventRow, uint8_t &eventCol, ButtonEvent &event) {
+bool ButtonMatrix::getEvent(uint8_t &eventRow, uint8_t &eventCol, ButtonEvent &event, bool wait) {
     // Was a button already being pressed?
     if (currentlyPressed) {
         // Is it no longer pressed?
@@ -61,8 +61,14 @@ bool ButtonMatrix::waitForEvent(uint8_t &eventRow, uint8_t &eventCol, ButtonEven
         return false;
     }
 
-    // Wait for a button to be pressed
-    while (!getRawButton(eventRow, eventCol));
+    if (wait) {
+        // Wait for a button to be pressed
+        while (!getRawButton(eventRow, eventCol));
+    } else {
+        if (!getRawButton(eventRow, eventCol)) {
+            return false;
+        }
+    }
 
     // Is it still pressed after the debounce time?
     uint8_t nowEventRow, nowEventCol;
@@ -84,9 +90,9 @@ bool ButtonMatrix::waitForEvent(uint8_t &eventRow, uint8_t &eventCol, ButtonEven
     return false;
 }
 
-bool ButtonMatrix::waitForEventInput(ButtonInput &input, ButtonEvent &event) {
+bool ButtonMatrix::getEventInput(ButtonInput &input, ButtonEvent &event, bool wait) {
     uint8_t r, c;
-    if (ButtonMatrix::waitForEvent(r, c, event)) {
+    if (ButtonMatrix::getEvent(r, c, event, wait)) {
         input = buttonMapping[r][c];
         return true;
     } else {
