@@ -2,7 +2,7 @@ use alloc::{format, string::{String, ToString}, vec, vec::{Vec}};
 use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{MoveResult, UnstructuredNodeRoot, Upgradable}, render::{Area, CalculatedPoint, Layoutable, Renderer, Viewport}};
 use rust_decimal::Decimal;
 
-use crate::{filesystem::{Calculation, ChunkIndex}, graphics::colour, interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}};
+use crate::{filesystem::{Calculation, ChunkIndex}, graphics::colour, interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}, timer::Timer};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -71,9 +71,11 @@ impl Application for CalculatorApplication {
 
         let result_string_height = framework().display.string_size("A").1;
 
-        let mut height_calc_time = 0; 
-        let mut draw_node_time = 0; 
-        let mut draw_result_time = 0;
+        let mut top_level_timer = Timer::new("Tick");
+        top_level_timer.start();
+        let height_timer = top_level_timer.new_subtimer("Height");
+        let draw_node_timer = top_level_timer.new_subtimer("Draw node");
+        let draw_result_timer = top_level_timer.new_subtimer("Draw result");
         
         // Draw history
         // TODO: clone is undoubtedly very inefficient here, but it makes the borrow checker happy
@@ -81,7 +83,7 @@ impl Application for CalculatorApplication {
         let calculation_count = self.calculations.len();
         let items = self.calculations.iter().enumerate().rev();
         for (i, Calculation { root, result }) in items {
-            let t = (framework().millis)();
+            height_timer.borrow_mut().start();
 
             // Lay out this note, so we can work out height
             // We'll also calculate a result here since we might as well
@@ -120,9 +122,9 @@ impl Application for CalculatorApplication {
             
             calc_block_start_y = calc_start_y;
 
-            height_calc_time += (framework().millis)() - t;
-            let t = (framework().millis)();
-        
+            height_timer.borrow_mut().stop();
+            draw_node_timer.borrow_mut().start();
+            
             // Set up rbop location
             framework().rbop_location_x = PADDING as i64;
             framework().rbop_location_y = calc_start_y + PADDING as i64;
@@ -141,8 +143,8 @@ impl Application for CalculatorApplication {
 
             calc_start_y += (layout.area(framework()).height + PADDING) as i64;
 
-            draw_node_time += (framework().millis)() - t;
-            let t = (framework().millis)();
+            draw_node_timer.borrow_mut().stop();
+            draw_result_timer.borrow_mut().start();
             
             // Draw result
             calc_start_y += self.draw_result(calc_start_y, &result) as i64;
@@ -156,20 +158,16 @@ impl Application for CalculatorApplication {
                 )
             }
 
-            draw_result_time += (framework().millis)() - t;
+            draw_result_timer.borrow_mut().stop();
         }
 
         // Write title
         os().ui_draw_title("Calculator");
 
         // Show timings
+        top_level_timer.stop();
         (framework().display.set_cursor)(0, 35);
-        framework().display.print(format!(
-            "Calc: {}\nDraw node: {}\nDraw res: {}",
-            height_calc_time,
-            draw_node_time,
-            draw_result_time,
-        ));
+        framework().display.print(format!("{}", top_level_timer));
 
         // Push to screen
         (framework().display.draw)();

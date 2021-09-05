@@ -16,6 +16,7 @@ mod rbop_impl;
 mod applications;
 mod graphics;
 mod filesystem;
+mod timer;
 
 use interface::framework;
 use operating_system::os;
