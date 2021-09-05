@@ -33,6 +33,6 @@ impl Application for AboutApplication {
 
         (framework().display.draw)();
 
-        framework().buttons.poll_press();
+        framework().buttons.wait_press();
     }
 }

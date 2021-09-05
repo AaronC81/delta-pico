@@ -43,7 +43,7 @@ impl Application for StorageApplication {
         }
         (framework().display.draw)();
 
-        if let Some(input) = framework().buttons.poll_press() {
+        if let Some(input) = framework().buttons.wait_press() {
             match input {
                 ButtonInput::MoveDown => self.address += SHOW_BYTES,
                 ButtonInput::MoveUp => self.address -= SHOW_BYTES,

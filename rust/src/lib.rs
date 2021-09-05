@@ -34,7 +34,7 @@ fn panic(info: &PanicInfo) -> ! {
     (framework().panic_handler)(message_bytes.as_ptr());
 
     loop {
-        if let Some(ButtonInput::Exe) = framework().buttons.poll_press() {
+        if let Some(ButtonInput::Exe) = framework().buttons.wait_press() {
             os().reboot_into_bootloader();
         }
     }

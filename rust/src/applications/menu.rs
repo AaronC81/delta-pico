@@ -44,7 +44,7 @@ impl Application for MenuApplication {
 
         (framework().display.draw)();
 
-        if let Some(btn) = framework().buttons.poll_press() {
+        if let Some(btn) = framework().buttons.wait_press() {
             match btn {
                 ButtonInput::MoveUp => {
                     if self.selected_index == 0 {

@@ -138,7 +138,7 @@ impl<'a> OperatingSystemInterface<'a> {
 
             (framework().display.draw)();
 
-            if let Some(btn) = framework().buttons.poll_press() {
+            if let Some(btn) = framework().buttons.wait_press() {
                 match btn {
                     ButtonInput::MoveUp => {
                         if selected_index == 0 {
@@ -219,7 +219,7 @@ impl<'a> OperatingSystemInterface<'a> {
             (framework().display.draw)();
 
             // Poll for input
-            if let Some(input) = framework().buttons.poll_press() {
+            if let Some(input) = framework().buttons.wait_press() {
                 if ButtonInput::Exe == input {
                     return rbop_ctx.root;
                 } else {
@@ -294,7 +294,7 @@ impl<'a> OperatingSystemInterface<'a> {
 
         // Poll for input
         loop {
-            if let Some(input) = framework().buttons.poll_press() {
+            if let Some(input) = framework().buttons.wait_press() {
                 if ButtonInput::Exe == input {
                     break;
                 }

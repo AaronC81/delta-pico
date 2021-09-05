@@ -109,7 +109,7 @@ impl Application for GraphApplication {
         self.draw();
 
         // Poll for input
-        if let Some(input) = framework().buttons.poll_press() {
+        if let Some(input) = framework().buttons.wait_press() {
             if input == ButtonInput::Exe {
                 self.edit_mode = !self.edit_mode;        
             } else if self.edit_mode {

@@ -175,7 +175,7 @@ impl Application for CalculatorApplication {
         (framework().display.draw)();
 
         // Poll for input
-        if let Some(input) = framework().buttons.poll_press() {
+        if let Some(input) = framework().buttons.wait_press() {
             if input == ButtonInput::Exe {
                 self.save_current();
                 self.calculations.push(Calculation::blank());

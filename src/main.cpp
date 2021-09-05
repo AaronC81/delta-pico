@@ -43,7 +43,7 @@ void displayDraw() {
   ApplicationFramework::instance.draw();
 }
 
-bool buttonsPollInputEvent(ButtonInput *input, ButtonEvent *event) {
+bool buttonsWaitInputEvent(ButtonInput *input, ButtonEvent *event) {
   return ApplicationFramework::instance.buttons().waitForEventInput(*input, *event);
 }
 
@@ -115,7 +115,7 @@ auto framework_interface = ApplicationFrameworkInterface {
     .draw = displayDraw,
   },
   .buttons = ButtonsInterface {
-    .poll_input_event = buttonsPollInputEvent,
+    .wait_input_event = buttonsWaitInputEvent,
   },
   .storage = {
     .connected = storageConnected,

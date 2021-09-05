@@ -114,16 +114,16 @@ pub enum ButtonEvent {
 
 #[repr(C)]
 pub struct ButtonsInterface {
-    pub poll_input_event: extern "C" fn(input: *mut ButtonInput, event: *mut ButtonEvent) -> bool,
+    pub wait_input_event: extern "C" fn(input: *mut ButtonInput, event: *mut ButtonEvent) -> bool,
 }
 
 impl ButtonsInterface {
-    pub fn poll_press(&self) -> Option<ButtonInput> {
+    pub fn wait_press(&self) -> Option<ButtonInput> {
         // Garbage default values
         let mut input: ButtonInput = ButtonInput::None;
         let mut event: ButtonEvent = ButtonEvent::Release;
 
-        if (self.poll_input_event)(&mut input as *mut _, &mut event as *mut _) && event == ButtonEvent::Press {
+        if (self.wait_input_event)(&mut input as *mut _, &mut event as *mut _) && event == ButtonEvent::Press {
             if input == ButtonInput::Menu {
                 os().toggle_menu();
                 None
