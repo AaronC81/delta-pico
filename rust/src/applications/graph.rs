@@ -109,23 +109,22 @@ impl Application for GraphApplication {
         self.draw();
 
         // Poll for input
-        if let Some(input) = framework().buttons.wait_press() {
-            if input == ButtonInput::Exe {
-                self.edit_mode = !self.edit_mode;        
-            } else if self.edit_mode {
-                self.rbop_ctx.input(input);
-            } else {
-                let ten = Decimal::from_u8(10).unwrap();
-                match input {
-                    ButtonInput::MoveLeft => self.view_window.pan_x += ten,
-                    ButtonInput::MoveRight => self.view_window.pan_x -= ten,
-                    ButtonInput::MoveUp => self.view_window.pan_y -= ten,
-                    ButtonInput::MoveDown => self.view_window.pan_y += ten,
+        let input = framework().buttons.wait_press();
+        if input == ButtonInput::Exe {
+            self.edit_mode = !self.edit_mode;        
+        } else if self.edit_mode {
+            self.rbop_ctx.input(input);
+        } else {
+            let ten = Decimal::from_u8(10).unwrap();
+            match input {
+                ButtonInput::MoveLeft => self.view_window.pan_x += ten,
+                ButtonInput::MoveRight => self.view_window.pan_x -= ten,
+                ButtonInput::MoveUp => self.view_window.pan_y -= ten,
+                ButtonInput::MoveDown => self.view_window.pan_y += ten,
 
-                    ButtonInput::List => self.open_menu(),
+                ButtonInput::List => self.open_menu(),
 
-                    _ => (),
-                }
+                _ => (),
             }
         }
     }

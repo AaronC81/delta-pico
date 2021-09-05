@@ -43,34 +43,33 @@ impl Application for StorageApplication {
         }
         (framework().display.draw)();
 
-        if let Some(input) = framework().buttons.wait_press() {
-            match input {
-                ButtonInput::MoveDown => self.address += SHOW_BYTES,
-                ButtonInput::MoveUp => self.address -= SHOW_BYTES,
-                ButtonInput::List => {
-                    match os().ui_open_menu(&["Jump".into(), "Clear memory".into()], true) {
-                        Some(0) => {
-                            // TODO redraw
-                            let address_dec = os().ui_input_expression_and_evaluate("Memory address", None, || ());
-                            if let Some(address) = address_dec.to_u16() {
-                                // Bind to boundary
-                                self.address = (address / SHOW_BYTES) * SHOW_BYTES;
-                            } else {
-                                os().ui_text_dialog("Invalid address");
-                            }
+        let input = framework().buttons.wait_press();
+        match input {
+            ButtonInput::MoveDown => self.address += SHOW_BYTES,
+            ButtonInput::MoveUp => self.address -= SHOW_BYTES,
+            ButtonInput::List => {
+                match os().ui_open_menu(&["Jump".into(), "Clear memory".into()], true) {
+                    Some(0) => {
+                        // TODO redraw
+                        let address_dec = os().ui_input_expression_and_evaluate("Memory address", None, || ());
+                        if let Some(address) = address_dec.to_u16() {
+                            // Bind to boundary
+                            self.address = (address / SHOW_BYTES) * SHOW_BYTES;
+                        } else {
+                            os().ui_text_dialog("Invalid address");
                         }
-                        Some(1) => {
-                            if framework().storage.clear().is_some() {
-                                os().ui_text_dialog("Memory cleared.");
-                            } else {
-                                os().ui_text_dialog("Failed to clear memory.");
-                            }
-                        },
-                        _ => (),
                     }
+                    Some(1) => {
+                        if framework().storage.clear().is_some() {
+                            os().ui_text_dialog("Memory cleared.");
+                        } else {
+                            os().ui_text_dialog("Failed to clear memory.");
+                        }
+                    },
+                    _ => (),
                 }
-                _ => (),
             }
-        };
+            _ => (),
+        }
     }
 }

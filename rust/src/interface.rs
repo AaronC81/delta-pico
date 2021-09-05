@@ -119,8 +119,8 @@ pub struct ButtonsInterface {
 }
 
 impl ButtonsInterface {
-    pub fn wait_press(&self) -> Option<ButtonInput> {
-        self.press_func_wrapper(self.wait_input_event)
+    pub fn wait_press(&self) -> ButtonInput {
+        self.press_func_wrapper(self.wait_input_event).unwrap()
     }
 
     pub fn immediate_press(&self) -> Option<ButtonInput> {
@@ -132,15 +132,15 @@ impl ButtonsInterface {
         let mut input: ButtonInput = ButtonInput::None;
         let mut event: ButtonEvent = ButtonEvent::Release;
 
-        if (func)(&mut input as *mut _, &mut event as *mut _) && event == ButtonEvent::Press {
-            if input == ButtonInput::Menu {
-                os().toggle_menu();
-                None
-            } else {
-                Some(input)
+        loop {
+            if (func)(&mut input as *mut _, &mut event as *mut _) && event == ButtonEvent::Press {
+                if input == ButtonInput::Menu {
+                    os().toggle_menu();
+                    return None
+                } else {
+                    return Some(input)
+                }
             }
-        } else {
-            None
         }
     }
 }

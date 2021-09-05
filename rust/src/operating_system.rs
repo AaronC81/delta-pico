@@ -138,23 +138,22 @@ impl<'a> OperatingSystemInterface<'a> {
 
             (framework().display.draw)();
 
-            if let Some(btn) = framework().buttons.wait_press() {
-                match btn {
-                    ButtonInput::MoveUp => {
-                        if selected_index == 0 {
-                            selected_index = items.len() - 1;
-                        } else {
-                            selected_index -= 1;
-                        }
+            let btn = framework().buttons.wait_press();
+            match btn {
+                ButtonInput::MoveUp => {
+                    if selected_index == 0 {
+                        selected_index = items.len() - 1;
+                    } else {
+                        selected_index -= 1;
                     }
-                    ButtonInput::MoveDown => {
-                        selected_index += 1;
-                        selected_index %= items.len();
-                    }
-                    ButtonInput::Exe => return Some(selected_index),
-                    ButtonInput::List if can_close => return None,
-                    _ => (),
                 }
+                ButtonInput::MoveDown => {
+                    selected_index += 1;
+                    selected_index %= items.len();
+                }
+                ButtonInput::Exe => return Some(selected_index),
+                ButtonInput::List if can_close => return None,
+                _ => (),
             }
         }
     }
@@ -219,12 +218,11 @@ impl<'a> OperatingSystemInterface<'a> {
             (framework().display.draw)();
 
             // Poll for input
-            if let Some(input) = framework().buttons.wait_press() {
-                if ButtonInput::Exe == input {
-                    return rbop_ctx.root;
-                } else {
-                    rbop_ctx.input(input);
-                }
+            let input = framework().buttons.wait_press();
+            if ButtonInput::Exe == input {
+                return rbop_ctx.root;
+            } else {
+                rbop_ctx.input(input);
             }
         }
     }
@@ -294,10 +292,8 @@ impl<'a> OperatingSystemInterface<'a> {
 
         // Poll for input
         loop {
-            if let Some(input) = framework().buttons.wait_press() {
-                if ButtonInput::Exe == input {
-                    break;
-                }
+            if framework().buttons.wait_press() == ButtonInput::Exe {
+                break;
             }
         }
     }
