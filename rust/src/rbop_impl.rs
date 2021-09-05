@@ -158,22 +158,22 @@ impl Renderer for ApplicationFrameworkInterface {
             ViewportVisibility::Clipped { invisible, .. } if invisible => return,
             ViewportVisibility::Clipped { left_clip, right_clip, .. } => {
                 // Re-align and shorten a left-clipped fraction line
-                if let Glyph::Fraction { inner_width } = glyph.glyph {
+                if let Glyph::Fraction { inner_width } = glyph.glyph.glyph {
                     if left_clip > 0 {
                         glyph.glyph = Glyph::Fraction {
                             inner_width: inner_width - left_clip
-                        };
+                        }.to_sized(self);
                         glyph.point.x = 0;
                     }
                 }
 
                 // Shorten a right-clipped fraction line
                 // (The if-let binding is repeated to get a possibly updated inner_width)
-                if let Glyph::Fraction { inner_width } = glyph.glyph {
+                if let Glyph::Fraction { inner_width } = glyph.glyph.glyph {
                     if right_clip > 0 {
                         glyph.glyph = Glyph::Fraction {
                             inner_width: inner_width - right_clip
-                        };
+                        }.to_sized(self);
                     }
                 }                
             }
@@ -182,7 +182,7 @@ impl Renderer for ApplicationFrameworkInterface {
 
         let point = glyph.point;
 
-        match glyph.glyph {
+        match glyph.glyph.glyph {
             Glyph::Digit { number } => (self.display.draw_char)(point.x, point.y, number + ('0' as u8)),
             Glyph::Point => (self.display.draw_char)(point.x, point.y, '.' as u8),
             Glyph::Variable { name } => (self.display.draw_char)(point.x, point.y, name as u8),

@@ -74,6 +74,10 @@ impl Application for CalculatorApplication {
         let mut top_level_timer = Timer::new("Tick");
         top_level_timer.start();
         let height_timer = top_level_timer.new_subtimer("Height");
+        let layout_timer = height_timer.borrow_mut().new_subtimer("Layout");
+        let eval_timer = height_timer.borrow_mut().new_subtimer("Eval");
+        let area_timer = height_timer.borrow_mut().new_subtimer("Area calc");
+
         let draw_node_timer = top_level_timer.new_subtimer("Draw node");
         let draw_result_timer = top_level_timer.new_subtimer("Draw result");
         
@@ -91,7 +95,10 @@ impl Application for CalculatorApplication {
             let (layout, result) = if self.current_calculation_idx == i {
                 // If this is the calculation currently being edited, there is a possibly edited
                 // version in the rbop context, so use that for layout and such
+                layout_timer.borrow_mut().start();
                 let layout = framework().layout(&self.rbop_ctx.root, Some(navigator));
+                layout_timer.borrow_mut().stop();
+                eval_timer.borrow_mut().start();
                 let result = if let Ok(structured) = self.rbop_ctx.root.upgrade() {
                     if let Ok(evaluation_result) = structured.evaluate() {
                         Some(evaluation_result)
@@ -101,24 +108,29 @@ impl Application for CalculatorApplication {
                 } else {
                     None
                 };
+                eval_timer.borrow_mut().stop();
 
                 (layout, result)
             } else {
+                layout_timer.borrow_mut().start();
                 let layout = framework().layout(
                     root, None,
                 );
+                layout_timer.borrow_mut().stop();
                 (layout, *result)
             };
 
             // Work out Y position to draw everything from
+            area_timer.borrow_mut().start();
             let mut calc_start_y =
                 // Global start
                 calc_block_start_y - (
                     // Node
-                    layout.area(framework()).height + PADDING +
+                    layout.area.height + PADDING +
                     // Result
                     PADDING * 3 + result_string_height as u64
                 ) as i64;
+            area_timer.borrow_mut().stop();
             
             calc_block_start_y = calc_start_y;
 
@@ -141,7 +153,7 @@ impl Application for CalculatorApplication {
                 framework().draw_all_by_layout(&layout, None);
             }
 
-            calc_start_y += (layout.area(framework()).height + PADDING) as i64;
+            calc_start_y += (layout.area.height + PADDING) as i64;
 
             draw_node_timer.borrow_mut().stop();
             draw_result_timer.borrow_mut().start();

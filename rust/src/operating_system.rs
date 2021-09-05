@@ -188,7 +188,7 @@ impl<'a> OperatingSystemInterface<'a> {
                 &rbop_ctx.root,
                 Some(&mut rbop_ctx.nav_path.to_navigator()),
             );
-            let height = max(layout.area(framework()).height, minimum_height);
+            let height = max(layout.area.height, minimum_height);
 
             if height > minimum_height {
                 minimum_height = height;
