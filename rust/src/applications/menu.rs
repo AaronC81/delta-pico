@@ -44,21 +44,22 @@ impl Application for MenuApplication {
 
         (framework().display.draw)();
 
-        let btn = framework().buttons.wait_press();
-        match btn {
-            ButtonInput::MoveUp => {
-                if self.selected_index == 0 {
-                    self.selected_index = os().application_list.applications.len() - 1;
-                } else {
-                    self.selected_index -= 1;
+        if let Some(btn) = framework().buttons.wait_press() {
+            match btn {
+                ButtonInput::MoveUp => {
+                    if self.selected_index == 0 {
+                        self.selected_index = os().application_list.applications.len() - 1;
+                    } else {
+                        self.selected_index -= 1;
+                    }
                 }
+                ButtonInput::MoveDown => {
+                    self.selected_index += 1;
+                    self.selected_index %= os().application_list.applications.len();
+                }
+                ButtonInput::Exe => os().launch_application(self.selected_index),
+                _ => (),
             }
-            ButtonInput::MoveDown => {
-                self.selected_index += 1;
-                self.selected_index %= os().application_list.applications.len();
-            }
-            ButtonInput::Exe => os().launch_application(self.selected_index),
-            _ => (),
         }
     }
 }

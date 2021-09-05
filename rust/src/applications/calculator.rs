@@ -175,28 +175,29 @@ impl Application for CalculatorApplication {
         (framework().display.draw)();
 
         // Poll for input
-        let input = framework().buttons.wait_press();
-        if input == ButtonInput::Exe {
-            self.save_current();
-            self.calculations.push(Calculation::blank());
-            self.current_calculation_idx += 1;
-            self.load_current();  
-            self.save_current();
-        } else {
-            let move_result = self.rbop_ctx.input(input);
-            // Move calculations if needed
-            if let Some((dir, MoveResult::MovedOut)) = move_result {
-                match dir {
-                    MoveVerticalDirection::Up => if self.current_calculation_idx != 0 {
-                        self.save_current();
-                        self.current_calculation_idx -= 1;
-                        self.load_current();
-                    },
-                    MoveVerticalDirection::Down => if self.current_calculation_idx != self.calculations.len() - 1 {
-                        self.save_current();
-                        self.current_calculation_idx += 1;
-                        self.load_current();
-                    },
+        if let Some(input) = framework().buttons.wait_press() {
+            if input == ButtonInput::Exe {
+                self.save_current();
+                self.calculations.push(Calculation::blank());
+                self.current_calculation_idx += 1;
+                self.load_current();  
+                self.save_current();
+            } else {
+                let move_result = self.rbop_ctx.input(input);
+                // Move calculations if needed
+                if let Some((dir, MoveResult::MovedOut)) = move_result {
+                    match dir {
+                        MoveVerticalDirection::Up => if self.current_calculation_idx != 0 {
+                            self.save_current();
+                            self.current_calculation_idx -= 1;
+                            self.load_current();
+                        },
+                        MoveVerticalDirection::Down => if self.current_calculation_idx != self.calculations.len() - 1 {
+                            self.save_current();
+                            self.current_calculation_idx += 1;
+                            self.load_current();
+                        },
+                    }
                 }
             }
         }
