@@ -23,6 +23,7 @@ pub struct ApplicationFrameworkInterface {
     pub debug_handler: extern "C" fn(*const u8) -> (),
 
     pub millis: extern "C" fn() -> u32,
+    pub micros: extern "C" fn() -> u32,
 
     pub display: DisplayInterface,
     pub buttons: ButtonsInterface,

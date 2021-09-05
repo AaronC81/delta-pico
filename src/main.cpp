@@ -103,6 +103,7 @@ auto framework_interface = ApplicationFrameworkInterface {
   .panic_handler = panicHandler,
   .debug_handler = debugHandler,
   .millis = millis,
+  .micros = micros,
   .display = DisplayInterface {
     .width = IWIDTH,
     .height = IHEIGHT,

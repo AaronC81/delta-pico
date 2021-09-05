@@ -22,22 +22,22 @@ impl Timer {
         }
     }
 
-    pub fn millis() -> u32 {
-        (framework().millis)()
+    pub fn micros() -> u32 {
+        (framework().micros)()
     }
 
     pub fn start(&mut self) {
         if self.current_start.is_some() {
             panic!("timer already running")
         }
-        self.current_start = Some(Self::millis())
+        self.current_start = Some(Self::micros())
     }
 
     pub fn stop(&mut self) {
         if self.current_start.is_none() {
             panic!("timer not running")
         }
-        let difference = Self::millis() - self.current_start.unwrap();
+        let difference = Self::micros() - self.current_start.unwrap();
         self.elapsed += difference;
         self.current_start = None;
     }
