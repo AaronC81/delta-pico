@@ -1,5 +1,9 @@
 #include "application_framework.hpp"
 
+extern "C" {
+    #include <DroidSans-20.h>
+}
+
 void ApplicationFramework::initialize() {
     if (_initialized) return;
 
@@ -8,7 +12,7 @@ void ApplicationFramework::initialize() {
     _colPcf = new PCF8574(*_i2c, I2C_EXPANDER_ADDRESS_1);
     _rowPcf = new PCF8574(*_i2c, I2C_EXPANDER_ADDRESS_2);
     _buttons = new ButtonMatrix(*_rowPcf, *_colPcf);
-    _screenSprite = new TFT_eSprite(_tft);
+    _screenSprite = newSprite(TFT_WIDTH, TFT_HEIGHT);
     _sprite = _screenSprite;
     _storage = new CAT24C(*_i2c, CAT24C_ADDRESS);
 
@@ -19,12 +23,6 @@ void ApplicationFramework::initialize() {
     _tft->fillScreen(TFT_BLACK);
     _tft->initDMA();
     _tft->setRotation(0);
-
-    _screenSprite->setColorDepth(COLOR_DEPTH);
-    _screenSprite->createSprite(IWIDTH, IHEIGHT);
-    _screenSprite->setTextColor(TFT_WHITE);
-    _screenSprite->setTextDatum(MC_DATUM);
-    _screenSprite->setTextWrap(false, false);
 
     switchToScreen();
 
@@ -39,7 +37,14 @@ void ApplicationFramework::draw() {
 
 TFT_eSprite* ApplicationFramework::newSprite(int16_t width, int16_t height) {
     auto sprite = new TFT_eSprite(_tft);
-    sprite->createSprite(IWIDTH, IHEIGHT);
+    sprite->setColorDepth(COLOR_DEPTH);
+    sprite->createSprite(width, height);
+
+    sprite->loadFont(DroidSans_20_vlw);
+    sprite->setTextColor(TFT_WHITE);
+    sprite->setTextDatum(MC_DATUM);
+    sprite->setTextWrap(false, false);
+
     return sprite;
 }
 
