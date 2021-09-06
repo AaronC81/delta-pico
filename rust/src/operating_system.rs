@@ -44,6 +44,20 @@ impl<'a> OperatingSystemInterface<'a> {
     /// in `application_list`.
     pub fn launch_application(&mut self, index: usize) {
         self.showing_menu = false;
+
+        // Why do we need to do this, rather than letting applications just implement `Drop` if they
+        // deal with raw pointers to memory?
+        // Well, some applications (namely Calculator) can consume a pretty large amount of memory.
+        // If you launch such an application, go to menu, and launch it again, the `Drop` is only
+        // called _after_ we've constructed a new application.
+        // There might not be enough memory to construct something new, so we OOM!
+        // Our `destroy` method gives applications an opportunity to clean up before constructing a 
+        // new one.
+        // I also couldn't get the borrow checker to be satisfied with me passing `drop` a mutable
+        // reference.
+        if let Some(app) = self.active_application.as_mut() {
+            app.destroy();
+        }
         self.active_application = Some(self.application_list.applications[index].1());
     }
 

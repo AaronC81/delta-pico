@@ -14,6 +14,8 @@ pub trait Application {
     fn new_dyn() -> Box<dyn Application> where Self: Sized, Self: 'static {
         Box::new(Self::new())
     }
+
+    fn destroy(&mut self) {}
 }
 
 pub struct ApplicationList {

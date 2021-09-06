@@ -226,6 +226,10 @@ impl Application for CalculatorApplication {
             }
         }
     }
+
+    fn destroy(&mut self) {
+        self.free_sprite_cache();
+    }
 }
 
 impl CalculatorApplication {
@@ -331,8 +335,3 @@ impl CalculatorApplication {
     }
 }
 
-impl Drop for CalculatorApplication {
-    fn drop(&mut self) {
-        self.free_sprite_cache();
-    }
-}
