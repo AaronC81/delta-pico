@@ -8,11 +8,18 @@ use crate::interface::framework;
 
 const PADDING: u64 = 10;
 
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+enum SpriteCacheEntry {
+    Blank,
+    Clipped,
+    Entry { area: Area, sprite: *mut u8 },
+}
+
 pub struct CalculatorApplication {
     calculations: Vec<Calculation>,
     current_calculation_idx: usize,
     rbop_ctx: RbopContext,
-    sprite_cache: Vec<(Area, *mut u8)>,
+    sprite_cache: Vec<SpriteCacheEntry>,
 }
 
 impl Application for CalculatorApplication {
@@ -62,7 +69,7 @@ impl Application for CalculatorApplication {
             current_calculation_idx,
             sprite_cache: vec![],
         };
-        result.compute_sprite_cache();
+        result.clear_sprite_cache();
         result
     }
 
@@ -87,10 +94,24 @@ impl Application for CalculatorApplication {
         let draw_result_timer = top_level_timer.new_subtimer("Draw result");
         
         // Draw history
-        // TODO: can prune calculations which are entirely off the screen
+        // TODO: possibly expensive clone
         let calculation_count = self.calculations.len();
-        let items = self.calculations.iter().enumerate().rev();
+        let items = self.calculations.iter().cloned().enumerate().rev().collect::<Vec<_>>();
+        let mut rest_are_clipped = false;
         for (i, Calculation { result, .. }) in items {
+            // If the last thing we drew was partially off the top of the screen, then this is fully
+            // off the screen, so skip it and mark it as pruned
+            if rest_are_clipped {
+                self.mark_sprite_cache_clipped(i);
+            }
+
+            // Fetch this from the sprite cache
+            let (cached_sprite_area, cached_sprite) = match self.sprite_cache_entry(i) {
+                Some(x) => x,
+                // If clipped, we don't need to draw this
+                None => continue,
+            };
+
             height_timer.borrow_mut().start();
 
             // Lay out this note, so we can work out height
@@ -119,14 +140,14 @@ impl Application for CalculatorApplication {
 
                 result
             } else {
-                *result
+                result
             };
 
             // Work out Y position to draw everything from
             let node_height = if let Some(ref l) = current_layout {
                 l.area.height
             } else {
-                self.sprite_cache[i].0.height
+                cached_sprite_area.height
             };
             area_timer.borrow_mut().start();
             let mut calc_start_y =
@@ -138,6 +159,11 @@ impl Application for CalculatorApplication {
                     PADDING * 3 + result_string_height as u64
                 ) as i64;
             area_timer.borrow_mut().stop();
+
+            // If this starts off the screen, then everything else is off the screen
+            if calc_start_y < 0 {
+                rest_are_clipped = true;
+            }
             
             calc_block_start_y = calc_start_y;
 
@@ -160,7 +186,7 @@ impl Application for CalculatorApplication {
                 (framework().display.draw_sprite)(
                     framework().rbop_location_x,
                     framework().rbop_location_y,
-                    self.sprite_cache[i].1,
+                    cached_sprite,
                 )
             }
 
@@ -203,7 +229,7 @@ impl Application for CalculatorApplication {
                 self.current_calculation_idx += 1;
                 self.load_current();  
                 self.save_current();
-                self.compute_sprite_cache();
+                self.clear_sprite_cache();
             } else {
                 let move_result = self.rbop_ctx.input(input);
                 // Move calculations if needed
@@ -213,13 +239,13 @@ impl Application for CalculatorApplication {
                             self.save_current();
                             self.current_calculation_idx -= 1;
                             self.load_current();
-                            self.compute_sprite_cache();
+                            self.clear_sprite_cache();
                         },
                         MoveVerticalDirection::Down => if self.current_calculation_idx != self.calculations.len() - 1 {
                             self.save_current();
                             self.current_calculation_idx += 1;
                             self.load_current();
-                            self.compute_sprite_cache();
+                            self.clear_sprite_cache();
                         },
                     }
                 }
@@ -228,40 +254,61 @@ impl Application for CalculatorApplication {
     }
 
     fn destroy(&mut self) {
-        self.free_sprite_cache();
+        self.clear_sprite_cache();
     }
 }
 
 impl CalculatorApplication {
-    fn free_sprite_cache(&mut self) {
+    fn clear_sprite_cache(&mut self) {
         // Free the sprite cache
-        for (_, s) in &self.sprite_cache {
-            (framework().display.free_sprite)(*s);
-        }        
+        for item in &self.sprite_cache {
+            if let &SpriteCacheEntry::Entry { sprite, .. } = item {
+                (framework().display.free_sprite)(sprite);
+            }
+        }
+
+        // Fill with "Blank"
+        self.sprite_cache = Vec::with_capacity(self.calculations.len());
+        for _ in 0..(self.calculations.len()) {
+            self.sprite_cache.push(SpriteCacheEntry::Blank);
+        }
     }
 
-    fn compute_sprite_cache(&mut self) {
-        self.free_sprite_cache();
+    fn sprite_cache_entry(&mut self, index: usize) -> Option<(Area, *mut u8)> {
+        if self.sprite_cache[index] == SpriteCacheEntry::Blank {
+            // This entry does not exist
+            // Grab calculation
+            let root = &self.calculations[index].root;
 
-        // Create new cache
-        self.sprite_cache = self.calculations.iter().cloned()
-            .map(|Calculation { root, .. }| {
-                // Compute layout
-                let layout = framework().layout(&root, None);
+            // Compute layout
+            let layout = framework().layout(root, None);
 
-                // Draw layout onto a new sprite
-                let sprite = (framework().display.new_sprite)(
-                    layout.area.width as i16, layout.area.height as i16
-                );
-                (framework().display.switch_to_sprite)(sprite);
-                framework().rbop_location_x = 0;
-                framework().rbop_location_y = 0;
-                framework().draw_all_by_layout(&layout, None);
-                (framework().display.switch_to_screen)();
+            // Draw layout onto a new sprite
+            let sprite = (framework().display.new_sprite)(
+                layout.area.width as i16, layout.area.height as i16
+            );
+            (framework().display.switch_to_sprite)(sprite);
+            framework().rbop_location_x = 0;
+            framework().rbop_location_y = 0;
+            framework().draw_all_by_layout(&layout, None);
+            (framework().display.switch_to_screen)();
 
-                (layout.area, sprite)
-            })
-            .collect::<Vec<_>>();
+            self.sprite_cache[index] = SpriteCacheEntry::Entry {
+                area: layout.area,
+                sprite
+            }
+        }
+
+        match self.sprite_cache[index] {
+            SpriteCacheEntry::Entry { area, sprite } =>
+                Some((area, sprite)),
+            SpriteCacheEntry::Clipped => None,
+            SpriteCacheEntry::Blank => panic!("sprite cache miss"),
+        }
+    }
+
+    fn mark_sprite_cache_clipped(&mut self, index: usize) {
+        self.sprite_cache[index] = SpriteCacheEntry::Clipped;
     }
 
     fn save_current(&mut self) {
