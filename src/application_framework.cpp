@@ -49,8 +49,7 @@ TFT_eSprite* ApplicationFramework::newSprite(int16_t width, int16_t height) {
 }
 
 void ApplicationFramework::freeSprite(TFT_eSprite *sprite) {
-    sprite->unloadFont();
-    sprite->deleteSprite();
+    delete sprite;
 }
 
 void ApplicationFramework::switchToSprite(TFT_eSprite *sprite) {
