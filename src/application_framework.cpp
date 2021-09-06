@@ -1,4 +1,5 @@
 #include "application_framework.hpp"
+#include "hardware.hpp"
 
 extern "C" {
     #include <DroidSans-20.h>
@@ -31,13 +32,18 @@ void ApplicationFramework::initialize() {
 
 void ApplicationFramework::draw() {
     _tft->startWrite();
-    _tft->pushImageDMA(0, 0, IWIDTH, IHEIGHT, (uint16_t*)_sprite->getPointer());
+
+#ifdef USE_8BPP
+    _tft->pushImage(0, 0, IWIDTH, IHEIGHT, (uint8_t*)_sprite->getPointer(), true, (uint16_t*)nullptr);
+#else
+    _tft->pushImage(0, 0, IWIDTH, IHEIGHT, (uint16_t*)_sprite->getPointer());
+#endif
     _tft->endWrite();
 }
 
 TFT_eSprite* ApplicationFramework::newSprite(int16_t width, int16_t height) {
     auto sprite = new TFT_eSprite(_tft);
-    sprite->setColorDepth(COLOR_DEPTH);
+    sprite->setColorDepth(SOFTWARE_COLOR_DEPTH);
     sprite->createSprite(width, height);
 
     sprite->loadFont(DroidSans_20_vlw);

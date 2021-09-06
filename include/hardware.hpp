@@ -12,8 +12,14 @@ extern "C" {
 
 #define CAT24C_ADDRESS 0x50
 
-#define USE_DMA_TO_TFT
 #define COLOR_DEPTH 16
+#define USE_8BPP
+
+#ifdef USE_8BPP
+#define SOFTWARE_COLOR_DEPTH 8
+#else
+#define SOFTWARE_COLOR_DEPTH 16
+#endif
 
 #define IWIDTH  240
 #define IHEIGHT 320

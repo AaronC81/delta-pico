@@ -119,7 +119,7 @@ auto framework_interface = ApplicationFrameworkInterface {
     .draw_sprite = [](int64_t x, int64_t y, uint8_t *s){
       auto sprite = (TFT_eSprite*)s;
       ApplicationFramework::instance.sprite().pushImage(
-        x, y, sprite->width(), sprite->height(), (uint16_t*)sprite->getPointer(), 16
+        x, y, sprite->width(), sprite->height(), (uint16_t*)sprite->getPointer(), SOFTWARE_COLOR_DEPTH
       );
     },
 
