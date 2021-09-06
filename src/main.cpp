@@ -2,7 +2,6 @@
 
 extern "C" {
   #include <delta_pico_rust.h>
-  #include <DroidSans-20.h>
 }
 
 void displayFillScreen(uint16_t colour) {
@@ -119,8 +118,8 @@ auto framework_interface = ApplicationFrameworkInterface {
     .draw_rect = displayDrawRect,
     .draw_sprite = [](int64_t x, int64_t y, uint8_t *s){
       auto sprite = (TFT_eSprite*)s;
-      ApplicationFramework::instance.sprite().pushImageDMA(
-        x, y, sprite->width(), sprite->height(), (uint16_t*)sprite->getPointer()
+      ApplicationFramework::instance.sprite().pushImage(
+        x, y, sprite->width(), sprite->height(), (uint16_t*)sprite->getPointer(), 16
       );
     },
 
@@ -148,8 +147,6 @@ void setup() {
 
   ApplicationFramework::instance.initialize();
   delta_pico_set_framework(&framework_interface);
-
-  ApplicationFramework::instance.sprite().loadFont(DroidSans_20_vlw);
 
   delta_pico_main();
 }
