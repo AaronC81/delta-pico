@@ -9,9 +9,17 @@ use crate::interface::framework;
 const PADDING: u64 = 10;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
+/// An entry into the sprite cache.
 enum SpriteCacheEntry {
+    /// The sprite cache has been cleared, and this item hasn't been recomputed yet.
     Blank,
+
+    /// This item was found to be completely off the screen, so has been marked as clipped. This
+    /// item does not need to be drawn.
     Clipped,
+
+    /// This item has been recomputing since the sprite cache was last cleared, and is at least
+    /// partially visible on the screen.
     Entry { area: Area, sprite: *mut u8 },
 }
 
@@ -19,6 +27,22 @@ pub struct CalculatorApplication {
     calculations: Vec<Calculation>,
     current_calculation_idx: usize,
     rbop_ctx: RbopContext,
+
+    /// The sprite cache is an optimization technique which sacrifices memory in order to gain a
+    /// significant performance boost. Computing and drawing an rbop layout is relatively expensive,
+    /// so the sprite cache is used to lay out and draw the calculations which we are not editing
+    /// onto sprites in advance. Calculations not being edited won't change unless we navigate
+    /// between calculations, so these will be stored until the edited calculation changes. Drawing
+    /// the sprites onto the screen is significantly faster than recomputing and redrawing the rbop
+    /// layout.
+    ///
+    /// Supposing that there are 4 calculations on the screen, one of which is being edited:
+    ///   - Without the sprite cache, every `tick` computes and draws 4 rbop layouts.
+    ///   - With the sprite cache:
+    ///      - The first `tick` after navigating between calculations computes and draws 4 rbop
+    ///        layouts, allocates sprites for them, and performs a pass to mark other calculations
+    ///        as off-screen.
+    ///      - Every subsequent `tick` draws 3 sprites (negligible time) and 1 rbop layout.
     sprite_cache: Vec<SpriteCacheEntry>,
 }
 
@@ -259,6 +283,8 @@ impl Application for CalculatorApplication {
 }
 
 impl CalculatorApplication {
+    /// Completely clears the sprite cache and frees any allocated sprites. All sprite cache slots
+    /// become `Blank` after this.
     fn clear_sprite_cache(&mut self) {
         // Free the sprite cache
         for item in &self.sprite_cache {
@@ -274,6 +300,9 @@ impl CalculatorApplication {
         }
     }
 
+    /// Retrieves an index in the sprite cache, or computes it if the entry is blank. Returns the
+    /// area and sprite pointer if the sprite is has not been marked as clipped, otherwise returns
+    /// None.
     fn sprite_cache_entry(&mut self, index: usize) -> Option<(Area, *mut u8)> {
         if self.sprite_cache[index] == SpriteCacheEntry::Blank {
             // This entry does not exist
@@ -307,6 +336,9 @@ impl CalculatorApplication {
         }
     }
 
+    /// Marks an entry in the sprite cache as being clipped off the screen. Until the sprite cache
+    /// is cleared, any calls to `sprite_cache_entry` will return None so that the application loop
+    /// can skip drawing off-screen calculations.
     fn mark_sprite_cache_clipped(&mut self, index: usize) {
         self.sprite_cache[index] = SpriteCacheEntry::Clipped;
     }
