@@ -1,5 +1,5 @@
 use alloc::{format, string::{String, ToString}, vec, vec::{Vec}};
-use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{MoveResult, UnstructuredNodeRoot, Upgradable}, render::{Area, CalculatedPoint, Layoutable, Renderer, Viewport}};
+use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::{self, unstructured::{MoveResult, UnstructuredNodeRoot, Upgradable}}, render::{Area, CalculatedPoint, Layoutable, Renderer, Viewport}};
 use rust_decimal::Decimal;
 
 use crate::{filesystem::{Calculation, ChunkIndex}, graphics::colour, interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}, timer::Timer};
@@ -12,6 +12,7 @@ pub struct CalculatorApplication {
     calculations: Vec<Calculation>,
     current_calculation_idx: usize,
     rbop_ctx: RbopContext,
+    sprite_cache: Vec<(Area, *mut u8)>,
 }
 
 impl Application for CalculatorApplication {
@@ -47,7 +48,8 @@ impl Application for CalculatorApplication {
 
         let current_calculation_idx = calculations.len() - 1;
         let root = calculations[current_calculation_idx].root.clone();
-        Self {
+        
+        let mut result = Self {
             rbop_ctx: RbopContext {
                 viewport: Some(Viewport::new(Area::new(
                     framework().display.width - PADDING * 2,
@@ -58,7 +60,10 @@ impl Application for CalculatorApplication {
             },
             calculations,
             current_calculation_idx,
-        }
+            sprite_cache: vec![],
+        };
+        result.compute_sprite_cache();
+        result
     }
 
     fn tick(&mut self) {
@@ -82,17 +87,17 @@ impl Application for CalculatorApplication {
         let draw_result_timer = top_level_timer.new_subtimer("Draw result");
         
         // Draw history
-        // TODO: clone is undoubtedly very inefficient here, but it makes the borrow checker happy
         // TODO: can prune calculations which are entirely off the screen
         let calculation_count = self.calculations.len();
         let items = self.calculations.iter().enumerate().rev();
-        for (i, Calculation { root, result }) in items {
+        for (i, Calculation { result, .. }) in items {
             height_timer.borrow_mut().start();
 
             // Lay out this note, so we can work out height
             // We'll also calculate a result here since we might as well
             let navigator = &mut self.rbop_ctx.nav_path.to_navigator();
-            let (layout, result) = if self.current_calculation_idx == i {
+            let mut current_layout = None;
+            let result = if self.current_calculation_idx == i {
                 // If this is the calculation currently being edited, there is a possibly edited
                 // version in the rbop context, so use that for layout and such
                 layout_timer.borrow_mut().start();
@@ -110,23 +115,25 @@ impl Application for CalculatorApplication {
                 };
                 eval_timer.borrow_mut().stop();
 
-                (layout, result)
+                current_layout = Some(layout);
+
+                result
             } else {
-                layout_timer.borrow_mut().start();
-                let layout = framework().layout(
-                    root, None,
-                );
-                layout_timer.borrow_mut().stop();
-                (layout, *result)
+                *result
             };
 
             // Work out Y position to draw everything from
+            let node_height = if let Some(ref l) = current_layout {
+                l.area.height
+            } else {
+                self.sprite_cache[i].0.height
+            };
             area_timer.borrow_mut().start();
             let mut calc_start_y =
                 // Global start
                 calc_block_start_y - (
                     // Node
-                    layout.area.height + PADDING +
+                    node_height + PADDING +
                     // Result
                     PADDING * 3 + result_string_height as u64
                 ) as i64;
@@ -145,15 +152,19 @@ impl Application for CalculatorApplication {
             if self.current_calculation_idx == i {
                 // Draw active nodes
                 framework().draw_all_by_layout(
-                    &layout,
+                    &current_layout.unwrap(),
                     self.rbop_ctx.viewport.as_ref(),
                 );
             } else {
                 // Draw stored nodes
-                framework().draw_all_by_layout(&layout, None);
+                (framework().display.draw_sprite)(
+                    framework().rbop_location_x,
+                    framework().rbop_location_y,
+                    self.sprite_cache[i].1,
+                )
             }
 
-            calc_start_y += (layout.area.height + PADDING) as i64;
+            calc_start_y += (node_height + PADDING) as i64;
 
             draw_node_timer.borrow_mut().stop();
             draw_result_timer.borrow_mut().start();
@@ -192,6 +203,7 @@ impl Application for CalculatorApplication {
                 self.current_calculation_idx += 1;
                 self.load_current();  
                 self.save_current();
+                self.compute_sprite_cache();
             } else {
                 let move_result = self.rbop_ctx.input(input);
                 // Move calculations if needed
@@ -201,11 +213,13 @@ impl Application for CalculatorApplication {
                             self.save_current();
                             self.current_calculation_idx -= 1;
                             self.load_current();
+                            self.compute_sprite_cache();
                         },
                         MoveVerticalDirection::Down => if self.current_calculation_idx != self.calculations.len() - 1 {
                             self.save_current();
                             self.current_calculation_idx += 1;
                             self.load_current();
+                            self.compute_sprite_cache();
                         },
                     }
                 }
@@ -215,6 +229,37 @@ impl Application for CalculatorApplication {
 }
 
 impl CalculatorApplication {
+    fn free_sprite_cache(&mut self) {
+        // Free the sprite cache
+        for (_, s) in &self.sprite_cache {
+            (framework().display.free_sprite)(*s);
+        }        
+    }
+
+    fn compute_sprite_cache(&mut self) {
+        self.free_sprite_cache();
+
+        // Create new cache
+        self.sprite_cache = self.calculations.iter().cloned()
+            .map(|Calculation { root, .. }| {
+                // Compute layout
+                let layout = framework().layout(&root, None);
+
+                // Draw layout onto a new sprite
+                let sprite = (framework().display.new_sprite)(
+                    layout.area.width as i16, layout.area.height as i16
+                );
+                (framework().display.switch_to_sprite)(sprite);
+                framework().rbop_location_x = 0;
+                framework().rbop_location_y = 0;
+                framework().draw_all_by_layout(&layout, None);
+                (framework().display.switch_to_screen)();
+
+                (layout.area, sprite)
+            })
+            .collect::<Vec<_>>();
+    }
+
     fn save_current(&mut self) {
         // Evaluate
         let result = if let Ok(structured) = self.rbop_ctx.root.upgrade() {
@@ -283,5 +328,11 @@ impl CalculatorApplication {
         framework().display.print(result_str);
 
         PADDING * 3 + result_str_height as u64
+    }
+}
+
+impl Drop for CalculatorApplication {
+    fn drop(&mut self) {
+        self.free_sprite_cache();
     }
 }
