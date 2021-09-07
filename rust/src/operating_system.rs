@@ -40,6 +40,8 @@ pub struct OperatingSystemInterface<'a> {
 }
 
 impl<'a> OperatingSystemInterface<'a> {
+    pub const TITLE_BAR_HEIGHT: i64 = 30;
+
     /// Replaces the currently-running application with a new instance of the application at `index`
     /// in `application_list`.
     pub fn launch_application(&mut self, index: usize) {
@@ -113,7 +115,7 @@ impl<'a> OperatingSystemInterface<'a> {
         self.last_title_millis = now_millis;
 
         (framework().display.draw_rect)(
-            0, 0, framework().display.width as i64, 30,
+            0, 0, framework().display.width as i64, Self::TITLE_BAR_HEIGHT,
             crate::graphics::colour::ORANGE, true, 0
         );
         (framework().display.set_cursor)(5, 7);
