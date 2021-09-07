@@ -22,14 +22,16 @@ impl Application for AboutApplication {
         (framework().display.fill_screen)(colour::BLACK);
         (framework().display.set_cursor)(60, 50);
 
-        framework().display.print("DELTA PICO\n\n\n");
+        os().ui_draw_title("About Delta Pico");
 
-        framework().display.print("Software version:\n");
-        framework().display.print(format!("    {}\n", env!("CARGO_PKG_VERSION")));
-        framework().display.print(format!("    rev {}\n\n", env!("GIT_VERSION")));
+        framework().display.print_at(5, 40,  "Software version:");
+        framework().display.print_at(5, 60,  format!("  {}", env!("CARGO_PKG_VERSION")));
+        framework().display.print_at(5, 80,  format!("  rev {}", env!("GIT_VERSION")));
+        framework().display.print_at(5, 100, format!("  rbop {}", rbop::VERSION));
 
-        framework().display.print("rbop version:\n");
-        framework().display.print(format!("    {}\n\n", rbop::VERSION));
+        framework().display.print_at(70, 250,  "Created by");
+        framework().display.print_at(35, 270,  "Aaron Christiansen");
+        framework().display.print_at(110, 290,  ":)");
 
         (framework().display.draw)();
 

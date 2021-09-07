@@ -64,6 +64,11 @@ impl DisplayInterface {
         (self.print)(bytes.as_ptr())
     }
 
+    pub fn print_at(&self, x: i64, y: i64, s: impl Into<String>) {
+        (self.set_cursor)(x, y);
+        self.print(s);
+    }
+
     pub fn get_cursor(&self) -> (i64, i64) {
         let mut x: i64 = 0;
         let mut y: i64 = 0;
