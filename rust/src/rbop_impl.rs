@@ -152,8 +152,6 @@ impl Renderer for ApplicationFrameworkInterface {
             ..glyph
         };
 
-        debug(format!("{:?}", glyph));
-
         match glyph.visibility {
             ViewportVisibility::Clipped { invisible, .. } if invisible => return,
             ViewportVisibility::Clipped { left_clip, right_clip, .. } => {
