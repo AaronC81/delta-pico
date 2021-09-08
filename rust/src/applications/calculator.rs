@@ -2,7 +2,7 @@ use alloc::{format, string::{String, ToString}, vec, vec::{Vec}};
 use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::{self, unstructured::{MoveResult, UnstructuredNodeRoot, Upgradable}}, render::{Area, CalculatedPoint, Layoutable, Renderer, Viewport}};
 use rust_decimal::Decimal;
 
-use crate::{filesystem::{Calculation, ChunkIndex}, graphics::colour, interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}, timer::Timer};
+use crate::{filesystem::{Calculation, ChunkIndex}, graphics::colour, interface::ButtonInput, operating_system::{OperatingSystemInterface, os}, rbop_impl::{RbopContext}, timer::Timer};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -46,6 +46,11 @@ pub struct CalculatorApplication {
     sprite_cache: Vec<SpriteCacheEntry>,
 
     show_timing: bool,
+
+    /// The Y which we starting drawing calculations decreasing from (that is, drawing them up the
+    /// screen.) A non-scrolled screen should have a starting_y of the screen's height, since we'll
+    /// begin drawing up from the bottom of the screen.
+    starting_y: i64,
 }
 
 impl Application for CalculatorApplication {
@@ -95,13 +100,14 @@ impl Application for CalculatorApplication {
             current_calculation_idx,
             sprite_cache: vec![],
             show_timing: false,
+            starting_y: framework().display.height as i64,
         };
         result.clear_sprite_cache();
         result
     }
 
     fn tick(&mut self) {
-        // TODO: assumes that all calculations fit on screen, which will not be the case
+        // TODO: can scroll up but not down
 
         // Clear screen
         (framework().display.fill_screen)(colour::BLACK);
@@ -120,7 +126,7 @@ impl Application for CalculatorApplication {
 
         // We draw the history vec in reverse, starting with the last item. To make this easier, we
         // also draw the screen from bottom to top. 
-        let mut next_calculation_highest_y = framework().display.height as i64;
+        let mut next_calculation_highest_y = self.starting_y;
         
         // Draw history
         // TODO: possibly expensive clone
@@ -190,9 +196,26 @@ impl Application for CalculatorApplication {
                 ) as i64;
             area_timer.borrow_mut().stop();
 
-            // If this starts off the screen, then everything else is off the screen
-            if this_calculation_lowest_y < 0 {
+            // If the lowest Y is off the top of the screen (it could still be partially visible)...
+            if this_calculation_lowest_y < OperatingSystemInterface::TITLE_BAR_HEIGHT {
+                // Then everything else is off the screen
                 rest_are_clipped = true;
+
+                // Is this the current calculation? If so, we've scrolled up but this was off the
+                // screen, and we need to adjust the starting Y to show this entire calculation 
+                if self.current_calculation_idx == i {
+                    // The amount which is off the screen (not including the title bar) happens to
+                    // be abs(this_calculation_lowest_y), so we can scroll by that amount by adding
+                    // it to the starting Y...
+                    self.starting_y += this_calculation_lowest_y.abs();
+
+                    // But we also need to account for that title bar!
+                    self.starting_y += OperatingSystemInterface::TITLE_BAR_HEIGHT;
+
+                    // Redraw
+                    self.tick();
+                    return;
+                }
             }
             
             // The next calculation, drawn above this one, should have its highest Y be the same as
