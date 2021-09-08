@@ -106,8 +106,6 @@ impl Application for CalculatorApplication {
         // Clear screen
         (framework().display.fill_screen)(colour::BLACK);
 
-        let mut calc_block_start_y = framework().display.height as i64;
-
         let result_string_height = framework().display.string_size("A").1;
 
         let mut top_level_timer = Timer::new("Tick");
@@ -119,6 +117,10 @@ impl Application for CalculatorApplication {
 
         let draw_node_timer = top_level_timer.new_subtimer("Draw node");
         let draw_result_timer = top_level_timer.new_subtimer("Draw result");
+
+        // We draw the history vec in reverse, starting with the last item. To make this easier, we
+        // also draw the screen from bottom to top. 
+        let mut next_calculation_highest_y = framework().display.height as i64;
         
         // Draw history
         // TODO: possibly expensive clone
@@ -170,16 +172,17 @@ impl Application for CalculatorApplication {
                 result
             };
 
-            // Work out Y position to draw everything from
+            // Work out Y position to draw everything from. Since we draw from bottom to top, we
+            // need to subtract the height of what we're drawing from base Y
             let node_height = if let Some(ref l) = current_layout {
                 l.area.height
             } else {
                 cached_sprite_area.height
             };
             area_timer.borrow_mut().start();
-            let mut calc_start_y =
+            let this_calculation_lowest_y =
                 // Global start
-                calc_block_start_y - (
+                next_calculation_highest_y - (
                     // Node
                     node_height + PADDING +
                     // Result
@@ -188,18 +191,20 @@ impl Application for CalculatorApplication {
             area_timer.borrow_mut().stop();
 
             // If this starts off the screen, then everything else is off the screen
-            if calc_start_y < 0 {
+            if this_calculation_lowest_y < 0 {
                 rest_are_clipped = true;
             }
             
-            calc_block_start_y = calc_start_y;
+            // The next calculation, drawn above this one, should have its highest Y be the same as
+            // the lowest Y of this equation, minus one so they don't overlap
+            next_calculation_highest_y = this_calculation_lowest_y - 1;
 
             height_timer.borrow_mut().stop();
             draw_node_timer.borrow_mut().start();
             
             // Set up rbop location
             framework().rbop_location_x = PADDING as i64;
-            framework().rbop_location_y = calc_start_y + PADDING as i64;
+            framework().rbop_location_y = this_calculation_lowest_y + PADDING as i64;
             
             // Is this item being edited?
             if self.current_calculation_idx == i {
@@ -217,19 +222,22 @@ impl Application for CalculatorApplication {
                 )
             }
 
-            calc_start_y += (node_height + PADDING) as i64;
+            // As we draw different components of the calculation, we'll add to the current Y
+            // accordingly.
+            let mut this_calculation_current_y = this_calculation_lowest_y;
+            this_calculation_current_y += (node_height + PADDING) as i64;
 
             draw_node_timer.borrow_mut().stop();
             draw_result_timer.borrow_mut().start();
             
             // Draw result
-            calc_start_y += self.draw_result(calc_start_y, &result) as i64;
+            this_calculation_current_y += self.draw_result(this_calculation_current_y, &result) as i64;
 
             // Draw a big line, unless this is the last item
             if i != calculation_count - 1 {
                 (framework().display.draw_line)(
-                    0, calc_start_y as i64,
-                    framework().display.width as i64, calc_start_y as i64,
+                    0, this_calculation_current_y as i64,
+                    framework().display.width as i64, this_calculation_current_y as i64,
                     colour::WHITE,
                 )
             }
