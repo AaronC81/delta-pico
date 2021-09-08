@@ -284,11 +284,21 @@ impl Application for CalculatorApplication {
         // Poll for input
         if let Some(input) = framework().buttons.wait_press() {
             if input == ButtonInput::Exe {
+                // Save whatever we're editing
                 self.save_current();
+
+                // Add a new calculation to the end of the list
                 self.calculations.push(Calculation::blank());
-                self.current_calculation_idx += 1;
+
+                // Move to it
+                self.current_calculation_idx = self.calculations.len() - 1;
+                self.reset_scroll();
+
+                // Reset the rbop context, and save the new calculation
                 self.load_current();  
                 self.save_current();
+
+                // Clear the sprite cache
                 self.clear_sprite_cache();
             } else if input == ButtonInput::List {
                 if os().ui_open_menu(&["Toggle timing stats".into()], true).is_some() {
@@ -451,6 +461,10 @@ impl CalculatorApplication {
         framework().display.print(result_str);
 
         PADDING * 3 + result_str_height as u64
+    }
+
+    fn reset_scroll(&mut self) {
+        self.starting_y = framework().display.height as i64;
     }
 }
 
