@@ -44,6 +44,8 @@ pub struct CalculatorApplication {
     ///        as off-screen.
     ///      - Every subsequent `tick` draws 3 sprites (negligible time) and 1 rbop layout.
     sprite_cache: Vec<SpriteCacheEntry>,
+
+    show_timing: bool,
 }
 
 impl Application for CalculatorApplication {
@@ -92,6 +94,7 @@ impl Application for CalculatorApplication {
             calculations,
             current_calculation_idx,
             sprite_cache: vec![],
+            show_timing: false,
         };
         result.clear_sprite_cache();
         result
@@ -238,9 +241,11 @@ impl Application for CalculatorApplication {
         os().ui_draw_title("Calculator");
 
         // Show timings
-        top_level_timer.stop();
-        (framework().display.set_cursor)(0, 35);
-        framework().display.print(format!("{}", top_level_timer));
+        if self.show_timing {
+            top_level_timer.stop();
+            (framework().display.set_cursor)(0, 35);
+            framework().display.print(format!("{}", top_level_timer));
+        }
 
         // Push to screen
         (framework().display.draw)();
@@ -254,6 +259,10 @@ impl Application for CalculatorApplication {
                 self.load_current();  
                 self.save_current();
                 self.clear_sprite_cache();
+            } else if input == ButtonInput::List {
+                if os().ui_open_menu(&["Toggle timing stats".into()], true).is_some() {
+                    self.show_timing = !self.show_timing;
+                }
             } else {
                 let move_result = self.rbop_ctx.input(input);
                 // Move calculations if needed
