@@ -107,8 +107,6 @@ impl Application for CalculatorApplication {
     }
 
     fn tick(&mut self) {
-        // TODO: can scroll up but not down
-
         // Clear screen
         (framework().display.fill_screen)(colour::BLACK);
 
@@ -204,6 +202,9 @@ impl Application for CalculatorApplication {
                 // Is this the current calculation? If so, we've scrolled up but this was off the
                 // screen, and we need to adjust the starting Y to show this entire calculation 
                 if self.current_calculation_idx == i {
+                    // TODO: this does a weirdly large scroll if the calculation at the top of the
+                    // screen gets taller
+
                     // The amount which is off the screen (not including the title bar) happens to
                     // be abs(this_calculation_lowest_y), so we can scroll by that amount by adding
                     // it to the starting Y...
@@ -216,6 +217,20 @@ impl Application for CalculatorApplication {
                     self.tick();
                     return;
                 }
+            }
+
+            // If the greatest Y is off the bottom of the screen (again, maybe still partially
+            // visible), and this is the calculation we're currently editing...
+            if next_calculation_highest_y > framework().display.height as i64
+                && self.current_calculation_idx == i
+            {
+                // We need to scroll down by the different between the height of the display and the
+                // highest Y
+                self.starting_y -= next_calculation_highest_y - framework().display.height as i64;
+                
+                // Redraw
+                self.tick();
+                return;
             }
             
             // The next calculation, drawn above this one, should have its highest Y be the same as
