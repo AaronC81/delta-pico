@@ -316,8 +316,17 @@ impl Application for CalculatorApplication {
                 // Clear the sprite cache
                 self.clear_sprite_cache();
             } else if input == ButtonInput::List {
-                if os().ui_open_menu(&["Toggle timing stats".into()], true).is_some() {
-                    self.show_timing = !self.show_timing;
+                match os().ui_open_menu(&["Toggle timing stats".into(), "Clear history".into()], true) {
+                    Some(0) => self.show_timing = !self.show_timing,
+                    Some(1) => {
+                        // Delete from storage
+                        os().filesystem.calculations.table.clear(false);
+                        
+                        // There are too many things to reload manually, just restart the app
+                        os().restart_application();
+                    }
+                    Some(_) => unreachable!(),
+                    None => (),
                 }
             } else {
                 let move_result = self.rbop_ctx.input(input);

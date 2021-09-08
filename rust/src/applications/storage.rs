@@ -60,7 +60,7 @@ impl Application for StorageApplication {
                             }
                         }
                         Some(1) => {
-                            if framework().storage.clear().is_some() {
+                            if os().filesystem.clear().is_some() {
                                 os().ui_text_dialog("Memory cleared.");
                             } else {
                                 os().ui_text_dialog("Failed to clear memory.");

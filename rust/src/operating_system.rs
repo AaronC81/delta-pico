@@ -11,7 +11,8 @@ pub fn os() -> &'static mut OperatingSystemInterface<'static> {
         if OPERATING_SYSTEM_INTERFACE.is_none() {
             OPERATING_SYSTEM_INTERFACE = Some(OperatingSystemInterface {
                 application_list: ApplicationList::new(),
-                active_application: None, 
+                active_application: None,
+                active_application_index: None,
                 menu: MenuApplication::new(),
                 showing_menu: true,
                 filesystem: Filesystem {
@@ -34,7 +35,10 @@ pub struct OperatingSystemInterface<'a> {
     pub application_list: ApplicationList,
     pub menu: MenuApplication,
     pub showing_menu: bool,
+
     pub active_application: Option<Box<dyn Application>>,
+    pub active_application_index: Option<usize>,
+
     pub filesystem: Filesystem<'a>,
     pub last_title_millis: u32,
 }
@@ -60,7 +64,17 @@ impl<'a> OperatingSystemInterface<'a> {
         if let Some(app) = self.active_application.as_mut() {
             app.destroy();
         }
+        self.active_application_index = Some(index);
         self.active_application = Some(self.application_list.applications[index].1());
+    }
+
+    /// Restarts the current application. If none is open, panics.
+    pub fn restart_application(&mut self) {
+        if let Some(index) = self.active_application_index {
+            self.launch_application(index);
+        } else {
+            panic!("no application running to restart");
+        }
     }
 
     /// Returns a reference to the application which should be ticked. This is typically the running

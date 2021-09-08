@@ -228,6 +228,25 @@ impl<'a> ChunkTable<'a> {
         }
         result as u16
     }
+
+    /// Zeroes out bytes in the table, effectively clearing it.
+    ///
+    /// Passing `hard` as `false` will zero just the map and state bytes, and not the heap. This is
+    /// all which needs to be done to get a chunk table which behaves like it's been cleared. Any
+    /// previously used memory can be allocated again, though you'll have to deal with the fact that
+    /// the storage chunks you get from an allocation are not guaranteed to be zero.
+    ///
+    /// Passing `hard` as `true` will zero the entire table, including the heap.
+    pub fn clear(&mut self, hard: bool) -> Option<()> {
+        self.storage.clear_range(self.chunk_map_address(), self.chunk_map_address())?;
+        self.storage.clear_range(self.chunk_state_address(), self.chunk_state_address())?;
+
+        if hard {
+            self.storage.clear_range(self.chunk_heap_address(), self.chunk_heap_length())?;
+        }
+
+        Some(())
+    }
 }
 
 pub struct ChunkTableByteIterator<'a> {
@@ -267,6 +286,14 @@ impl<'a> Iterator for ChunkTableByteIterator<'a> {
 
 pub struct Filesystem<'a> {
     pub calculations: CalculationHistory<'a>,
+}
+
+impl<'a> Filesystem<'a> {
+    pub fn clear(&mut self) -> Option<()> {
+        self.calculations.table.clear(false)?;
+
+        Some(())
+    }
 }
 
 pub struct CalculationHistory<'a> {

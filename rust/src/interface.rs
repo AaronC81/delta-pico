@@ -223,12 +223,22 @@ impl StorageInterface {
         }
     }
 
-    pub fn clear(&self) -> Option<()> {
-        const CHUNK_SIZE: usize = 64;
-        let buffer = [0; CHUNK_SIZE];
-        for i in 0..(Self::BYTES / CHUNK_SIZE) {
-            self.write((i * CHUNK_SIZE) as u16, &buffer)?;
+    pub fn clear_range(&self, start: u16, length: u16) -> Option<()> {
+        const CHUNK_SIZE: u8 = 64;
+        let buffer = [0; CHUNK_SIZE as usize];
+
+        let mut bytes_remaining = length;
+        let mut address = start;
+        while bytes_remaining > 0 {
+            let this_chunk_size = core::cmp::min(CHUNK_SIZE as u16, bytes_remaining);
+            if !(self.write)(address, this_chunk_size as u8, buffer.as_ptr()) {
+                return None;
+            }
+
+            address += this_chunk_size;
+            bytes_remaining -= this_chunk_size;
         }
+
         Some(())
     }
 }
