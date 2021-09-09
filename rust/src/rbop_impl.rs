@@ -1,6 +1,6 @@
 use alloc::{format, vec};
 use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{UnstructuredNodeRoot, MoveResult}, render::{Area, CalculatedPoint, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility}};
-use crate::{debug, interface::{ApplicationFrameworkInterface, ButtonInput, framework}, operating_system::os};
+use crate::{debug, graphics::colour, interface::{ApplicationFrameworkInterface, ButtonInput, framework}, operating_system::os};
 
 use core::cmp::max;
 
@@ -126,6 +126,8 @@ impl Renderer for ApplicationFrameworkInterface {
 
         match glyph {
             Glyph::Cursor { height } => Area { height, width: 0 },
+            Glyph::Placeholder => text_character_size,
+
             Glyph::Digit { .. } => text_character_size,
             Glyph::Variable { .. } => text_character_size,
 
@@ -188,12 +190,16 @@ impl Renderer for ApplicationFrameworkInterface {
             Glyph::Subtract => (self.display.draw_char)(point.x, point.y, '-' as u8),
             Glyph::Multiply => (self.display.draw_char)(point.x, point.y, '*' as u8),
             Glyph::Divide => (self.display.draw_char)(point.x, point.y, '/' as u8),
-
+            
             Glyph::Fraction { inner_width } =>
-                (self.display.draw_line)(point.x, point.y, point.x + inner_width as i64, point.y, 0xFFFF),
-
+            (self.display.draw_line)(point.x, point.y, point.x + inner_width as i64, point.y, 0xFFFF),
+            
             Glyph::Cursor { height } =>
                 (self.display.draw_line)(point.x, point.y, point.x, point.y + height as i64, 0xFFFF),
+
+            Glyph::Placeholder => (self.display.draw_rect)(
+                point.x + 4, point.y + 5, 6, 6, colour::GREY, true, 0
+            ),
 
             Glyph::LeftParenthesis { inner_height } => {
                 let inner_height = max(MINIMUM_PAREN_HEIGHT, inner_height) as i64;
