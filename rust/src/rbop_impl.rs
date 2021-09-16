@@ -77,6 +77,10 @@ impl RbopContext {
                     UnstructuredNodeList { items: vec![] },
                     UnstructuredNodeList { items: vec![] },
                 )),
+                ButtonInput::Power => Some(UnstructuredNode::Power(
+                    UnstructuredNodeList { items: vec![] },
+                    UnstructuredNodeList { items: vec![] },
+                )),
 
                 ButtonInput::Exe => return None,
                 ButtonInput::List => return None,

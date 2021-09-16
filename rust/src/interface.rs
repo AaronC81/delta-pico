@@ -193,6 +193,7 @@ pub enum ButtonInput {
     Subtract,
     Multiply,
     Fraction,
+    Power,
 }
 
 #[repr(C)]

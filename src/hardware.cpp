@@ -21,7 +21,7 @@ const ButtonInput buttonMapping[7][7] = {
   { I::Digit7, I::Digit8, I::Digit9, I::Delete, I::None, I::None, I::None, },
   { I::Digit4, I::Digit5, I::Digit6, I::Multiply, I::None, I::None, I::Fraction, },
   { I::None, I::None, I::None, I::None, I::None, I::None, I::None, },
-  { I::Digit0, I::Point, I::None, I::None, I::None, I::None, I::Exe, },
+  { I::Digit0, I::Point, I::Power, I::None, I::None, I::None, I::Exe, },
   { I::Digit1, I::Digit2, I::Digit3, I::Add, I::None, I::None, I::Subtract, },
 };
 #endif
