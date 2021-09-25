@@ -1,6 +1,5 @@
 use alloc::{boxed::Box, format, string::String, vec};
-use rbop::{UnstructuredNode, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
-use rust_decimal::Decimal;
+use rbop::{Number, UnstructuredNode, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 use core::{cmp::max, mem};
 
 use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, filesystem::{CalculationHistory, ChunkTable, Filesystem}, graphics::colour, interface::{ButtonInput, framework}, rbop_impl::RbopContext};
@@ -268,7 +267,7 @@ impl<'a> OperatingSystemInterface<'a> {
         title: impl Into<String>,
         root: Option<UnstructuredNodeRoot>,
         mut redraw: impl FnMut(),
-    ) -> Decimal {
+    ) -> Number {
         let title = title.into();
         let mut unr = root;
         loop {

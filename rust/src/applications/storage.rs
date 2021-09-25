@@ -52,7 +52,7 @@ impl Application for StorageApplication {
                         Some(0) => {
                             // TODO redraw
                             let address_dec = os().ui_input_expression_and_evaluate("Memory address", None, || ());
-                            if let Some(address) = address_dec.to_u16() {
+                            if let Some(address) = address_dec.to_decimal().to_u16() {
                                 // Bind to boundary
                                 self.address = (address / SHOW_BYTES) * SHOW_BYTES;
                             } else {

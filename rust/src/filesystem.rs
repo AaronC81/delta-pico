@@ -1,8 +1,7 @@
 use core::convert::TryInto;
 
 use alloc::{format, vec, vec::Vec};
-use rbop::{UnstructuredNodeList, node::unstructured::{UnstructuredNodeRoot, Serializable}};
-use rust_decimal::Decimal;
+use rbop::{Number, UnstructuredNodeList, node::unstructured::{UnstructuredNodeRoot, Serializable}};
 
 use crate::{interface::StorageInterface, operating_system::os};
 
@@ -303,7 +302,7 @@ pub struct CalculationHistory<'a> {
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct Calculation {
     pub root: UnstructuredNodeRoot,
-    pub result: Option<Decimal>,
+    pub result: Option<Number>,
 }
 
 impl Calculation {
@@ -331,10 +330,7 @@ impl Serializable for Calculation {
         let root = UnstructuredNodeRoot::deserialize(bytes)?;
         let result = match bytes.next() {
             Some(1) => {
-                let dec_bytes_vec = bytes.take(16).collect::<Vec<_>>();
-                if dec_bytes_vec.len() != 16 { return None; }
-                let dec_bytes: [u8; 16] = dec_bytes_vec.try_into().unwrap();
-                Some(Decimal::deserialize(dec_bytes))
+                Number::deserialize(bytes)
             }
             Some(0) => None,
             _ => return None

@@ -1,6 +1,6 @@
 use alloc::{format, string::{String, ToString}, vec, vec::{Vec}};
-use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::{self, unstructured::{MoveResult, UnstructuredNodeRoot, Upgradable}}, render::{Area, CalculatedPoint, Layoutable, Renderer, Viewport}};
-use rust_decimal::Decimal;
+use rbop::{Number, StructuredNode, Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::{self, unstructured::{MoveResult, UnstructuredNodeRoot, Upgradable}}, render::{Area, CalculatedPoint, Layoutable, Renderer, Viewport}};
+use rust_decimal::{Decimal, prelude::Zero};
 
 use crate::{filesystem::{Calculation, ChunkIndex}, graphics::colour, interface::ButtonInput, operating_system::{OperatingSystemInterface, os}, rbop_impl::{RbopContext}, timer::Timer};
 use super::{Application, ApplicationInfo};
@@ -183,6 +183,7 @@ impl Application for CalculatorApplication {
             } else {
                 cached_sprite_area.height
             };
+            let result_height = self.result_height(&result);
             area_timer.borrow_mut().start();
             let this_calculation_lowest_y =
                 // Global start
@@ -190,7 +191,7 @@ impl Application for CalculatorApplication {
                     // Node
                     node_height + PADDING +
                     // Result
-                    PADDING * 3 + result_string_height as u64
+                    result_height
                 ) as i64;
             area_timer.borrow_mut().stop();
 
@@ -269,7 +270,8 @@ impl Application for CalculatorApplication {
             draw_result_timer.borrow_mut().start();
             
             // Draw result
-            this_calculation_current_y += self.draw_result(this_calculation_current_y, &result) as i64;
+            self.draw_result(this_calculation_current_y, &result);
+            this_calculation_current_y += result_height as i64;
 
             // Draw a big line, unless this is the last item
             if i != calculation_count - 1 {
@@ -451,8 +453,23 @@ impl CalculatorApplication {
             ..RbopContext::new()
         };
     }
+    
 
-    fn draw_result(&self, y: i64, result: &Option<Decimal>) -> u64 {
+    fn result_height(&self, result: &Option<Number>) -> u64 {
+        // If there isn't a result, just imagine that there's a decimal
+        let number = result.unwrap_or(Number::Decimal(Decimal::zero()));
+
+        // Convert the result number into a structured node
+        let result_node = StructuredNode::Number(number.clone());
+
+        // Compute a layout for it, so that we know its width and can therefore right-align it
+        let result_layout = framework().layout(&result_node, None);
+
+        // Return the height it will be when drawn, plus padding
+        PADDING * 3 + result_layout.area.height
+    }
+
+    fn draw_result(&self, y: i64, result: &Option<Number>) {
         // Draw a line
         (framework().display.draw_line)(
             PADDING as i64, y + PADDING as i64,
@@ -460,31 +477,21 @@ impl CalculatorApplication {
             colour::GREY
         );
 
-        // Calculate result text
-        let result_str = if let Some(result) = result {
-            // Convert decimal to string and truncate
-            let mut result_str = result.to_string();
-            if result_str.len() > 15 {
-                result_str = result_str[0..15].to_string();
-            }
-                
-            result_str
-        } else {
-            " ".into()
-        };
+        // Is there a result?
+        if let Some(number) = result {
+            // Convert the result number into a structured node
+            let result_node = StructuredNode::Number(number.clone());
 
-        // Calculate length for right-alignment
-        let (result_str_len, h) = framework().display.string_size(&result_str);
-        let result_str_height = h;
+            // Compute a layout for it, so that we know its width and can therefore right-align it
+            let result_layout = framework().layout(&result_node, None);
 
-        // Write text
-        (framework().display.set_cursor)(
-            (framework().display.width - PADDING) as i64 - result_str_len,
-            y + PADDING as i64 * 2
-        );
-        framework().display.print(result_str);
+            // Set up layout location
+            framework().rbop_location_x = ((framework().display.width - PADDING) - result_layout.area.width) as i64;
+            framework().rbop_location_y = y + PADDING as i64 * 2;
 
-        PADDING * 3 + result_str_height as u64
+            // Draw
+            framework().draw_all_by_layout(&result_layout, None);
+        }
     }
 
     fn reset_scroll(&mut self) {

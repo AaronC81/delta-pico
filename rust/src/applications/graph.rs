@@ -1,6 +1,6 @@
 use alloc::{format, string::{String, ToString}, vec, vec::{Vec}};
-use rbop::{StructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
-use rust_decimal::{Decimal, prelude::{FromPrimitive, One, ToPrimitive, Zero}};
+use rbop::{Number, StructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
+use rust_decimal::prelude::{One, ToPrimitive, Zero};
 
 use crate::{interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}};
 use super::{Application, ApplicationInfo};
@@ -10,47 +10,47 @@ use crate::graphics::colour;
 const PADDING: u64 = 10;
 
 pub struct ViewWindow {
-    pan_x: Decimal,
-    pan_y: Decimal,
-    scale_x: Decimal,
-    scale_y: Decimal,
+    pan_x: Number,
+    pan_y: Number,
+    scale_x: Number,
+    scale_y: Number,
 }
 
 impl ViewWindow {
     fn new() -> ViewWindow {
         ViewWindow {
-            pan_x: Decimal::zero(),
-            pan_y: Decimal::zero(),
-            scale_x: Decimal::one(),
-            scale_y: Decimal::one(),
+            pan_x: Number::zero(),
+            pan_y: Number::zero(),
+            scale_x: Number::one(),
+            scale_y: Number::one(),
         }
     }
 
     fn axis_screen_coords(&self) -> (i64, i64) {
         (
-            self.x_to_screen(Decimal::zero()),
-            self.y_to_screen(Decimal::zero())
+            self.x_to_screen(Number::zero()),
+            self.y_to_screen(Number::zero())
         )
     }
 
     /// Returns the X values which can currently be seen on the screen. The
     /// vector contains one value per X pixel; to calculate all necessary graph
     /// values, iterate over these.
-    fn x_coords_on_screen(&self) -> Vec<Decimal> {
+    fn x_coords_on_screen(&self) -> Vec<Number> {
         // Delta between X pixels is 1 / scale
-        let x_delta = Decimal::one() / self.scale_x;
+        let x_delta = Number::one() / self.scale_x;
 
-        let x_start = (Decimal::from_i64(
+        let x_start = (Number::from(
             framework().display.width as i64 / -2
-        ).unwrap() - self.pan_x) * x_delta;
+        ) - self.pan_x) * x_delta;
 
         (0..framework().display.width)
-            .map(|i| x_start + Decimal::from_u64(i).unwrap() * x_delta)
+            .map(|i| x_start + Number::from(i as i64) * x_delta)
             .collect::<Vec<_>>()
     }
 
     /// Given a X value in the graph space, returns a X value on the screen.
-    fn x_to_screen(&self, mut x: Decimal) -> i64 {
+    fn x_to_screen(&self, mut x: Number) -> i64 {
         // Apply scale
         x *= self.scale_x;
 
@@ -59,11 +59,11 @@ impl ViewWindow {
 
         // Squash into an integer, and pan so that (0, 0) is in the middle of
         // the screen
-        x.to_i64().unwrap() + framework().display.width as i64 / 2
+        x.to_decimal().to_i64().unwrap() + framework().display.width as i64 / 2
     }
 
     /// Given a Y value in the graph space, returns a Y value on the screen.
-    fn y_to_screen(&self, mut y: Decimal) -> i64 {
+    fn y_to_screen(&self, mut y: Number) -> i64 {
         // Apply scale
         y *= self.scale_y;
 
@@ -72,7 +72,7 @@ impl ViewWindow {
 
         // Squash into an integer, flip around the bottom of the screen, and
         // pan so that (0, 0) is in the middle of the screen
-        (framework().display.height as i64 + -1 * y.to_i64().unwrap())
+        (framework().display.height as i64 + -1 * y.to_decimal().to_i64().unwrap())
             - framework().display.height as i64 / 2
     }
 }
@@ -115,7 +115,7 @@ impl Application for GraphApplication {
             } else if self.edit_mode {
                 self.rbop_ctx.input(input);
             } else {
-                let ten = Decimal::from_u8(10).unwrap();
+                let ten = Number::from(10);
                 match input {
                     ButtonInput::MoveLeft => self.view_window.pan_x += ten,
                     ButtonInput::MoveRight => self.view_window.pan_x -= ten,
