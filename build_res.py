@@ -9,6 +9,9 @@ print("Building resources...")
 
 # "cargo build" the bridge project
 res_dir = os.path.join(root_dir, "res")
+
+bitmaps = []
+
 for file in os.listdir(res_dir):
     if file.endswith(".vlw"):
         output = subprocess.check_output(["xxd", "-i", file], cwd=res_dir).decode()
@@ -20,6 +23,7 @@ for file in os.listdir(res_dir):
     if file.endswith(".png"):
         image = Image.open(os.path.join(res_dir, file))
         root_name = file.replace(".png", "")
+        bitmaps.append(root_name)
 
         with open(os.path.join(res_dir, f"{root_name}.h"), "w") as f:
             # C boilerplate
@@ -61,5 +65,21 @@ for file in os.listdir(res_dir):
                     break
             else:
                 print(f"WARNING: No transparency colour found for {file}, compilation will fail")
+
+# Generate a function for looking up bitmaps by name
+if len(bitmaps) > 0:
+    with open(os.path.join(res_dir, "bitmap.h"), "w") as f:
+        f.write("#pragma once\n\n")
+        f.write("#include <string.h>\n")
+        f.write("#include <stdint.h>\n\n")
+        
+        for bitmap in bitmaps:
+            f.write(f"#include <{bitmap}.h>\n")
+
+        f.write("\nuint16_t* getBitmapByName(char* name) {\n")
+        for bitmap in bitmaps:
+            f.write(f"  if (strcmp(name, \"{bitmap}\") == 0) return (uint16_t*){bitmap};\n")
+        f.write("  return NULL;\n")
+        f.write("}")
 
 print("Done!")
