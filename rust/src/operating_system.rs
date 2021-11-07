@@ -133,6 +133,10 @@ impl<'a> OperatingSystemInterface<'a> {
         );
         (framework().display.set_cursor)(5, 7);
         framework().display.print(format!("{} ({} ms)", s.into(), millis_elapsed));
+
+        let charge_status = (framework().charge_status)();
+        let charge_bitmap = if charge_status == -1 { "power_usb".into() } else { format!("battery_{}", charge_status) };
+        framework().display.draw_bitmap(200, 6, charge_bitmap);
     }
 
     /// Opens a menu with the items in the slice `items`. The user can navigate the menu with the
