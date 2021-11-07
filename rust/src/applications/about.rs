@@ -33,8 +33,6 @@ impl Application for AboutApplication {
         framework().display.print_at(35, 270,  "Aaron Christiansen");
         framework().display.print_at(110, 290,  ":)");
 
-        framework().display.draw_bitmap(20, 20, "calc_icon");
-
         (framework().display.draw)();
 
         framework().buttons.wait_press();
