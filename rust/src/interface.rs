@@ -49,6 +49,7 @@ pub struct DisplayInterface {
     pub draw_line: extern "C" fn(x1: i64, y1: i64, x2: i64, y2: i64, c: u16),
     pub draw_rect: extern "C" fn(x1: i64, y1: i64, w: i64, h: i64, c: u16, fill: bool, radius: u16),
     pub draw_sprite: extern "C" fn(x: i64, y: i64, sprite: *mut u8),
+    pub draw_bitmap: extern "C" fn(x: i64, y: i64, name: *const u8),
 
     pub print: extern "C" fn(s: *const u8),
     pub set_cursor: extern "C" fn(x: i64, y: i64),
@@ -114,6 +115,12 @@ impl DisplayInterface {
 
         // Factor in width of last line into height
         (lines, char_height, y + char_height)
+    }
+
+    pub fn draw_bitmap(&self, x: i64, y: i64, s: impl Into<String>) {
+        let mut bytes = s.into().as_bytes().to_vec();
+        bytes.push(0);
+        (self.draw_bitmap)(x, y, bytes.as_ptr());
     }
 }
 

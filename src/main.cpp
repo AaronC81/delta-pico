@@ -1,4 +1,5 @@
 #include "application_framework.hpp"
+#include "bitmap.h"
 
 extern "C" {
   #include <delta_pico_rust.h>
@@ -36,6 +37,22 @@ void displaySetCursor(int64_t x, int64_t y) {
 void displayGetCursor(int64_t *x, int64_t *y) {
   *x = ApplicationFramework::instance.sprite().getCursorX();
   *y = ApplicationFramework::instance.sprite().getCursorY();
+}
+
+void displayDrawBitmap(int64_t sx, int64_t sy, uint16_t *bitmap) {
+  int width = bitmap[0];
+  int height = bitmap[1];
+  int transparency = bitmap[2];
+
+  for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) {
+      int index = x * height + y + 3;
+
+      if (bitmap[index] != transparency) {
+        ApplicationFramework::instance.sprite().drawPixel(sx + x, sy + y, bitmap[index]);
+      }
+    }
+  }
 }
 
 void displayDraw() {
@@ -121,6 +138,9 @@ auto framework_interface = ApplicationFrameworkInterface {
       ApplicationFramework::instance.sprite().pushImage(
         x, y, sprite->width(), sprite->height(), (uint16_t*)sprite->getPointer(), SOFTWARE_COLOR_DEPTH
       );
+    },
+    .draw_bitmap = [](int64_t x, int64_t y, const uint8_t* bitmap) {
+      displayDrawBitmap(x, y, getBitmapByName((char*)bitmap));
     },
 
     .print = displayPrint,
