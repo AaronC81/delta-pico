@@ -1,4 +1,4 @@
-use alloc::{string::{String, ToString}, vec};
+use alloc::{format, string::{String, ToString}, vec};
 use rbop::{UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 
 use crate::{interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}};
@@ -32,14 +32,16 @@ impl Application for MenuApplication {
         for (i, (app, _)) in os().application_list.applications.iter().enumerate() {
             if i == self.selected_index {
                 (framework().display.draw_rect)(
-                    5, y, framework().display.width as i64 - 5 * 2, 25,
+                    5, y, framework().display.width as i64 - 5 * 2, 54,
                     crate::graphics::colour::BLUE, true, 7
                 );
             }
-            (framework().display.set_cursor)(10, y + 4);
+            (framework().display.set_cursor)(65, y + 18);
             framework().display.print(app.name.clone());
 
-            y += 30;
+            framework().display.draw_bitmap(7, y + 2, format!("{}_icon", app.name.to_lowercase()));
+
+            y += 54;
         }
 
         (framework().display.draw)();
