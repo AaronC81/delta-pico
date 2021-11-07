@@ -1,4 +1,5 @@
 import subprocess, os, shutil
+from PIL import Image
 
 Import("env")
 
@@ -15,5 +16,50 @@ for file in os.listdir(res_dir):
 
         with open(os.path.join(res_dir, file.replace(".vlw", ".h")), "w") as f:
             f.write(output)
+
+    if file.endswith(".png"):
+        image = Image.open(os.path.join(res_dir, file))
+        root_name = file.replace(".png", "")
+
+        with open(os.path.join(res_dir, f"{root_name}.h"), "w") as f:
+            # C boilerplate
+            f.write("#pragma once\n\n")
+            f.write("#include <stdint.h>\n\n")
+
+            # Declare a constant to represent a transparency value
+            f.write(f"extern const uint16_t {root_name}_transparency;\n\n")
+            f.write(f"const uint16_t {root_name}[] = {{")
+
+            # Build a set of all colours in the image, so we can find a colour we aren't using
+            # An unused colour will become a transparency colour
+            # (This assumes that it won't use _every_ 16-bit colour!)
+            used_colours = set()
+            
+            # Print dimensions
+            f.write(f"{image.width}, {image.height}, {root_name}_transparency")
+            need_comma = False
+            for x in range(image.width):
+                for y in range(image.height):                    
+                    (red, green, blue, alpha) = image.getpixel((x, y))
+
+                    # Only complete transparency or opacity is allowed
+                    if alpha == 255:
+                        # Conversion: http://www.barth-dev.de/online/rgb565-color-picker/
+                        pixel_565 = (((red & 0b11111000)<<8) + ((green & 0b11111100)<<3)+(blue>>3))
+                        used_colours.add(pixel_565)
+
+                        f.write(f", {hex(pixel_565)}")
+                    else:
+                        f.write(f", {root_name}_transparency")
+
+            f.write("};\n\n")
+
+            # Find transparency colour
+            for i in range(2**16):
+                if i not in used_colours:
+                    f.write(f"const uint16_t {root_name}_transparency = {hex(i)};")
+                    break
+            else:
+                print(f"WARNING: No transparency colour found for {file}, compilation will fail")
 
 print("Done!")
