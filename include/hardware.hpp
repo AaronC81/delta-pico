@@ -13,7 +13,7 @@ extern "C" {
 #define CAT24C_ADDRESS 0x50
 
 #define COLOR_DEPTH 16
-//#define USE_8BPP
+#define USE_8BPP
 
 #ifdef USE_8BPP
 #define SOFTWARE_COLOR_DEPTH 8
