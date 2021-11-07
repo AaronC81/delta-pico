@@ -120,6 +120,40 @@ auto framework_interface = ApplicationFrameworkInterface {
   .debug_handler = debugHandler,
   .millis = millis,
   .micros = micros,
+  .charge_status = []() -> int32_t {
+    int adcReading = analogRead(A3);
+
+    // Divide by resolution, times by Pico logical voltage, times by 3
+    // (Voltage is divided by 3 - see Pico Datasheet section 4.4) 
+    float voltage = ((float)adcReading / 1024.0) * 3.3 * 3;
+
+    // Source: https://phantompilots.com/threads/how-does-lipo-voltage-relate-to-percent.13597/
+    if (voltage > 4.5) {  
+      return -1; // Connected over USB
+    } else if (voltage > 4.13) {
+      return 100;
+    } else if (voltage > 4.06) {
+      return 90;
+    } else if (voltage > 3.99) {
+      return 80;
+    } else if (voltage > 3.92) {
+      return 70;
+    } else if (voltage > 3.85) {
+      return 60;
+    } else if (voltage > 3.78) {
+      return 50;
+    } else if (voltage > 3.71) {
+      return 40;
+    } else if (voltage > 3.64) {
+      return 30;
+    } else if (voltage > 3.57) {
+      return 20;
+    } else if (voltage > 3.5) {
+      return 10;
+    } else {
+      return 0;
+    }
+  },
   .display = DisplayInterface {
     .width = IWIDTH,
     .height = IHEIGHT,
@@ -164,6 +198,8 @@ auto framework_interface = ApplicationFrameworkInterface {
 void setup() {
   // TODO: if serial isn't connected, the entire calculator eventually hangs
   Serial.begin(115200);
+
+  pinMode(A3, INPUT);
 
   ApplicationFramework::instance.initialize();
   delta_pico_set_framework(&framework_interface);

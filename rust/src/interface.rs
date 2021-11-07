@@ -25,6 +25,8 @@ pub struct ApplicationFrameworkInterface {
     pub millis: extern "C" fn() -> u32,
     pub micros: extern "C" fn() -> u32,
 
+    pub charge_status: extern "C" fn() -> i32,
+
     pub display: DisplayInterface,
     pub buttons: ButtonsInterface,
     pub storage: StorageInterface,
