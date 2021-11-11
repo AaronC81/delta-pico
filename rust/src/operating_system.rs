@@ -132,7 +132,14 @@ impl<'a> OperatingSystemInterface<'a> {
             crate::graphics::colour::ORANGE, true, 0
         );
         (framework().display.set_cursor)(5, 7);
-        framework().display.print(format!("{} ({} ms)", s.into(), millis_elapsed));
+        // framework().display.print(format!("{} ({} ms)", s.into(), millis_elapsed));
+        let mut used_memory: u64 = 0;
+        let mut available_memory: u64 = 0;
+        (framework().heap_usage)(&mut used_memory, &mut available_memory);
+        used_memory /= 1000;
+        available_memory /= 1000;
+
+        framework().display.print(format!("{}/{}kB", used_memory, available_memory));
 
         let charge_status = (framework().charge_status)();
         let charge_bitmap = if charge_status == -1 { "power_usb".into() } else { format!("battery_{}", charge_status) };
