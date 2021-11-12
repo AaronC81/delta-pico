@@ -52,6 +52,8 @@ impl ApplicationList {
     }
 }
 
+pub mod real_time;
+
 pub mod menu;
 pub mod calculator;
 pub mod about;
