@@ -55,6 +55,7 @@ pub extern "C" fn delta_pico_main() {
     os().application_list.add::<applications::calculator::CalculatorApplication>();
     os().application_list.add::<applications::graph::GraphApplication>();
     os().application_list.add::<applications::about::AboutApplication>();
+    os().application_list.add::<applications::numbers_game::NumbersGame>();
     os().application_list.add::<applications::graph::GraphApplication>();
     os().application_list.add::<applications::about::AboutApplication>();
     os().application_list.add::<applications::graph::GraphApplication>();

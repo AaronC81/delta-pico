@@ -13,3 +13,4 @@ crate-type = ["staticlib"]
 [dependencies]
 rbop = { path = "../../rbop" }
 rust_decimal = { version = "1.9.0", default-features = false }
+rand = { version = "0.4", default-features = false }
