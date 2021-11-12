@@ -5,6 +5,23 @@ pub struct ApplicationInfo {
     pub visible: bool,
 }
 
+impl ApplicationInfo {
+    fn icon_name(&self) -> String {
+        // Icon names must be C identifiers, so:
+        //   - Replace spaces with underscores
+        //   - Prefix with an underscore if the name begins with a digit
+        // They are also suffixed with _icon
+
+        let mut icon_name = self.name.to_lowercase().replace(" ", "_");
+        if icon_name.chars().next().unwrap().is_digit(10) {
+            icon_name.insert(0, '_');
+        }
+        icon_name += "_icon";
+
+        icon_name
+    }
+}
+
 pub trait Application {
     fn info() -> ApplicationInfo where Self: Sized;
 

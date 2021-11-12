@@ -39,7 +39,7 @@ macro_rules! blank {
 impl Application for NumbersGame {
     fn info() -> ApplicationInfo {
         ApplicationInfo {
-            name: "Numbers Game".into(),
+            name: "2048".into(),
             visible: true,
         }
     }
