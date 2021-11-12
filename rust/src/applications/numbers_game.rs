@@ -14,6 +14,7 @@ pub struct NumbersGame {
     score: u64,
     board: [[Rc<RefCell<Tile>>; 4]; 4], // Row, then column
     rng: rand::StdRng,
+    game_over: bool,
 }
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
@@ -52,6 +53,7 @@ impl Application for NumbersGame {
             [blank!(), blank!(), blank!(), blank!()],
         ],
         rng: rand::StdRng::from_seed(&[1, 2, 3, 4]), // TODO
+        game_over: false,
     } }
 
     fn tick(&mut self) {
@@ -83,17 +85,25 @@ impl Application for NumbersGame {
             y += tile_size + padding;
         }
 
-        framework().display.print_at(10, 285, format!("Score: {}", self.score));
+        framework().display.print_at(10, 285, format!("{}{}", self.score, if self.game_over {
+            " | [EXE] Restart"
+        } else { "" }));
 
         (framework().display.draw)();
 
         if let Some(input) = framework().buttons.wait_press() {
-            match input {
-                ButtonInput::MoveDown => self.take_turn(Direction::Down),
-                ButtonInput::MoveUp => self.take_turn(Direction::Up),
-                ButtonInput::MoveLeft => self.take_turn(Direction::Left),
-                ButtonInput::MoveRight => self.take_turn(Direction::Right),
-                _ => (),
+            if input == ButtonInput::Exe {
+                os().restart_application();
+            }
+
+            if !self.game_over {
+                match input {
+                    ButtonInput::MoveDown => self.take_turn(Direction::Down),
+                    ButtonInput::MoveUp => self.take_turn(Direction::Up),
+                    ButtonInput::MoveLeft => self.take_turn(Direction::Left),
+                    ButtonInput::MoveRight => self.take_turn(Direction::Right),
+                    _ => (),
+                }
             }
         };
     }
@@ -101,8 +111,6 @@ impl Application for NumbersGame {
 
 impl NumbersGame {
     fn take_turn(&mut self, direction: Direction) {
-        // TODO: game over detection
-
         // Movement
         self.score += self.move_tiles(direction);
 
@@ -115,8 +123,13 @@ impl NumbersGame {
                 }
             }
         }
-        let (row_spawn, col_spawn) = *self.rng.choose(&blank_tiles[..]).unwrap();
-        self.board[row_spawn][col_spawn] = Rc::new(RefCell::new(Tile::Filled(2)));
+
+        if blank_tiles.is_empty() {
+            self.game_over = true;
+        } else {
+            let (row_spawn, col_spawn) = *self.rng.choose(&blank_tiles[..]).unwrap();
+            self.board[row_spawn][col_spawn] = Rc::new(RefCell::new(Tile::Filled(2)));
+        }
     }
 
     fn move_tiles(&mut self, direction: Direction) -> u64 {
