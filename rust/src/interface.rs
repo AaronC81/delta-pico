@@ -177,7 +177,7 @@ impl ButtonsInterface {
 
 /// All possible user inputs.
 #[repr(C)]
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum ButtonInput {
     None,
 
