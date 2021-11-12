@@ -83,6 +83,8 @@ impl Application for NumbersGame {
             y += tile_size + padding;
         }
 
+        framework().display.print_at(10, 285, format!("Score: {}", self.score));
+
         (framework().display.draw)();
 
         if let Some(input) = framework().buttons.wait_press() {
@@ -99,11 +101,10 @@ impl Application for NumbersGame {
 
 impl NumbersGame {
     fn take_turn(&mut self, direction: Direction) {
-        // TODO: score
         // TODO: game over detection
 
         // Movement
-        self.move_tiles(direction);
+        self.score += self.move_tiles(direction);
 
         // Spawn new tile
         let mut blank_tiles: Vec<(usize, usize)> = vec![];
@@ -118,56 +119,56 @@ impl NumbersGame {
         self.board[row_spawn][col_spawn] = Rc::new(RefCell::new(Tile::Filled(2)));
     }
 
-    fn move_tiles(&mut self, direction: Direction) {
+    fn move_tiles(&mut self, direction: Direction) -> u64 {
         use Direction::*;
 
-        match direction {
-            Up => {
-                for i in 0..4 {
+        let mut score = 0;
+
+        for i in 0..4 {
+            score += match direction {
+                Up => {
                     Self::move_1d_tiles(
                         &mut self.board[0][i].borrow_mut(),
                         &mut self.board[1][i].borrow_mut(),
                         &mut self.board[2][i].borrow_mut(),
                         &mut self.board[3][i].borrow_mut(),
-                    );
-                }
-            },
+                    )
+                },
 
-            Down => {
-                for i in 0..4 {
+                Down => {
                     Self::move_1d_tiles(
                         &mut self.board[3][i].borrow_mut(),
                         &mut self.board[2][i].borrow_mut(),
                         &mut self.board[1][i].borrow_mut(),
                         &mut self.board[0][i].borrow_mut(),
-                    );
-                }
-            },
+                    )
+                },
 
-            Left => {
-                for i in 0..4 {
+                Left => {
                     Self::move_1d_tiles(
                         &mut self.board[i][0].borrow_mut(),
                         &mut self.board[i][1].borrow_mut(),
                         &mut self.board[i][2].borrow_mut(),
                         &mut self.board[i][3].borrow_mut(),
-                    );
-                }
-            },
+                    )
+                },
 
-            Right => {
-                for i in 0..4 {
+                Right => {
                     Self::move_1d_tiles(
                         &mut self.board[i][3].borrow_mut(),
                         &mut self.board[i][2].borrow_mut(),
                         &mut self.board[i][1].borrow_mut(),
                         &mut self.board[i][0].borrow_mut(),
-                    );
-                }
-            },
+                    )
+                },
+            }
         }
+
+        score
     }
 
+    /// Performs a movement along one row or column. Returns any score gained from the move.
+    /// 
     /// t1 is the tile which is "the most squished" in the direction being moved to.
     /// For example, if moving left: 
     ///
@@ -187,7 +188,7 @@ impl NumbersGame {
     /// | t1 |
     /// |----|
     ///
-    fn move_1d_tiles(t1: &mut Tile, t2: &mut Tile, t3: &mut Tile, t4: &mut Tile) {
+    fn move_1d_tiles(t1: &mut Tile, t2: &mut Tile, t3: &mut Tile, t4: &mut Tile) -> u64 {
         // For 4-item rows/columns, there are few enough permutations that it's just easier to do
         // this, than figure out how to implement them in an array fashion! (He says, at 11pm)
         // (If you Command+Shift+P > Rust Analyzer: Toggle Inlay Hints, the match arms nicely
@@ -197,7 +198,7 @@ impl NumbersGame {
 
         match (&t1, &t2, &t3, &t4) {
             // All blank, or one item but it's already in the right place - nothing to do!
-            (_, Blank, Blank, Blank) => (),
+            (_, Blank, Blank, Blank) => 0,
 
             // Only one item - move it along
               (Blank, t@Filled(_), Blank,       Blank      )
@@ -208,6 +209,8 @@ impl NumbersGame {
                 *t2 = Blank;
                 *t3 = Blank;
                 *t4 = Blank;
+
+                0
             }
 
             // Two items, where there is NO ROOM for a possible third on the less-squished side - we
@@ -218,16 +221,22 @@ impl NumbersGame {
             => {
                 if an == bn {
                     // If they are equal, they can be merged!
-                    *t1 = Filled(an * 2);
+                    let merged = an * 2;
+
+                    *t1 = Filled(merged);
                     *t2 = Blank;
                     *t3 = Blank;
                     *t4 = Blank;
+
+                    merged
                 } else {
                     // They are not equal, so cannot be merged - move them along
                     *t1 = **a;
                     *t2 = **b;
                     *t3 = Blank;
                     *t4 = Blank;
+
+                    0
                 }
             }
 
@@ -241,23 +250,33 @@ impl NumbersGame {
                 if an == bn {
                     // If the first and second are equal, they can be merged!
                     // The third item stays intact
-                    *t1 = Filled(an * 2);
+                    let merged = an * 2;
+
+                    *t1 = Filled(merged);
                     *t2 = **c;
                     *t3 = Blank;
                     *t4 = Blank;
+
+                    merged
                 } else if let Filled(cn) = c {
                     if bn == cn {
                         // We can merge the second and third!
+                        let merged = bn * 2;
+
                         *t1 = **a;
-                        *t2 = Filled(bn * 2);
+                        *t2 = Filled(merged);
                         *t3 = Blank;
                         *t4 = Blank;
+
+                        merged
                     } else {
                         // They are not equal, so cannot be merged - move them along
                         *t1 = **a;
                         *t2 = **b;
                         *t3 = **c;
                         *t4 = Blank;
+
+                        0
                     }
                 } else {
                     // They are not equal, so cannot be merged - move them along
@@ -265,6 +284,8 @@ impl NumbersGame {
                     *t2 = **b;
                     *t3 = **c;
                     *t4 = Blank;
+
+                    0
                 }
             }
 
@@ -282,25 +303,45 @@ impl NumbersGame {
 
                 if a_b_mergable && c_d_mergable {
                     // Awesome, merge them both!
-                    *t1 = Filled(an * 2);
-                    *t2 = Filled(cn * 2);
+                    let merged_first = an * 2;
+                    let merged_second = cn * 2;
+
+                    *t1 = Filled(merged_first);
+                    *t2 = Filled(merged_second);
                     *t3 = Blank;
                     *t4 = Blank;
+
+                    merged_first + merged_second
                 } else if a_b_mergable {
                     // Merge A and B, move others along
-                    *t1 = Filled(an * 2);
+                    let merged = an * 2;
+
+                    *t1 = Filled(merged);
                     *t2 = **c;
                     *t3 = **d;
                     *t4 = Blank;
+
+                    merged
                 } else if b_c_mergable {
                     // Merge B and C, move along
-                    *t2 = Filled(bn * 2);
+                    let merged = bn * 2;
+
+                    *t2 = Filled(merged);
                     *t3 = **d;
                     *t4 = Blank;
+
+                    merged
                 } else if c_d_mergable {
                     // Merge C and D, set new blank
-                    *t3 = Filled(cn * 2);
+                    let merged = cn * 2;
+
+                    *t3 = Filled(merged);
                     *t4 = Blank;
+
+                    merged
+                } else {
+                    // No movement at all is possible
+                    0
                 }
             }
         }
