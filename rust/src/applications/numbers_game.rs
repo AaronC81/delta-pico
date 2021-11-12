@@ -75,7 +75,7 @@ impl Application for NumbersGame {
 
                 (framework().display.draw_rect)(x, y, tile_size, tile_size, colour, true, 4);
 
-                framework().display.print_at(x, y + tile_size / 3, format!("  {}  ", text));
+                framework().display.print_centred(x, y + tile_size / 3, tile_size, format!("  {}  ", text));
 
                 x += tile_size + padding;
             }

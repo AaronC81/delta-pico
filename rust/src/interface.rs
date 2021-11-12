@@ -73,6 +73,14 @@ impl DisplayInterface {
         self.print(s);
     }
 
+    pub fn print_centred(&self, x: i64, y: i64, w: i64, s: impl Into<String>) {
+        let s = s.into();
+        let (text_width, _) = self.string_size(&s);
+
+        let x_offset = (w - text_width) / 2;
+        self.print_at(x + x_offset, y, s);
+    }
+
     pub fn get_cursor(&self) -> (i64, i64) {
         let mut x: i64 = 0;
         let mut y: i64 = 0;
