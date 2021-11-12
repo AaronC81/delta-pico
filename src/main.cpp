@@ -42,6 +42,8 @@ void displayGetCursor(int64_t *x, int64_t *y) {
 }
 
 void displayDrawBitmap(int64_t sx, int64_t sy, uint16_t *bitmap) {
+  if (bitmap == nullptr) return;
+
   int width = bitmap[0];
   int height = bitmap[1];
   int transparency = bitmap[2];
