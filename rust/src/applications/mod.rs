@@ -52,6 +52,7 @@ impl ApplicationList {
     }
 }
 
+#[macro_use]
 pub mod real_time;
 
 pub mod menu;
@@ -61,3 +62,4 @@ pub mod graph;
 pub mod bootloader;
 pub mod storage;
 pub mod numbers_game;
+pub mod tetris;
