@@ -116,7 +116,7 @@ impl RealTimeApplication for RealTimeTestApplication {
     real_time_boilerplate!(RealTimeTestApplicationEvent);
 
     fn info() -> ApplicationInfo where Self: Sized {
-        ApplicationInfo { name: "Real Time Test".into(), visible: true }
+        ApplicationInfo { name: "Real Time Test".into(), visible: false }
     }
 
     fn new() -> Self where Self: Sized {
