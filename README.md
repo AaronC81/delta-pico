@@ -62,3 +62,7 @@ D8.](img/wire-fix.png)
 
 ### Revision 3
 - Migrate to KiCad 6
+- Replace the expansion socket with a new debug port
+    - 6 pins (3x2) rather than 4 pins
+    - 2 extra pins are SWCLK and SWDIO (marked SWC and SWD respectively)
+    - Moved to not be in the way of SD card slot
