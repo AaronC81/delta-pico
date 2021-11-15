@@ -63,7 +63,10 @@ D8.](img/wire-fix.png)
 ### Revision 3
 - Migrate to KiCad 6
 - Replace the expansion socket with a new debug port
-    - 6 pins (3x2) rather than 4 pins
-    - 2 extra pins are SWCLK and SWDIO (marked SWC and SWD respectively)
+    - 8 pins (4x2) rather than 4 pins
+    - 2 of the extra pins are SWCLK and SWDIO (marked SWC and SWD respectively)
+    - Other 2 are GPIO 18 and GPIO 19, currently unused
     - Moved to not be in the way of SD card slot
+- Broken out VIN and GND near the JST battery connector
+    - VIN is broken both before (`SW. VIN`) and after (`BYP. VIN`) the power switch
 - Connect PCF8574 interrupt pins to GPIO 16/17
