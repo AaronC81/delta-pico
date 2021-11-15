@@ -1,1 +1,5 @@
 https://github.com/HeadBoffin/RP_Silicon_KiCad
+
+RPi_Pico_SDM_TH.kicad_mod modified:
+- Through-holes deleted from pads 
+- USB board cutouts removed
