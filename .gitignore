@@ -9,3 +9,4 @@ cad/*/*cache*
 cad/*/*-bak
 cad/*/*-backups
 cad/*/*.kicad_prl
+.DS_Store
