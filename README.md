@@ -48,3 +48,14 @@ fixed with a small piece of wire:
 
 ![A small piece of wire between the down arrow button and diode
 D8.](img/wire-fix.png)
+
+## Changelog
+### Revision 1
+- Initial revision!
+
+### Revision 2
+- Add I2C EEPROM chip
+- Fix missing trace from "down" button to diode
+- Connect display SD pins
+- Move Pico further to the side to accommodate SD pins
+- Rotate and move expansion socket to not be behind the display
