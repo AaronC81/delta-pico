@@ -59,3 +59,6 @@ D8.](img/wire-fix.png)
 - Connect display SD pins
 - Move Pico further to the side to accommodate SD pins
 - Rotate and move expansion socket to not be behind the display
+
+### Revision 3
+- Migrate to KiCad 6
