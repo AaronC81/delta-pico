@@ -4257,7 +4257,7 @@
   (gr_text "aaronc.cc" (at 61.65 97.52) (layer "B.SilkS") (tstamp 00000000-0000-0000-0000-000061312bc6)
     (effects (font (size 2.3 2) (thickness 0.3)) (justify mirror))
   )
-  (gr_text "Rev. 2" (at 61.39 101.012) (layer "B.SilkS") (tstamp 00000000-0000-0000-0000-000061312bc9)
+  (gr_text "Rev. 3" (at 61.39 101.012) (layer "B.SilkS") (tstamp 00000000-0000-0000-0000-000061312bc9)
     (effects (font (size 1 1) (thickness 0.15)) (justify mirror))
   )
   (gr_text "3V3" (at 36.7455 58.2948 90) (layer "B.SilkS") (tstamp 5738dca7-396f-4d69-a4a3-b418b1726a23)
