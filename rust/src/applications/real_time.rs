@@ -5,8 +5,12 @@ use crate::{graphics::colour, interface::{self, ButtonInput, framework}};
 use super::{Application, ApplicationInfo};
 
 #[derive(Debug, Clone)]
+/// The internal state of a struct implementing `RealTimeApplication`.
 pub struct RealTimeState<T: Clone> {
+    /// Events scheduled for a particular time in milliseconds.
     pub time_scheduled_events: Vec<(u32, T)>,
+
+    /// Events to run when a button is pressed.
     pub key_events: Vec<(ButtonInput, T)>,
 }
 
@@ -21,12 +25,30 @@ impl<T: Clone> Default for RealTimeState<T> {
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
+/// What to do after a real-time event is handled.
 pub enum RealTimeResult {
+    /// Nothing.
     None,
+
+    /// Redraw the screen by calling `RealTimeApplication::draw`.
     Redraw,
 }
 
+/// A trait for creating applications which do not block on user input, instead using an
+/// event-driven model to fire events at particular times or when certain keys are pressed.
+/// 
+/// Despite the name, these applications are not truly "real-time", and do not make timing
+/// guarantees. Try to avoid writing `on_event` implementations which block for significant periods
+/// of time, and it will feel rather similar to truly real-time.
+/// 
+/// Implementing `RealTimeApplication` will automatically implement `Application`.
+/// `Application::tick` is implemented as a dispatcher for time-based events, and also polls for
+/// input, running in a loop with no delay between iterations.
+/// 
+/// Keypresses for special keys like MENU are handled automatically.
 pub trait RealTimeApplication {
+    /// The event type to use within this application. Typically an enum of all of the different
+    /// events which can occur.
     type RealTimeEvent : Clone;
 
     fn info() -> ApplicationInfo where Self: Sized;
@@ -35,16 +57,28 @@ pub trait RealTimeApplication {
     fn get_real_time_state(&self) -> &RealTimeState<Self::RealTimeEvent>;
     fn get_real_time_state_mut(&mut self) -> &mut RealTimeState<Self::RealTimeEvent>;
 
+    /// Fired when an event registerd using `on_input` or `schedule` occurs.
     fn on_event(&mut self, event: &Self::RealTimeEvent) -> RealTimeResult;
+
+    /// Draw to the display. Will be called if any `on_event` during a tick returns
+    /// `RealTimeResult::Redraw`.
     fn draw(&mut self);
 
     fn destroy(&mut self) {}
 
+    /// Register an `event` to be fired whenever a particular `key` is pressed. This event is
+    /// permanent and will fire for every press - that is, it isn't removed after the key is pressed
+    /// once. If you do need to remove this handler for some reason, you can find the corresponding
+    /// entry in the `key_events` field on the implementor's `RealTimeState` and delete it.
     fn on_input(&mut self, key: ButtonInput, event: Self::RealTimeEvent) -> &mut Self {
         self.get_real_time_state_mut().key_events.push((key, event));
         self
     }
 
+    /// Register an `event` to be fired `in_millis` milliseconds from now. Since that time in
+    /// milliseconds will only occur once, the handler is removed once the event has been handled.
+    /// If you need to perform an event repeatedly, you can set up the event handler to call
+    /// `schedule` again.
     fn schedule(&mut self, in_millis: u32, event: Self::RealTimeEvent) -> &mut Self {
         self.get_real_time_state_mut().time_scheduled_events.push(((framework().millis)() + in_millis, event));
         self
