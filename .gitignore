@@ -10,3 +10,4 @@ cad/*/*-bak
 cad/*/*-backups
 cad/*/*.kicad_prl
 .DS_Store
+cad/*/_autosave-*
