@@ -210,8 +210,8 @@
       (net 3 "Net-(D2-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 6c78f3ca-4597-4d0e-a218-a32fd79995af))
     (pad "2" thru_hole circle locked (at 6.4 0 90) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 53 "COL0") (pinfunction "2") (pintype "passive") (tstamp 2e676e44-8161-4ff4-b9b9-10632e5d1659))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -264,8 +264,8 @@
       (net 5 "Net-(D3-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 50fa866f-da74-42d5-9edd-4cec69c403fc))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 53 "COL0") (pinfunction "2") (pintype "passive") (tstamp 6a826c8f-f034-470d-a1eb-6cb989722319))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -318,8 +318,8 @@
       (net 7 "Net-(D4-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 1e7f4ceb-23d1-4e38-973e-68d190948175))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 53 "COL0") (pinfunction "2") (pintype "passive") (tstamp f772076e-39a5-47b6-8c84-260012c7e794))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -372,8 +372,8 @@
       (net 9 "Net-(D5-Pad2)") (pinfunction "1") (pintype "passive") (tstamp f87baaa0-b9e4-40e7-b4cc-a935de34a38b))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 53 "COL0") (pinfunction "2") (pintype "passive") (tstamp 59ac61b7-b6f6-4eb3-bf31-f6e1287dc3c0))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -426,8 +426,8 @@
       (net 11 "Net-(D6-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 07338c53-0417-4ad4-8916-2c6d6d747e5f))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 53 "COL0") (pinfunction "2") (pintype "passive") (tstamp 5a21deee-e372-48f8-ab2c-ddff4bfe6054))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -480,8 +480,8 @@
       (net 13 "Net-(D7-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 651d9d1a-310e-40f8-b78c-74fd38e92aa5))
     (pad "2" thru_hole circle locked (at 6.4 0 90) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 54 "COL1") (pinfunction "2") (pintype "passive") (tstamp c65fbcbc-0a25-4864-9966-948e97efd601))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -534,8 +534,8 @@
       (net 14 "Net-(D8-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 0bae4748-407e-4384-85cb-a171579c1919))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 54 "COL1") (pinfunction "2") (pintype "passive") (tstamp 269ded19-9fad-4c93-adc4-22bbd14f8c7e))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -588,8 +588,8 @@
       (net 15 "Net-(D9-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 1b0d510a-0976-4c8c-b11e-f5857fa48b19))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 54 "COL1") (pinfunction "2") (pintype "passive") (tstamp 4100a876-0838-41ce-9420-9f36845baed3))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -642,8 +642,8 @@
       (net 16 "Net-(D10-Pad2)") (pinfunction "1") (pintype "passive") (tstamp ed92a306-759c-481e-bdb5-b70037be9e5a))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 54 "COL1") (pinfunction "2") (pintype "passive") (tstamp b00a5d8e-a2da-415b-9cd4-0337cb8e5aa5))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -696,8 +696,8 @@
       (net 17 "Net-(D11-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 4a96831a-846e-4e44-8ef8-88fc70323e4b))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 54 "COL1") (pinfunction "2") (pintype "passive") (tstamp 260dff6f-a885-421c-ae0a-a15dd244ef09))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -750,8 +750,8 @@
       (net 18 "Net-(D12-Pad2)") (pinfunction "1") (pintype "passive") (tstamp e525e96e-847b-44d7-9292-6ad5b93f401b))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 54 "COL1") (pinfunction "2") (pintype "passive") (tstamp 15b78447-bf20-4f16-8f71-ca9c6eac92f2))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -804,8 +804,8 @@
       (net 19 "Net-(D13-Pad2)") (pinfunction "1") (pintype "passive") (tstamp fd5a6d74-6604-447e-9b68-8484cf9fcfc1))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 55 "COL2") (pinfunction "2") (pintype "passive") (tstamp 4456fc82-30dc-4a80-821f-7011104f0e2a))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -858,8 +858,8 @@
       (net 20 "Net-(D14-Pad2)") (pinfunction "1") (pintype "passive") (tstamp c2a3994c-3ec8-49b0-b19e-0a324576d6eb))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 55 "COL2") (pinfunction "2") (pintype "passive") (tstamp 74f3a44d-e226-49b3-a0ca-5b6b7179f154))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -912,8 +912,8 @@
       (net 21 "Net-(D15-Pad2)") (pinfunction "1") (pintype "passive") (tstamp e3d398f3-0bff-44d7-99d3-c48779980b9b))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 55 "COL2") (pinfunction "2") (pintype "passive") (tstamp f6d68014-a614-4362-bbcb-0d63a5332289))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -966,8 +966,8 @@
       (net 22 "Net-(D16-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 651c8657-60a9-4bc1-9f9f-f3529a378489))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 55 "COL2") (pinfunction "2") (pintype "passive") (tstamp 5ab555aa-4f0f-4d28-b11a-e050c5c2cce6))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -1020,8 +1020,8 @@
       (net 25 "Net-(D19-Pad2)") (pinfunction "1") (pintype "passive") (tstamp f9b8f161-9fea-4f3b-96a0-fa4a443150d2))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 56 "COL3") (pinfunction "2") (pintype "passive") (tstamp 1fa2b065-bdd6-4fd2-9718-8099d02b62fc))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -1074,8 +1074,8 @@
       (net 26 "Net-(D20-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 65d61bd0-5f30-4507-9ae9-218231953e06))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 56 "COL3") (pinfunction "2") (pintype "passive") (tstamp c9a7ca19-ff7c-4e0d-a4d9-944ac2dcc599))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -1128,8 +1128,8 @@
       (net 27 "Net-(D21-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 680023c2-51cf-432b-8e4e-612da918a7b2))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 56 "COL3") (pinfunction "2") (pintype "passive") (tstamp 9d843c15-a29a-49de-a4d9-124f0846b6ad))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -1182,8 +1182,8 @@
       (net 28 "Net-(D22-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 5556e622-945e-45f5-a730-30f8ab8c4bb5))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 56 "COL3") (pinfunction "2") (pintype "passive") (tstamp 57c2ef66-ad7b-4016-82c5-aea334dd68fa))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -1236,8 +1236,8 @@
       (net 29 "Net-(D23-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 2360d59c-3b89-46fd-a458-11ca93462c74))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 56 "COL3") (pinfunction "2") (pintype "passive") (tstamp 2d950d17-4435-4a7d-b61b-5dfca0a5e34b))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -1290,8 +1290,8 @@
       (net 30 "Net-(D24-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 06ac06eb-6d32-45da-8f0e-efadb76f6956))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 56 "COL3") (pinfunction "2") (pintype "passive") (tstamp c8c9026a-0b27-4273-abb3-f114fdc668c7))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -1344,8 +1344,8 @@
       (net 31 "Net-(D25-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 7df10c93-d169-4726-bb7e-b0d8dbe52c88))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 57 "COL4") (pinfunction "2") (pintype "passive") (tstamp 19b3f061-7edf-4ca9-9b18-344efc159859))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -1398,8 +1398,8 @@
       (net 32 "Net-(D26-Pad2)") (pinfunction "1") (pintype "passive") (tstamp d0260c89-97e9-4017-ba4f-bfe36e031859))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 57 "COL4") (pinfunction "2") (pintype "passive") (tstamp 8613aa2c-4fa7-4b4d-87e8-86a9e35e3ae9))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -1452,8 +1452,8 @@
       (net 33 "Net-(D27-Pad2)") (pinfunction "1") (pintype "passive") (tstamp bfdb47ad-c4f5-4a1b-9fb8-7f5f3d634915))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 57 "COL4") (pinfunction "2") (pintype "passive") (tstamp 5f0d3716-731c-4174-9641-b04b1c84e882))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -1506,8 +1506,8 @@
       (net 34 "Net-(D28-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 05aabeb5-6292-4efd-949a-34e29c8a2b23))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 57 "COL4") (pinfunction "2") (pintype "passive") (tstamp 7da6cceb-6a22-44ff-b142-bee35b907e14))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -1560,8 +1560,8 @@
       (net 35 "Net-(D29-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 63d6cdf7-b9b2-4a87-abf5-7332b7e2d3b1))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 57 "COL4") (pinfunction "2") (pintype "passive") (tstamp 5d67956e-ca67-439c-b034-e5bec7f4f4d3))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -1614,8 +1614,8 @@
       (net 36 "Net-(D30-Pad2)") (pinfunction "1") (pintype "passive") (tstamp cc90b4da-385f-4bb0-98f8-9af1b7278fd2))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 57 "COL4") (pinfunction "2") (pintype "passive") (tstamp db5ef56c-4b14-48da-acf4-8edf1a50990c))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -1668,8 +1668,8 @@
       (net 23 "Net-(D17-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 2a3e9ca5-32e3-44d9-975b-af284a48c920))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 55 "COL2") (pinfunction "2") (pintype "passive") (tstamp 92ec8546-e6ab-4675-8a30-dbd027d650c3))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -1722,8 +1722,8 @@
       (net 24 "Net-(D18-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 1dcc3db4-9067-461e-abc8-cd1b590f0d10))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 55 "COL2") (pinfunction "2") (pintype "passive") (tstamp d3a0e61d-0c9f-416b-8894-8b9413f5d991))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
@@ -1776,8 +1776,8 @@
       (net 1 "Net-(D1-Pad2)") (pinfunction "1") (pintype "passive") (tstamp 83768f7c-54b3-4a5b-a547-f4603714df69))
     (pad "2" thru_hole circle locked (at 6.4 0) (size 1.8 1.8) (drill 1.2) (layers *.Cu *.Mask)
       (net 53 "COL0") (pinfunction "2") (pintype "passive") (tstamp bab14c4a-10da-41d2-a4c4-d7b430675ef9))
-    (model "PTS636_SL43_LFS.stp"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/pts636.step"
+      (offset (xyz 0.2 -1.75 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
