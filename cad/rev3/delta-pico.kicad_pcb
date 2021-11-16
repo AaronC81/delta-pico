@@ -2035,6 +2035,29 @@
     )
   )
 
+  (footprint "DeltaPico:ILI9341ModelOnly" (layer "F.Cu")
+    (tedit 6193A76F) (tstamp 36a421cd-ada7-497f-afa4-8a68daef5e5f)
+    (at 48.07 116.12)
+    (attr smd)
+    (fp_text reference "REF**" (at 0 -0.5 unlocked) (layer "F.SilkS") hide
+      (effects (font (size 1 1) (thickness 0.15)))
+      (tstamp 36fa07ea-adc9-4e6b-8040-f484fef33c66)
+    )
+    (fp_text value "ILI9341ModelOnly" (at 0 1 unlocked) (layer "F.Fab")
+      (effects (font (size 1 1) (thickness 0.15)))
+      (tstamp d2f300b2-da74-4ef2-849b-73bc03bf38dc)
+    )
+    (fp_text user "${REFERENCE}" (at 0 2.5 unlocked) (layer "F.Fab") hide
+      (effects (font (size 1 1) (thickness 0.15)))
+      (tstamp cdf31fa0-b4af-4af3-a807-37e03c8b46f9)
+    )
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/ili9341.step"
+      (offset (xyz 0 0 3))
+      (scale (xyz 1 1 1))
+      (rotate (xyz 0 0 0))
+    )
+  )
+
   (footprint "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical" (layer "F.Cu")
     (tedit 59FED5CC) (tstamp 4819b9c2-c301-4e27-b42b-8a8e76f44f8a)
     (at 57.53 30.16 90)

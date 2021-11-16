@@ -1,3 +1,4 @@
 (fp_lib_table
   (lib (name "RPi_Pico")(type "KiCad")(uri "${KIPRJMOD}/libraries/MCU_RaspberryPi_and_Boards/MCU_RaspberryPi_and_Boards.pretty")(options "")(descr ""))
+  (lib (name "DeltaPico")(type "KiCad")(uri "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty")(options "")(descr ""))
 )
