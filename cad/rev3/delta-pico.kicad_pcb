@@ -3689,10 +3689,10 @@
       (net 38 "RAWVIN") (pinfunction "B") (pintype "passive") (tstamp a864ef2a-5d05-4017-ab36-0df50220cf9f))
     (pad "3" smd rect locked (at 2.5 2.75 90) (size 1.25 2.5) (layers "B.Cu" "B.Paste" "B.Mask")
       (net 51 "unconnected-(SW1-Pad3)") (pinfunction "C") (pintype "passive+no_connect") (tstamp 4eee2ce9-285d-472c-98ee-07ecf43909f0))
-    (model "${KISYS3DMOD}/Button_Switch_SMD.3dshapes/SW_SPDT_CK-JS102011SAQN.wrl"
-      (offset (xyz 0 0 0))
+    (model "${KIPRJMOD}/libraries/DeltaPico/DeltaPico.pretty/models/js102011saqn.step"
+      (offset (xyz 4.4 -1.8 0.3))
       (scale (xyz 1 1 1))
-      (rotate (xyz 0 0 0))
+      (rotate (xyz -90 0 180))
     )
   )
 
