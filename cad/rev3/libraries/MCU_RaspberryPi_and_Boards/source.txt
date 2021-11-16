@@ -1,4 +1,5 @@
-https://github.com/HeadBoffin/RP_Silicon_KiCad
+Pretty, DCM, LIB: https://github.com/HeadBoffin/RP_Silicon_KiCad
+Models: https://grabcad.com/library/raspberry-pi-pico-r3-1
 
 RPi_Pico_SDM_TH.kicad_mod modified:
 - Through-holes deleted from pads 

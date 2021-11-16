@@ -4055,6 +4055,11 @@
       (net 92 "unconnected-(U3-Pad42)") (pinfunction "GND") (pintype "power_in+no_connect") (tstamp 68821222-bb65-4e89-adf5-53ba7e334807))
     (pad "43" smd rect (at 2.54 -23.9 90) (size 3.5 1.7) (drill (offset -0.9 0)) (layers "B.Cu" "B.Mask")
       (net 94 "SWDIO") (pinfunction "SWDIO") (pintype "bidirectional") (tstamp 901f6cef-16fc-43a4-8ea8-2b70ee7929d2))
+    (model "${KIPRJMOD}/libraries/MCU_RaspberryPi_and_Boards/Models/Pico.step"
+      (offset (xyz 0 0 0))
+      (scale (xyz 1 1 1))
+      (rotate (xyz -90 0 0))
+    )
   )
 
   (footprint "Diode_SMD:D_SOD-123" (layer "B.Cu")
