@@ -67,6 +67,6 @@ D8.](img/wire-fix.png)
     - 2 of the extra pins are SWCLK and SWDIO (marked SWC and SWD respectively)
     - Other 2 are GPIO 18 and GPIO 19, currently unused
     - Moved to not be in the way of SD card slot
-- Broken out VIN and GND near the JST battery connector
-    - VIN is broken both before (`SW. VIN`) and after (`BYP. VIN`) the power switch
+- Broken out VSYS and GND near the JST battery connector
+    - VSYS is broken both before (`SW. VSYS`) and after (`BYP. VSYS`) the power switch
 - Connect PCF8574 interrupt pins to GPIO 16/17
