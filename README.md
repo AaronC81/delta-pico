@@ -62,6 +62,13 @@ D8.](img/wire-fix.png)
 
 ### Revision 3
 - Migrate to KiCad 6
+- Button layout tweaks
+    - The `(` key has been removed and merged into the `)` key to form a single `( )` key
+        - rbop treats brackets as a block element, so it isn't possible to have a non-paired
+          bracket
+        - This means there is no reason to have a separate key for each bracket
+    - In place of the `(` key, there is a new `TEXT` key
+        - This will be used to toggle a T9-style text entry mode on the numeric keypad
 - Replace the expansion socket with a new debug port
     - 8 pins (4x2) rather than 4 pins
     - 2 of the extra pins are SWCLK and SWDIO (marked SWC and SWD respectively)
