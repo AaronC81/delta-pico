@@ -163,7 +163,7 @@ impl ButtonsInterface {
         let mut event: ButtonEvent = ButtonEvent::Release;
 
         if (func)(&mut input as *mut _, &mut event as *mut _) && event == ButtonEvent::Press {
-            Some(match input {
+            let mut result = Some(match input {
                 // Special cases
                 ButtonInput::Menu => {
                     os().toggle_menu();
@@ -204,7 +204,20 @@ impl ButtonsInterface {
                 ButtonInput::Multiply => OSInput::Multiply,
                 ButtonInput::Fraction => OSInput::Fraction,
                 ButtonInput::Power => OSInput::Power,
-            })
+            });
+
+            // Intercept if a digit was pressed in text mode - this needs to be converted to a
+            // character according to the OS' multi-tap state
+            if os().text_mode {
+                if let Some(OSInput::Digit(d)) = result {
+                    result = os().multi_tap.input(OSInput::Digit(d));
+                } else {
+                    // Make sure we don't cycle the wrong character if we e.g. move with the arrows
+                    os().multi_tap.drop_keypress();
+                }
+            }
+
+            result
         } else {
             None
         }

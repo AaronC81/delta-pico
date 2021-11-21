@@ -70,6 +70,12 @@ impl RbopContext {
                     UnstructuredNodeList { items: vec![] },
                 )),
 
+                OSInput::TextMultiTapNew(c) => Some(UnstructuredNode::Token(Token::Variable(c))),
+                OSInput::TextMultiTapCycle(c) => {
+                    self.root.delete(&mut self.nav_path, renderer, self.viewport.as_mut());
+                    Some(UnstructuredNode::Token(Token::Variable(c)))
+                }
+
                 OSInput::Exe => return None,
                 OSInput::List => return None,
                 OSInput::Shift => {

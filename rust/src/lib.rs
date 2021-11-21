@@ -17,6 +17,7 @@ mod applications;
 mod graphics;
 mod filesystem;
 mod timer;
+mod multi_tap;
 
 use interface::framework;
 use operating_system::os;
@@ -57,7 +58,6 @@ pub extern "C" fn delta_pico_main() {
     os().application_list.add::<applications::tetris::TetrisApplication>();
     os().application_list.add::<applications::numbers_game::NumbersGame>();
     os().application_list.add::<applications::about::AboutApplication>();
-    os().application_list.add::<applications::multi_tap::MultiTapApplication>();
     os().application_list.add::<applications::storage::StorageApplication>();
     os().application_list.add::<applications::bootloader::BootloaderApplication>();
 

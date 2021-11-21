@@ -63,4 +63,3 @@ pub mod bootloader;
 pub mod storage;
 pub mod numbers_game;
 pub mod tetris;
-pub mod multi_tap;

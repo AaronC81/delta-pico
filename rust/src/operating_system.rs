@@ -2,7 +2,7 @@ use alloc::{boxed::Box, format, string::String, vec};
 use rbop::{Number, UnstructuredNode, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 use core::{cmp::max, mem};
 
-use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, filesystem::{CalculationHistory, ChunkTable, Filesystem}, graphics::colour, interface::{ButtonInput, framework}, rbop_impl::RbopContext};
+use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, filesystem::{CalculationHistory, ChunkTable, Filesystem}, graphics::colour, interface::{ButtonInput, framework}, multi_tap::MultiTapState, rbop_impl::RbopContext};
 
 static mut OPERATING_SYSTEM_INTERFACE: Option<OperatingSystemInterface> = None;
 pub fn os() -> &'static mut OperatingSystemInterface<'static> {
@@ -25,6 +25,7 @@ pub fn os() -> &'static mut OperatingSystemInterface<'static> {
                 },
                 last_title_millis: 0,
                 text_mode: false,
+                multi_tap: MultiTapState::new(),
             });
         }
         OPERATING_SYSTEM_INTERFACE.as_mut().unwrap()
@@ -43,6 +44,7 @@ pub struct OperatingSystemInterface<'a> {
     pub last_title_millis: u32,
 
     pub text_mode: bool,
+    pub multi_tap: MultiTapState,
 }
 
 impl<'a> OperatingSystemInterface<'a> {
@@ -374,4 +376,7 @@ pub enum OSInput {
     Multiply,
     Fraction,
     Power,
+
+    TextMultiTapNew(char),
+    TextMultiTapCycle(char),
 }
