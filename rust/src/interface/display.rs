@@ -103,19 +103,18 @@ impl DisplayInterface {
         (self.draw_sprite)(x, y, sprite.0);
     }
 
-    pub fn print(&self, s: impl Into<String>) {
-        let mut bytes = s.into().as_bytes().to_vec();
+    pub fn print(&self, s: &str) {
+        let mut bytes = s.as_bytes().to_vec();
         bytes.push(0);
         (self.print)(bytes.as_ptr())
     }
 
-    pub fn print_at(&self, x: i64, y: i64, s: impl Into<String>) {
+    pub fn print_at(&self, x: i64, y: i64, s: &str) {
         (self.set_cursor)(x, y);
         self.print(s);
     }
 
-    pub fn print_centred(&self, x: i64, y: i64, w: i64, s: impl Into<String>) {
-        let s = s.into();
+    pub fn print_centred(&self, x: i64, y: i64, w: i64, s: &str) {
         let (text_width, _) = self.string_size(&s);
 
         let x_offset = (w - text_width) / 2;
@@ -130,7 +129,7 @@ impl DisplayInterface {
         (x, y)
     }
 
-    pub fn string_size(&self, string: impl Into<String>) -> (i64, i64) {
+    pub fn string_size(&self, string: &str) -> (i64, i64) {
         // Won't work for strings with newlines
 
         // Draw the string off the screen and see how much the cursor moved
@@ -153,7 +152,7 @@ impl DisplayInterface {
         let char_height = self.string_size("A").1;
 
         for word in Into::<String>::into(string).split_whitespace() {
-            let (this_char_x, this_char_y) = self.string_size(word.to_string());
+            let (this_char_x, this_char_y) = self.string_size(&word.to_string());
             x += this_char_x;
             if x > width {
                 lines.push("".into());

@@ -144,7 +144,7 @@ impl<'a> OperatingSystemInterface<'a> {
         used_memory /= 1000;
         available_memory /= 1000;
 
-        framework().display.print(format!("{}/{}kB", used_memory, available_memory));
+        framework().display.print(&format!("{}/{}kB", used_memory, available_memory));
 
         // Draw charge indicator
         let charge_status = (framework().charge_status)();
@@ -260,7 +260,7 @@ impl<'a> OperatingSystemInterface<'a> {
             
             // Draw title
             (framework().display.set_cursor)(PADDING as i64, (y + PADDING) as i64);
-            framework().display.print(title.clone());
+            framework().display.print(&title.clone());
 
             // Draw expression
             framework().rbop_location_x = PADDING as i64;

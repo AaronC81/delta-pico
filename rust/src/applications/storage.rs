@@ -31,7 +31,7 @@ impl Application for StorageApplication {
 
         (framework().display.set_cursor)(0, 50);
 
-        framework().display.print(format!("Address range {}-{}\n\n\n", self.address, self.address + SHOW_BYTES - 1));
+        framework().display.print(&format!("Address range {}-{}\n\n\n", self.address, self.address + SHOW_BYTES - 1));
 
         let bytes = framework().storage.read(self.address, SHOW_BYTES as u8).unwrap();
         for i in 0..(SHOW_BYTES / 8) {

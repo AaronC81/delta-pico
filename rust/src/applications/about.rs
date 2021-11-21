@@ -24,9 +24,9 @@ impl Application for AboutApplication {
         os().ui_draw_title("About Delta Pico");
 
         framework().display.print_at(5, 40,  "Software version:");
-        framework().display.print_at(5, 60,  format!("  {}", env!("CARGO_PKG_VERSION")));
-        framework().display.print_at(5, 80,  format!("  rev {}", env!("GIT_VERSION")));
-        framework().display.print_at(5, 100, format!("  rbop {}", rbop::VERSION));
+        framework().display.print_at(5, 60,  &format!("  {}", env!("CARGO_PKG_VERSION")));
+        framework().display.print_at(5, 80,  &format!("  rev {}", env!("GIT_VERSION")));
+        framework().display.print_at(5, 100, &format!("  rbop {}", rbop::VERSION));
 
         framework().display.print_at(70, 250,  "Created by");
         framework().display.print_at(35, 270,  "Aaron Christiansen");

@@ -45,7 +45,7 @@ impl Application for MenuApplication {
                 );
             }
             (framework().display.set_cursor)(65, y + 18);
-            framework().display.print(app.name.clone());
+            framework().display.print(&app.name.clone());
 
             framework().display.draw_bitmap(7, y + 2, &app.icon_name());
 

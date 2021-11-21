@@ -76,7 +76,7 @@ impl Application for NumbersGame {
 
                 framework().display.draw_rect(x, y, tile_size, tile_size, colour, ShapeFill::Filled, 4);
 
-                framework().display.print_centred(x, y + tile_size / 3, tile_size, format!("  {}  ", text));
+                framework().display.print_centred(x, y + tile_size / 3, tile_size, &format!("  {}  ", text));
 
                 x += tile_size + padding;
             }
@@ -84,7 +84,7 @@ impl Application for NumbersGame {
             y += tile_size + padding;
         }
 
-        framework().display.print_at(10, 285, format!("{}{}", self.score, if self.game_over {
+        framework().display.print_at(10, 285, &format!("{}{}", self.score, if self.game_over {
             " | [EXE] Restart"
         } else { "" }));
 
