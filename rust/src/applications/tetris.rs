@@ -254,7 +254,7 @@ impl RealTimeApplication for TetrisApplication {
             }
         }
 
-        (framework().display.draw)();
+        framework().display.draw();
     }
 
 }

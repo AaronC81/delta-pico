@@ -44,8 +44,7 @@ impl Application for MenuApplication {
                     Colour::BLUE, ShapeFill::Filled, 7
                 );
             }
-            (framework().display.set_cursor)(65, y + 18);
-            framework().display.print(&app.name.clone());
+            framework().display.print_at(65, y + 18, &app.name.clone());
 
             framework().display.draw_bitmap(7, y + 2, &app.icon_name());
 
@@ -63,7 +62,7 @@ impl Application for MenuApplication {
             4, scroll_indicator_bar_height as i64, Colour::DARK_BLUE, ShapeFill::Filled, 2
         );
 
-        (framework().display.draw)();
+        framework().display.draw();
 
         if let Some(btn) = framework().buttons.wait_press() {
             match btn {

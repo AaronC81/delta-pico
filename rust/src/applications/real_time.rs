@@ -181,6 +181,6 @@ impl RealTimeApplication for RealTimeTestApplication {
     fn draw(&mut self) {
         framework().display.fill_screen(Colour::BLACK);
         framework().display.print_at(50, 50, &format!("{} {}", self.second_counter, self.exe_counter));
-        (framework().display.draw)();
+        framework().display.draw();
     }
 }

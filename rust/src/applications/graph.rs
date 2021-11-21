@@ -147,11 +147,12 @@ impl GraphApplication {
             );
 
             // Draw "y="
-            (framework().display.set_cursor)(PADDING as i64, PADDING as i64 + 30 + block.baseline as i64 - 8);
-            framework().display.print("y=");
+            framework().display.print_at(
+                PADDING as i64, PADDING as i64 + 30 + block.baseline as i64 - 8,
+                "y="
+            );
 
-            (framework().display.set_cursor)(23, 290);
-            framework().display.print("EXE: Toggle edit/view");
+            framework().display.print_at(23, 290, "EXE: Toggle edit/view");
         } else {
             // Draw axes
             let (x_axis, y_axis) = self.view_window.axis_screen_coords();
@@ -188,7 +189,7 @@ impl GraphApplication {
         }
 
         // Push to screen
-        (framework().display.draw)();
+        framework().display.draw();
     }
 
     fn open_menu(&mut self) {

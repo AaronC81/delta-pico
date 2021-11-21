@@ -19,7 +19,6 @@ impl Application for AboutApplication {
 
     fn tick(&mut self) {
         framework().display.fill_screen(Colour::BLACK);
-        (framework().display.set_cursor)(60, 50);
 
         os().ui_draw_title("About Delta Pico");
 
@@ -32,7 +31,7 @@ impl Application for AboutApplication {
         framework().display.print_at(35, 270,  "Aaron Christiansen");
         framework().display.print_at(110, 290,  ":)");
 
-        (framework().display.draw)();
+        framework().display.draw();
 
         framework().buttons.wait_press();
     }

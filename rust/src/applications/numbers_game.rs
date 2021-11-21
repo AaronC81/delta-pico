@@ -88,7 +88,7 @@ impl Application for NumbersGame {
             " | [EXE] Restart"
         } else { "" }));
 
-        (framework().display.draw)();
+        framework().display.draw();
 
         if let Some(input) = framework().buttons.wait_press() {
             if input == OSInput::Exe {

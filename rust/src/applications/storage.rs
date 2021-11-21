@@ -29,9 +29,7 @@ impl Application for StorageApplication {
 
         os().ui_draw_title("Storage");
 
-        (framework().display.set_cursor)(0, 50);
-
-        framework().display.print(&format!("Address range {}-{}\n\n\n", self.address, self.address + SHOW_BYTES - 1));
+        framework().display.print_at(0, 50, &format!("Address range {}-{}\n\n\n", self.address, self.address + SHOW_BYTES - 1));
 
         let bytes = framework().storage.read(self.address, SHOW_BYTES as u8).unwrap();
         for i in 0..(SHOW_BYTES / 8) {
@@ -40,7 +38,7 @@ impl Application for StorageApplication {
             }
             framework().display.print("\n");
         }
-        (framework().display.draw)();
+        framework().display.draw();
 
         if let Some(input) = framework().buttons.wait_press() {
             match input {

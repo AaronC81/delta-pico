@@ -136,8 +136,7 @@ impl<'a> OperatingSystemInterface<'a> {
             0, 0, framework().display.width as i64, Self::TITLE_BAR_HEIGHT,
             Colour::ORANGE, ShapeFill::Filled, 0
         );
-        (framework().display.set_cursor)(5, 7);
-        // framework().display.print(format!("{} ({} ms)", s.into(), millis_elapsed));
+        // framework().display.print_at(5, 7, format!("{} ({} ms)", s.into(), millis_elapsed));
         let mut used_memory: u64 = 0;
         let mut available_memory: u64 = 0;
         (framework().heap_usage)(&mut used_memory, &mut available_memory);
@@ -186,13 +185,12 @@ impl<'a> OperatingSystemInterface<'a> {
                         Colour::BLUE, ShapeFill::Filled, 7
                     );
                 }
-                (framework().display.set_cursor)(10, y as i64 + 4);
-                framework().display.print(item);
+                framework().display.print_at(10, y as i64 + 4, item);
 
                 y += ITEM_GAP;
             }
 
-            (framework().display.draw)();
+            framework().display.draw();
 
             if let Some(btn) = framework().buttons.wait_press() {
                 match btn {
@@ -259,8 +257,7 @@ impl<'a> OperatingSystemInterface<'a> {
             framework().display.draw_rect(0, y as i64, 240, 400, Colour::WHITE, ShapeFill::Hollow, 10);      
             
             // Draw title
-            (framework().display.set_cursor)(PADDING as i64, (y + PADDING) as i64);
-            framework().display.print(&title.clone());
+            framework().display.print_at(PADDING as i64, (y + PADDING) as i64, &title.clone());
 
             // Draw expression
             framework().rbop_location_x = PADDING as i64;
@@ -272,7 +269,7 @@ impl<'a> OperatingSystemInterface<'a> {
             );
 
             // Push to screen
-            (framework().display.draw)();
+            framework().display.draw();
 
             // Poll for input
             if let Some(input) = framework().buttons.wait_press() {
@@ -314,14 +311,14 @@ impl<'a> OperatingSystemInterface<'a> {
                 }
                 Err(s) => {
                     redraw();
-                    os().ui_text_dialog(s);
+                    os().ui_text_dialog(&s);
                 }
             }
         }
     }
 
     /// Opens a text dialog in the centre of the screen which can be dismissed with EXE.
-    pub fn ui_text_dialog(&mut self, s: impl Into<String>) {
+    pub fn ui_text_dialog(&mut self, s: &str) {
         const H_PADDING: i64 = 30;
         const H_INNER_PADDING: i64 = 10;
         const V_PADDING: i64 = 10;
@@ -341,12 +338,14 @@ impl<'a> OperatingSystemInterface<'a> {
         );
         
         for (i, line) in lines.iter().enumerate() {
-            (framework().display.set_cursor)(H_PADDING + H_INNER_PADDING, y_start + V_PADDING + ch * i as i64);
-            framework().display.print(line);
+            framework().display.print_at(
+                H_PADDING + H_INNER_PADDING, y_start + V_PADDING + ch * i as i64,
+                line
+            );
         }
 
         // Push to screen
-        (framework().display.draw)();
+        framework().display.draw();
 
         // Poll for input
         loop {

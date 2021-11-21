@@ -40,11 +40,11 @@ pub struct DisplayInterface {
     draw_sprite: extern "C" fn(x: i64, y: i64, sprite: *mut u8),
     draw_bitmap: extern "C" fn(x: i64, y: i64, name: *const u8),
 
-    pub print: extern "C" fn(s: *const u8),
-    pub set_cursor: extern "C" fn(x: i64, y: i64),
-    pub get_cursor: extern "C" fn(x: *mut i64, y: *mut i64),
+    print: extern "C" fn(s: *const u8),
+    set_cursor: extern "C" fn(x: i64, y: i64),
+    get_cursor: extern "C" fn(x: *mut i64, y: *mut i64),
 
-    pub draw: extern "C" fn(),
+    draw: extern "C" fn(),
 }
 
 impl DisplayInterface {
@@ -103,17 +103,21 @@ impl DisplayInterface {
         (self.draw_sprite)(x, y, sprite.0);
     }
 
+    /// Prints a string to the screen at the current cursor position.
     pub fn print(&self, s: &str) {
         let mut bytes = s.as_bytes().to_vec();
         bytes.push(0);
         (self.print)(bytes.as_ptr())
     }
 
+    /// Moves the cursor, then prints a string.
     pub fn print_at(&self, x: i64, y: i64, s: &str) {
         (self.set_cursor)(x, y);
         self.print(s);
     }
 
+    /// Prints a string horizontally centred inside a box with a given position and width, by
+    /// calculating the width of the string and moving the cursor accordingly.
     pub fn print_centred(&self, x: i64, y: i64, w: i64, s: &str) {
         let (text_width, _) = self.string_size(&s);
 
@@ -121,6 +125,7 @@ impl DisplayInterface {
         self.print_at(x + x_offset, y, s);
     }
 
+    /// Gets the cursor position in the form (x, y).
     pub fn get_cursor(&self) -> (i64, i64) {
         let mut x: i64 = 0;
         let mut y: i64 = 0;
@@ -129,6 +134,21 @@ impl DisplayInterface {
         (x, y)
     }
 
+    /// Sets the cursor position.
+    pub fn set_cursor(&self, x: i64, y: i64) {
+        (self.set_cursor)(x, y)
+    }
+
+    /// Commits the current drawing to the screen, showing the user the updated screen.
+    pub fn draw(&self) {
+        (self.draw)();
+    }
+
+    /// Calculates the size of a SINGLE-LINE string, returning it in the form (width, height).
+    /// 
+    /// The implementation of this function is *very* dodgy, deliberately drawing out-of-bounds and
+    /// watching the cursor. It may not be portable depending on the HAL - if you start getting
+    /// panics when printing, start looking here!
     pub fn string_size(&self, string: &str) -> (i64, i64) {
         // Won't work for strings with newlines
 
@@ -143,7 +163,15 @@ impl DisplayInterface {
         (x, y - (self.height as i64 + 100))
     }
 
-    pub fn wrap_text(&self, string: impl Into<String>, width: i64) -> (Vec<String>, i64, i64) {
+    /// Wraps a string by breaking it into lines on whitespace, so that it fits in a given width.
+    /// Returns a tuple in the form:
+    /// 
+    /// (
+    ///     list of lines,
+    ///     total width,
+    ///     total height,
+    /// )
+    pub fn wrap_text(&self, string: &str, width: i64) -> (Vec<String>, i64, i64) {
         // All characters are assumed to have the same height
 
         let mut x = 0;

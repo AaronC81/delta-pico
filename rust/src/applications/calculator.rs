@@ -291,12 +291,11 @@ impl Application for CalculatorApplication {
         // Show timings
         if self.show_timing {
             top_level_timer.stop();
-            (framework().display.set_cursor)(0, 35);
-            framework().display.print(&format!("{}", top_level_timer));
+            framework().display.print_at(0, 35, &format!("{}", top_level_timer));
         }
 
         // Push to screen
-        (framework().display.draw)();
+        framework().display.draw();
 
         // Poll for input
         if let Some(input) = framework().buttons.wait_press() {
