@@ -24,6 +24,7 @@ pub fn os() -> &'static mut OperatingSystemInterface<'static> {
                     }
                 },
                 last_title_millis: 0,
+                text_mode: false,
             });
         }
         OPERATING_SYSTEM_INTERFACE.as_mut().unwrap()
@@ -40,6 +41,8 @@ pub struct OperatingSystemInterface<'a> {
 
     pub filesystem: Filesystem<'a>,
     pub last_title_millis: u32,
+
+    pub text_mode: bool,
 }
 
 impl<'a> OperatingSystemInterface<'a> {
@@ -141,9 +144,15 @@ impl<'a> OperatingSystemInterface<'a> {
 
         framework().display.print(format!("{}/{}kB", used_memory, available_memory));
 
+        // Draw charge indicator
         let charge_status = (framework().charge_status)();
         let charge_bitmap = if charge_status == -1 { "power_usb".into() } else { format!("battery_{}", charge_status) };
         framework().display.draw_bitmap(200, 6, charge_bitmap);
+
+        // Draw text indicator
+        if os().text_mode {
+            framework().display.print_at(180, 6, "t");
+        }
     }
 
     /// Opens a menu with the items in the slice `items`. The user can navigate the menu with the

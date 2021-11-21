@@ -66,7 +66,7 @@ impl RbopContext {
                 ButtonInput::Digit9 => Some(UnstructuredNode::Token(Token::Digit(9))),
         
                 ButtonInput::Point => Some(UnstructuredNode::Token(Token::Point)),
-                ButtonInput::LeftParen | ButtonInput::RightParen => Some(UnstructuredNode::Parentheses(
+                ButtonInput::Parentheses => Some(UnstructuredNode::Parentheses(
                     UnstructuredNodeList { items: vec![] },
                 )),
         
@@ -90,6 +90,7 @@ impl RbopContext {
 
                 // Handled higher up
                 ButtonInput::Menu => panic!("Unhandled MENU keypress"),
+                ButtonInput::Text => panic!("Unhandled TEXT keypress"),
             }
         } else {
             let mut input_pressed = true;

@@ -166,6 +166,9 @@ impl ButtonsInterface {
             if input == ButtonInput::Menu {
                 os().toggle_menu();
                 None
+            } else if input == ButtonInput::Text {
+                os().text_mode = !os().text_mode;
+                None
             } else {
                 Some(input)
             }
@@ -185,6 +188,7 @@ pub enum ButtonInput {
     Exe,
     Shift,
     List,
+    Text,
 
     MoveLeft,
     MoveRight,
@@ -204,8 +208,7 @@ pub enum ButtonInput {
     Digit9,
 
     Point,
-    LeftParen,
-    RightParen,
+    Parentheses,
 
     Add,
     Subtract,
