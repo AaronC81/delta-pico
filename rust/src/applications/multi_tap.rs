@@ -7,7 +7,7 @@ use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 use crate::graphics::colour;
 
-pub struct T9Application {
+pub struct MultiTapApplication {
     text: String,
 
     current_list: Option<&'static [char]>,
@@ -18,7 +18,7 @@ pub struct T9Application {
 
 const PRESS_COOLDOWN_MS: u32 = 750;
 
-// These aren't in the same order as a phone T9 keypad, because our keys are the other way around
+// These aren't in the same order as a phone keypad, because our keys are the other way around
 //     Phone         Delta Pico
 //   1   2   3       7   8   9
 //   4   5   6       4   5   6
@@ -33,10 +33,10 @@ const ONE_CHAR_LIST:   [char; 4] = ['p', 'q', 'r', 's'];
 const TWO_CHAR_LIST:   [char; 3] = ['t', 'u', 'v'];
 const THREE_CHAR_LIST: [char; 4] = ['w', 'x', 'y', 'z'];
 
-impl Application for T9Application {
+impl Application for MultiTapApplication {
     fn info() -> ApplicationInfo {
         ApplicationInfo {
-            name: "T9 Test".into(),
+            name: "Multi-Tap Test".into(),
             visible: true,
         }
     }

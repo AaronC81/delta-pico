@@ -68,7 +68,7 @@ D8.](img/wire-fix.png)
           bracket
         - This means there is no reason to have a separate key for each bracket
     - In place of the `(` key, there is a new `TEXT` key
-        - This will be used to toggle a T9-style text entry mode on the numeric keypad
+        - This will be used to toggle a multi-tap text entry mode on the numeric keypad
 - Replace the expansion socket with a new debug port
     - 8 pins (4x2) rather than 4 pins
     - 2 of the extra pins are SWCLK and SWDIO (marked SWC and SWD respectively)
