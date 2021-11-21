@@ -2,7 +2,7 @@ use alloc::{format, string::{String, ToString}, vec, vec::{Vec}};
 use rbop::{Number, StructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 use rust_decimal::prelude::{One, ToPrimitive, Zero};
 
-use crate::{interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}};
+use crate::{interface::ButtonInput, operating_system::{OSInput, os}, rbop_impl::{RbopContext}};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 use crate::graphics::colour;
@@ -110,19 +110,19 @@ impl Application for GraphApplication {
 
         // Poll for input
         if let Some(input) = framework().buttons.wait_press() {
-            if input == ButtonInput::Exe {
+            if input == OSInput::Exe {
                 self.edit_mode = !self.edit_mode;        
             } else if self.edit_mode {
                 self.rbop_ctx.input(input);
             } else {
                 let ten = Number::from(10);
                 match input {
-                    ButtonInput::MoveLeft => self.view_window.pan_x += ten,
-                    ButtonInput::MoveRight => self.view_window.pan_x -= ten,
-                    ButtonInput::MoveUp => self.view_window.pan_y -= ten,
-                    ButtonInput::MoveDown => self.view_window.pan_y += ten,
+                    OSInput::MoveLeft => self.view_window.pan_x += ten,
+                    OSInput::MoveRight => self.view_window.pan_x -= ten,
+                    OSInput::MoveUp => self.view_window.pan_y -= ten,
+                    OSInput::MoveDown => self.view_window.pan_y += ten,
 
-                    ButtonInput::List => self.open_menu(),
+                    OSInput::List => self.open_menu(),
 
                     _ => (),
                 }

@@ -2,7 +2,7 @@ use alloc::{format, string::{String, ToString}, vec};
 use rbop::{UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 use rust_decimal::prelude::ToPrimitive;
 
-use crate::{interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}};
+use crate::{interface::ButtonInput, operating_system::{OSInput, os}, rbop_impl::{RbopContext}};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 use crate::graphics::colour;
@@ -45,9 +45,9 @@ impl Application for StorageApplication {
 
         if let Some(input) = framework().buttons.wait_press() {
             match input {
-                ButtonInput::MoveDown => self.address += SHOW_BYTES,
-                ButtonInput::MoveUp => self.address -= SHOW_BYTES,
-                ButtonInput::List => {
+                OSInput::MoveDown => self.address += SHOW_BYTES,
+                OSInput::MoveUp => self.address -= SHOW_BYTES,
+                OSInput::List => {
                     match os().ui_open_menu(&["Jump".into(), "Clear memory".into()], true) {
                         Some(0) => {
                             // TODO redraw

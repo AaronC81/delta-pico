@@ -1,7 +1,7 @@
 use alloc::{format, string::{String, ToString}, vec, vec::{Vec}};
 use rbop::render::CalculatedPoint;
 
-use crate::{debug, operating_system::os};
+use crate::{debug, operating_system::{OSInput, os}};
 
 static mut FRAMEWORK: *mut ApplicationFrameworkInterface = 0 as *mut _;
 pub fn framework() -> &'static mut ApplicationFrameworkInterface {
@@ -149,29 +149,62 @@ pub struct ButtonsInterface {
 }
 
 impl ButtonsInterface {
-    pub fn wait_press(&self) -> Option<ButtonInput> {
+    pub fn wait_press(&self) -> Option<OSInput> {
         self.press_func_wrapper(self.wait_input_event)
     }
 
-    pub fn immediate_press(&self) -> Option<ButtonInput> {
+    pub fn immediate_press(&self) -> Option<OSInput> {
         self.press_func_wrapper(self.immediate_input_event)
     }
 
-    fn press_func_wrapper(&self, func: extern "C" fn(input: *mut ButtonInput, event: *mut ButtonEvent) -> bool) -> Option<ButtonInput> {
+    fn press_func_wrapper(&self, func: extern "C" fn(input: *mut ButtonInput, event: *mut ButtonEvent) -> bool) -> Option<OSInput> {
         // Garbage default values
         let mut input: ButtonInput = ButtonInput::None;
         let mut event: ButtonEvent = ButtonEvent::Release;
 
         if (func)(&mut input as *mut _, &mut event as *mut _) && event == ButtonEvent::Press {
-            if input == ButtonInput::Menu {
-                os().toggle_menu();
-                None
-            } else if input == ButtonInput::Text {
-                os().text_mode = !os().text_mode;
-                None
-            } else {
-                Some(input)
-            }
+            Some(match input {
+                // Special cases
+                ButtonInput::Menu => {
+                    os().toggle_menu();
+                    return None
+                }
+                ButtonInput::Text => {
+                    os().text_mode = !os().text_mode;
+                    return None
+                }
+                ButtonInput::None => return None,
+
+                // Straight key mappings
+                ButtonInput::Exe => OSInput::Exe,
+                ButtonInput::Shift => OSInput::Shift,
+                ButtonInput::List => OSInput::List,
+
+                ButtonInput::MoveLeft => OSInput::MoveLeft,
+                ButtonInput::MoveRight => OSInput::MoveRight,
+                ButtonInput::MoveUp => OSInput::MoveUp,
+                ButtonInput::MoveDown => OSInput::MoveDown,
+                ButtonInput::Delete => todo!(),
+
+                ButtonInput::Digit0 => OSInput::Digit(0),
+                ButtonInput::Digit1 => OSInput::Digit(1),
+                ButtonInput::Digit2 => OSInput::Digit(2),
+                ButtonInput::Digit3 => OSInput::Digit(3),
+                ButtonInput::Digit4 => OSInput::Digit(4),
+                ButtonInput::Digit5 => OSInput::Digit(5),
+                ButtonInput::Digit6 => OSInput::Digit(6),
+                ButtonInput::Digit7 => OSInput::Digit(7),
+                ButtonInput::Digit8 => OSInput::Digit(8),
+                ButtonInput::Digit9 => OSInput::Digit(9),
+
+                ButtonInput::Point => OSInput::Point,
+                ButtonInput::Parentheses => OSInput::Parentheses,
+                ButtonInput::Add => OSInput::Add,
+                ButtonInput::Subtract => OSInput::Subtract,
+                ButtonInput::Multiply => OSInput::Multiply,
+                ButtonInput::Fraction => OSInput::Fraction,
+                ButtonInput::Power => OSInput::Power,
+            })
         } else {
             None
         }

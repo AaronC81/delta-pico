@@ -2,7 +2,7 @@ use alloc::{format, string::{String, ToString}, vec, vec::{Vec}};
 use rbop::{Number, StructuredNode, Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::{self, unstructured::{MoveResult, UnstructuredNodeRoot, Upgradable}}, render::{Area, CalculatedPoint, Layoutable, Renderer, Viewport}};
 use rust_decimal::{Decimal, prelude::Zero};
 
-use crate::{filesystem::{Calculation, ChunkIndex}, graphics::colour, interface::ButtonInput, operating_system::{OperatingSystemInterface, os}, rbop_impl::{RbopContext}, timer::Timer};
+use crate::{filesystem::{Calculation, ChunkIndex}, graphics::colour, interface::ButtonInput, operating_system::{OSInput, OperatingSystemInterface, os}, rbop_impl::{RbopContext}, timer::Timer};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -300,7 +300,7 @@ impl Application for CalculatorApplication {
 
         // Poll for input
         if let Some(input) = framework().buttons.wait_press() {
-            if input == ButtonInput::Exe {
+            if input == OSInput::Exe {
                 // Save whatever we're editing
                 self.save_current();
 
@@ -317,7 +317,7 @@ impl Application for CalculatorApplication {
 
                 // Clear the sprite cache
                 self.clear_sprite_cache();
-            } else if input == ButtonInput::List {
+            } else if input == OSInput::List {
                 match os().ui_open_menu(&["Toggle timing stats".into(), "Clear history".into()], true) {
                     Some(0) => self.show_timing = !self.show_timing,
                     Some(1) => {

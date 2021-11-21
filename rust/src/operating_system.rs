@@ -189,19 +189,19 @@ impl<'a> OperatingSystemInterface<'a> {
 
             if let Some(btn) = framework().buttons.wait_press() {
                 match btn {
-                    ButtonInput::MoveUp => {
+                    OSInput::MoveUp => {
                         if selected_index == 0 {
                             selected_index = items.len() - 1;
                         } else {
                             selected_index -= 1;
                         }
                     }
-                    ButtonInput::MoveDown => {
+                    OSInput::MoveDown => {
                         selected_index += 1;
                         selected_index %= items.len();
                     }
-                    ButtonInput::Exe => return Some(selected_index),
-                    ButtonInput::List if can_close => return None,
+                    OSInput::Exe => return Some(selected_index),
+                    OSInput::List if can_close => return None,
                     _ => (),
                 }
             }
@@ -269,7 +269,7 @@ impl<'a> OperatingSystemInterface<'a> {
 
             // Poll for input
             if let Some(input) = framework().buttons.wait_press() {
-                if ButtonInput::Exe == input {
+                if OSInput::Exe == input {
                     return rbop_ctx.root;
                 } else {
                     rbop_ctx.input(input);
@@ -344,10 +344,34 @@ impl<'a> OperatingSystemInterface<'a> {
         // Poll for input
         loop {
             if let Some(input) = framework().buttons.wait_press() {
-                if ButtonInput::Exe == input {
+                if OSInput::Exe == input {
                     break;
                 }
             }
         }
     }
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub enum OSInput {
+    Exe,
+    Shift,
+    List,
+
+    MoveLeft,
+    MoveRight,
+    MoveUp,
+    MoveDown,
+    Delete,
+
+    Digit(u8),
+
+    Point,
+    Parentheses,
+
+    Add,
+    Subtract,
+    Multiply,
+    Fraction,
+    Power,
 }

@@ -2,7 +2,7 @@ use alloc::{format, string::{String, ToString}, vec};
 use rbop::{UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 use rust_decimal::prelude::ToPrimitive;
 
-use crate::{interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}};
+use crate::{interface::ButtonInput, operating_system::{OSInput, os}, rbop_impl::{RbopContext}};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 use crate::graphics::colour;
@@ -59,8 +59,7 @@ impl Application for MultiTapApplication {
         (framework().display.draw)();
 
         if let Some(input) = framework().buttons.wait_press() {
-            let digit = input.as_digit();
-            if let Some(digit) = digit {
+            if let OSInput::Digit(digit) = input {
                 // If it's been more than the threshold time since a key was pressed, discard the
                 // information about the previous keypress and start a new character
                 let now_ms = (framework().millis)();
@@ -109,7 +108,7 @@ impl Application for MultiTapApplication {
 
                 // Insert new character
                 self.text.push(self.current_list.unwrap()[0]);
-            } else if input == ButtonInput::Delete {
+            } else if input == OSInput::Delete {
                 if self.text.len() > 0 {
                     self.text.remove(self.text.len() - 1);
                 }

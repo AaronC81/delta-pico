@@ -21,7 +21,7 @@ mod timer;
 use interface::framework;
 use operating_system::os;
 
-use crate::interface::ButtonInput;
+use crate::{interface::ButtonInput, operating_system::OSInput};
 
 #[global_allocator]
 static ALLOCATOR: CAllocator = CAllocator;
@@ -35,7 +35,7 @@ fn panic(info: &PanicInfo) -> ! {
     (framework().panic_handler)(message_bytes.as_ptr());
 
     loop {
-        if let Some(ButtonInput::Exe) = framework().buttons.wait_press() {
+        if let Some(OSInput::Exe) = framework().buttons.wait_press() {
             os().reboot_into_bootloader();
         }
     }

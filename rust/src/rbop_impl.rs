@@ -1,6 +1,6 @@
 use alloc::{format, vec};
 use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{UnstructuredNodeRoot, MoveResult}, render::{Area, CalculatedPoint, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility}};
-use crate::{debug, graphics::colour, interface::{ApplicationFrameworkInterface, ButtonInput, framework}, operating_system::os};
+use crate::{debug, graphics::colour, interface::{ApplicationFrameworkInterface, ButtonInput, framework}, operating_system::{OSInput, os}};
 
 use core::cmp::max;
 
@@ -22,84 +22,69 @@ impl RbopContext {
         }
     }
 
-    pub fn input(&mut self, input: ButtonInput) -> Option<(MoveVerticalDirection, MoveResult)> {
+    pub fn input(&mut self, input: OSInput) -> Option<(MoveVerticalDirection, MoveResult)> {
         let renderer = framework();
 
         let node_to_insert = if !self.input_shift {
-            match input {
-                ButtonInput::None => None,
-        
-                ButtonInput::MoveLeft => {
+            match input {        
+                OSInput::MoveLeft => {
                     self.root.move_left(&mut self.nav_path, renderer, self.viewport.as_mut());
                     None
                 }
-                ButtonInput::MoveRight => {
+                OSInput::MoveRight => {
                     self.root.move_right(&mut self.nav_path, renderer, self.viewport.as_mut());
                     None
                 }
-                ButtonInput::MoveUp => {
+                OSInput::MoveUp => {
                     return Some((
                         MoveVerticalDirection::Up,
                         self.root.move_up(&mut self.nav_path, renderer, self.viewport.as_mut())
                     ));
                 }
-                ButtonInput::MoveDown => {
+                OSInput::MoveDown => {
                     return Some((
                         MoveVerticalDirection::Down,
                         self.root.move_down(&mut self.nav_path, renderer, self.viewport.as_mut())
                     ));
                 }
-                ButtonInput::Delete => {
+                OSInput::Delete => {
                     self.root.delete(&mut self.nav_path, renderer, self.viewport.as_mut());
                     None
                 }
         
-                ButtonInput::Digit0 => Some(UnstructuredNode::Token(Token::Digit(0))),
-                ButtonInput::Digit1 => Some(UnstructuredNode::Token(Token::Digit(1))),
-                ButtonInput::Digit2 => Some(UnstructuredNode::Token(Token::Digit(2))),
-                ButtonInput::Digit3 => Some(UnstructuredNode::Token(Token::Digit(3))),
-                ButtonInput::Digit4 => Some(UnstructuredNode::Token(Token::Digit(4))),
-                ButtonInput::Digit5 => Some(UnstructuredNode::Token(Token::Digit(5))),
-                ButtonInput::Digit6 => Some(UnstructuredNode::Token(Token::Digit(6))),
-                ButtonInput::Digit7 => Some(UnstructuredNode::Token(Token::Digit(7))),
-                ButtonInput::Digit8 => Some(UnstructuredNode::Token(Token::Digit(8))),
-                ButtonInput::Digit9 => Some(UnstructuredNode::Token(Token::Digit(9))),
+                OSInput::Digit(d) => Some(UnstructuredNode::Token(Token::Digit(d))),
         
-                ButtonInput::Point => Some(UnstructuredNode::Token(Token::Point)),
-                ButtonInput::Parentheses => Some(UnstructuredNode::Parentheses(
+                OSInput::Point => Some(UnstructuredNode::Token(Token::Point)),
+                OSInput::Parentheses => Some(UnstructuredNode::Parentheses(
                     UnstructuredNodeList { items: vec![] },
                 )),
         
-                ButtonInput::Add => Some(UnstructuredNode::Token(Token::Add)),
-                ButtonInput::Subtract => Some(UnstructuredNode::Token(Token::Subtract)),
-                ButtonInput::Multiply => Some(UnstructuredNode::Token(Token::Multiply)),
-                ButtonInput::Fraction => Some(UnstructuredNode::Fraction(
+                OSInput::Add => Some(UnstructuredNode::Token(Token::Add)),
+                OSInput::Subtract => Some(UnstructuredNode::Token(Token::Subtract)),
+                OSInput::Multiply => Some(UnstructuredNode::Token(Token::Multiply)),
+                OSInput::Fraction => Some(UnstructuredNode::Fraction(
                     UnstructuredNodeList { items: vec![] },
                     UnstructuredNodeList { items: vec![] },
                 )),
-                ButtonInput::Power => Some(UnstructuredNode::Power(
+                OSInput::Power => Some(UnstructuredNode::Power(
                     UnstructuredNodeList { items: vec![] },
                 )),
 
-                ButtonInput::Exe => return None,
-                ButtonInput::List => return None,
-                ButtonInput::Shift => {
+                OSInput::Exe => return None,
+                OSInput::List => return None,
+                OSInput::Shift => {
                     self.input_shift = true;
                     None
                 }
-
-                // Handled higher up
-                ButtonInput::Menu => panic!("Unhandled MENU keypress"),
-                ButtonInput::Text => panic!("Unhandled TEXT keypress"),
             }
         } else {
             let mut input_pressed = true;
             let node = match input {
-                ButtonInput::Shift => {
+                OSInput::Shift => {
                     self.input_shift = false;
                     None
                 }
-                ButtonInput::Digit0 => Some(UnstructuredNode::Token(Token::Variable('x'))),
+                OSInput::Digit(0) => Some(UnstructuredNode::Token(Token::Variable('x'))),
 
                 _ => {
                     input_pressed = false;

@@ -1,6 +1,6 @@
 use alloc::{format, vec::Vec, vec};
 
-use crate::{graphics::colour, interface::{self, ButtonInput, framework}};
+use crate::{graphics::colour, interface::{self, ButtonInput, framework}, operating_system::OSInput};
 
 use super::{Application, ApplicationInfo};
 
@@ -11,7 +11,7 @@ pub struct RealTimeState<T: Clone> {
     pub time_scheduled_events: Vec<(u32, T)>,
 
     /// Events to run when a button is pressed.
-    pub key_events: Vec<(ButtonInput, T)>,
+    pub key_events: Vec<(OSInput, T)>,
 }
 
 impl<T: Clone> RealTimeState<T> {
@@ -70,7 +70,7 @@ pub trait RealTimeApplication {
     /// permanent and will fire for every press - that is, it isn't removed after the key is pressed
     /// once. If you do need to remove this handler for some reason, you can find the corresponding
     /// entry in the `key_events` field on the implementor's `RealTimeState` and delete it.
-    fn on_input(&mut self, key: ButtonInput, event: Self::RealTimeEvent) -> &mut Self {
+    fn on_input(&mut self, key: OSInput, event: Self::RealTimeEvent) -> &mut Self {
         self.get_real_time_state_mut().key_events.push((key, event));
         self
     }
@@ -158,7 +158,7 @@ impl RealTimeApplication for RealTimeTestApplication {
         new
             .schedule(0, RealTimeTestApplicationEvent::Start)
             .schedule(1000, RealTimeTestApplicationEvent::Second)
-            .on_input(ButtonInput::Exe, RealTimeTestApplicationEvent::Exe);
+            .on_input(OSInput::Exe, RealTimeTestApplicationEvent::Exe);
 
         new
     }

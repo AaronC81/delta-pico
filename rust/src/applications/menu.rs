@@ -1,7 +1,7 @@
 use alloc::{format, string::{String, ToString}, vec};
 use rbop::{UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 
-use crate::{interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}};
+use crate::{interface::ButtonInput, operating_system::{OSInput, os}, rbop_impl::{RbopContext}};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -67,7 +67,7 @@ impl Application for MenuApplication {
 
         if let Some(btn) = framework().buttons.wait_press() {
             match btn {
-                ButtonInput::MoveUp => {
+                OSInput::MoveUp => {
                     if self.selected_index == 0 {
                         // Wrap
                         self.selected_index = os().application_list.applications.len() - 1;
@@ -81,7 +81,7 @@ impl Application for MenuApplication {
                         }
                     }
                 }
-                ButtonInput::MoveDown => {
+                OSInput::MoveDown => {
                     self.selected_index += 1;
 
                     // Wrap
@@ -95,7 +95,7 @@ impl Application for MenuApplication {
                         self.page_scroll_offset += 1;
                     }
                 }
-                ButtonInput::Exe => os().launch_application(self.selected_index),
+                OSInput::Exe => os().launch_application(self.selected_index),
                 _ => (),
             }
         }

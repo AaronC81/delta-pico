@@ -5,7 +5,7 @@ use rbop::{UnstructuredNodeList, nav::NavPath, node::unstructured::{Unstructured
 use rust_decimal::prelude::ToPrimitive;
 use rand::{self, SeedableRng, Rng};
 
-use crate::{graphics, interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}};
+use crate::{graphics, interface::ButtonInput, operating_system::{OSInput, os}, rbop_impl::{RbopContext}};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 use crate::graphics::colour;
@@ -92,16 +92,16 @@ impl Application for NumbersGame {
         (framework().display.draw)();
 
         if let Some(input) = framework().buttons.wait_press() {
-            if input == ButtonInput::Exe {
+            if input == OSInput::Exe {
                 os().restart_application();
             }
 
             if !self.game_over {
                 match input {
-                    ButtonInput::MoveDown => self.take_turn(Direction::Down),
-                    ButtonInput::MoveUp => self.take_turn(Direction::Up),
-                    ButtonInput::MoveLeft => self.take_turn(Direction::Left),
-                    ButtonInput::MoveRight => self.take_turn(Direction::Right),
+                    OSInput::MoveDown => self.take_turn(Direction::Down),
+                    OSInput::MoveUp => self.take_turn(Direction::Up),
+                    OSInput::MoveLeft => self.take_turn(Direction::Left),
+                    OSInput::MoveRight => self.take_turn(Direction::Right),
                     _ => (),
                 }
             }

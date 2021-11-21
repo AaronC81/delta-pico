@@ -3,7 +3,7 @@ use core::cell::RefCell;
 use alloc::{format, rc::Rc, vec::Vec, vec};
 use rand::{Rng, SeedableRng};
 
-use crate::{graphics::colour, interface::{ButtonEvent, ButtonInput, framework}};
+use crate::{graphics::colour, interface::{ButtonEvent, ButtonInput, framework}, operating_system::OSInput};
 
 use super::{ApplicationInfo, real_time::{RealTimeApplication, RealTimeResult, RealTimeState}};
 
@@ -154,9 +154,9 @@ impl RealTimeApplication for TetrisApplication {
         };
 
         new
-            .on_input(ButtonInput::MoveLeft, TetrisEvent::Left)
-            .on_input(ButtonInput::MoveRight, TetrisEvent::Right)
-            .on_input(ButtonInput::MoveDown, TetrisEvent::Slam)
+            .on_input(OSInput::MoveLeft, TetrisEvent::Left)
+            .on_input(OSInput::MoveRight, TetrisEvent::Right)
+            .on_input(OSInput::MoveDown, TetrisEvent::Slam)
             .schedule(250, TetrisEvent::TickDown);
 
         new
