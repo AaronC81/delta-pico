@@ -13,7 +13,10 @@ pub struct T9Application {
     current_list: Option<&'static [char]>,
     current_index: Option<usize>,
     current_digit: Option<u8>,
+    last_press_ms: u32,
 }
+
+const PRESS_COOLDOWN_MS: u32 = 750;
 
 // These aren't in the same order as a phone T9 keypad, because our keys are the other way around
 //     Phone         Delta Pico
@@ -44,6 +47,7 @@ impl Application for T9Application {
         current_index: None,
         current_list: None,
         current_digit: None,
+        last_press_ms: 0,
     } }
 
     fn tick(&mut self) {
@@ -57,8 +61,17 @@ impl Application for T9Application {
         if let Some(input) = framework().buttons.wait_press() {
             let digit = input.as_digit();
             if let Some(digit) = digit {
+                // If it's been more than the threshold time since a key was pressed, discard the
+                // information about the previous keypress and start a new character
+                let now_ms = (framework().millis)();
+                if now_ms - self.last_press_ms > PRESS_COOLDOWN_MS {
+                    self.current_list = None;
+                    self.current_digit = None;
+                    self.current_index = None;
+                }
+                self.last_press_ms = now_ms;
+
                 // Did the user press the same digit again?
-                // TODO time delay to time this out into None again
                 if let Some(current_digit) = &mut self.current_digit {
                     if digit == *current_digit {
                         // Increment current list index, wrapping if necessary
