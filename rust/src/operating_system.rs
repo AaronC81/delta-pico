@@ -1,8 +1,8 @@
-use alloc::{boxed::Box, format, string::String, vec};
-use rbop::{Number, UnstructuredNode, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
+use alloc::{boxed::Box, format, string::String};
+use rbop::{Number, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 use core::{cmp::max, mem};
 
-use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, filesystem::{CalculationHistory, ChunkTable, Filesystem}, interface::{ButtonInput, Colour, ShapeFill, framework}, multi_tap::MultiTapState, rbop_impl::RbopContext};
+use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, filesystem::{CalculationHistory, ChunkTable, Filesystem}, interface::{Colour, ShapeFill, framework}, multi_tap::MultiTapState, rbop_impl::RbopContext};
 
 static mut OPERATING_SYSTEM_INTERFACE: Option<OperatingSystemInterface> = None;
 pub fn os() -> &'static mut OperatingSystemInterface<'static> {
@@ -127,9 +127,9 @@ impl<'a> OperatingSystemInterface<'a> {
     }
 
     /// Draws a title bar to the top of the screen, with the text `s`.
-    pub fn ui_draw_title(&mut self, s: impl Into<String>) {
+    pub fn ui_draw_title(&mut self, _s: impl Into<String>) {
         let now_millis = (framework().millis)();
-        let millis_elapsed = now_millis - self.last_title_millis;
+        let _millis_elapsed = now_millis - self.last_title_millis;
         self.last_title_millis = now_millis;
 
         framework().display.draw_rect(

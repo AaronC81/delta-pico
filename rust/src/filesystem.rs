@@ -1,9 +1,9 @@
 use core::convert::TryInto;
 
-use alloc::{format, vec, vec::Vec};
+use alloc::{vec, vec::Vec};
 use rbop::{Number, UnstructuredNodeList, node::unstructured::{UnstructuredNodeRoot, Serializable}};
 
-use crate::{interface::StorageInterface, operating_system::os};
+use crate::{interface::StorageInterface};
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub struct ChunkAddress(pub u16);
@@ -52,6 +52,7 @@ impl<'a> ChunkTable<'a> {
     fn chunk_state_address(&self) -> u16 { self.chunk_heap_address() + self.chunk_heap_length() }
     fn chunk_state_length(&self) -> u16 { self.chunks / 8 }
     
+    #[allow(dead_code)]
     fn total_length(&self) -> u16 { self.chunk_map_length() + self.chunk_heap_length() + self.chunk_state_length() }
     
     /// Given a chunk address, returns the absolute address into the storage device where this

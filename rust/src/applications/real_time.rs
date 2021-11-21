@@ -1,7 +1,6 @@
 use alloc::{format, vec::Vec, vec};
 
-use crate::{interface::{self, ButtonInput, Colour, framework}, operating_system::OSInput};
-
+use crate::{interface::{Colour, framework}, operating_system::OSInput};
 use super::{Application, ApplicationInfo};
 
 #[derive(Debug, Clone)]

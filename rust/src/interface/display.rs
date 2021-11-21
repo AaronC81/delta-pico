@@ -134,11 +134,6 @@ impl DisplayInterface {
         (x, y)
     }
 
-    /// Sets the cursor position.
-    pub fn set_cursor(&self, x: i64, y: i64) {
-        (self.set_cursor)(x, y)
-    }
-
     /// Commits the current drawing to the screen, showing the user the updated screen.
     pub fn draw(&self) {
         (self.draw)();

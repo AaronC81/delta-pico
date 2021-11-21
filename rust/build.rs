@@ -39,7 +39,6 @@ fn main() {
         .status()
         .unwrap()
         .code().unwrap() != 0;
-    let git_modified = true;
 
     let git_version = format!("{}{}", git_hash.trim(), if git_modified { "-modified" } else { "" });
 

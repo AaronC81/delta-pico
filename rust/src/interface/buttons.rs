@@ -91,6 +91,7 @@ impl ButtonsInterface {
 
 /// All possible user inputs.
 #[repr(C)]
+#[allow(dead_code)] // Variants are used from C++ side
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum ButtonInput {
     None,
@@ -126,22 +127,4 @@ pub enum ButtonInput {
     Multiply,
     Fraction,
     Power,
-}
-
-impl ButtonInput {
-    pub fn as_digit(&self) -> Option<u8> {
-        match self {
-            &Self::Digit0 => Some(0),
-            &Self::Digit1 => Some(1),
-            &Self::Digit2 => Some(2),
-            &Self::Digit3 => Some(3),
-            &Self::Digit4 => Some(4),
-            &Self::Digit5 => Some(5),
-            &Self::Digit6 => Some(6),
-            &Self::Digit7 => Some(7),
-            &Self::Digit8 => Some(8),
-            &Self::Digit9 => Some(9),
-            _ => None,
-        }
-    }
 }

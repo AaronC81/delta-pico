@@ -1,6 +1,6 @@
-use alloc::{format, string::ToString, vec};
-use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{UnstructuredNodeRoot, MoveResult}, render::{Area, CalculatedPoint, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility}};
-use crate::{debug, interface::{ApplicationFrameworkInterface, ButtonInput, Colour, ShapeFill, framework}, operating_system::{OSInput, os}};
+use alloc::{string::ToString, vec};
+use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{UnstructuredNodeRoot, MoveResult}, render::{Area, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility}};
+use crate::{interface::{ApplicationFrameworkInterface, Colour, ShapeFill, framework}, operating_system::{OSInput, os}};
 
 use core::cmp::max;
 
@@ -151,7 +151,7 @@ impl Renderer for ApplicationFrameworkInterface {
         }
     }
 
-    fn init(&mut self, size: Area) {}
+    fn init(&mut self, _size: Area) {}
 
     fn draw(&mut self, glyph: ViewportGlyph) {
         // Apply padding

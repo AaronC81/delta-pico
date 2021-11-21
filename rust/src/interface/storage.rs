@@ -9,8 +9,6 @@ pub struct StorageInterface {
 }
 
 impl StorageInterface {
-    pub const BYTES: usize = 65536;
-
     pub fn read(&self, address: u16, count: u8) -> Option<Vec<u8>> {
         let mut buffer = vec![0; count as usize];
         if (self.read)(address, count, buffer.as_mut_ptr()) {

@@ -1,9 +1,5 @@
-use alloc::{string::{String, ToString}, vec};
-use rbop::{UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
-
-use crate::{interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}};
+use crate::operating_system::os;
 use super::{Application, ApplicationInfo};
-use crate::interface::framework;
 
 pub struct BootloaderApplication {}
 

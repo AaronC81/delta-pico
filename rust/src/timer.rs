@@ -47,16 +47,6 @@ impl Timer {
         self.subtimers.last().unwrap().clone()
     }
 
-    pub fn start_subtimer<'a>(&'a mut self, name: &str) -> Rc<RefCell<Self>> {
-        let subtimer = self.new_subtimer(name);
-        subtimer.borrow_mut().start();
-        subtimer
-    }
-
-    pub fn add_subtimer(&mut self, timer: Timer) {
-        self.subtimers.push(Rc::new(RefCell::new(timer)));
-    }
-
     fn fmt_with_indent_level(&self, f: &mut core::fmt::Formatter<'_>, indent: usize) -> core::fmt::Result {
         let indent_s = "  ".repeat(indent);
         f.write_fmt(format_args!("{}{}: {}\n", indent_s, &self.name, self.elapsed))?;

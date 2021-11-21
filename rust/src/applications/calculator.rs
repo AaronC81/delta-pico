@@ -1,8 +1,8 @@
-use alloc::{format, string::{String, ToString}, vec, vec::{Vec}};
-use rbop::{Number, StructuredNode, Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::{self, unstructured::{MoveResult, UnstructuredNodeRoot, Upgradable}}, render::{Area, CalculatedPoint, Layoutable, Renderer, Viewport}};
+use alloc::{format, vec, vec::Vec};
+use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport}};
 use rust_decimal::{Decimal, prelude::Zero};
 
-use crate::{filesystem::{Calculation, ChunkIndex}, interface::{ButtonInput, Colour, Sprite}, operating_system::{OSInput, OperatingSystemInterface, os}, rbop_impl::{RbopContext}, timer::Timer};
+use crate::{filesystem::{Calculation, ChunkIndex}, interface::{Colour, Sprite}, operating_system::{OSInput, OperatingSystemInterface, os}, rbop_impl::RbopContext, timer::Timer};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -110,7 +110,7 @@ impl Application for CalculatorApplication {
         // Clear screen
         framework().display.fill_screen(Colour::BLACK);
 
-        let result_string_height = framework().display.string_size("A").1;
+        let _result_string_height = framework().display.string_size("A").1;
 
         let mut top_level_timer = Timer::new("Tick");
         top_level_timer.start();

@@ -1,10 +1,8 @@
 use core::cell::RefCell;
-
-use alloc::{format, rc::Rc, vec::Vec, vec};
+use alloc::{rc::Rc, vec::Vec, vec};
 use rand::{Rng, SeedableRng};
 
-use crate::{interface::{ButtonEvent, ButtonInput, Colour, ShapeFill, framework}, operating_system::OSInput};
-
+use crate::{interface::{Colour, ShapeFill, framework}, operating_system::OSInput};
 use super::{ApplicationInfo, real_time::{RealTimeApplication, RealTimeResult, RealTimeState}};
 
 const PLAYFIELD_WIDTH: usize = 10;

@@ -6,8 +6,7 @@ extern crate alloc;
 mod c_allocator;
 
 use core::panic::PanicInfo;
-use alloc::{format, string::{String}, vec::Vec};
-use applications::{Application, ApplicationList};
+use alloc::{format, string::String, vec::Vec};
 use c_allocator::CAllocator;
 
 mod interface;
@@ -21,7 +20,7 @@ mod multi_tap;
 use interface::framework;
 use operating_system::os;
 
-use crate::{interface::ButtonInput, operating_system::OSInput};
+use crate::{operating_system::OSInput};
 
 #[global_allocator]
 static ALLOCATOR: CAllocator = CAllocator;

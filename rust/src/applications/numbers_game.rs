@@ -1,11 +1,8 @@
 use core::cell::RefCell;
-
-use alloc::{boxed::Box, format, rc::Rc, string::{String, ToString}, vec::Vec, vec};
-use rbop::{UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
-use rust_decimal::prelude::ToPrimitive;
+use alloc::{format, rc::Rc, string::ToString, vec::Vec, vec};
 use rand::{self, SeedableRng, Rng};
 
-use crate::{interface::{ButtonInput, Colour, ShapeFill}, operating_system::{OSInput, os}, rbop_impl::{RbopContext}};
+use crate::{interface::{Colour, ShapeFill}, operating_system::{OSInput, os}};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -302,7 +299,7 @@ impl NumbersGame {
             }
 
             // FOUR items
-            (a@Filled(an), b@Filled(bn), c@Filled(cn), d@Filled(dn)) => {
+            (_a@Filled(an), _b@Filled(bn), c@Filled(cn), d@Filled(dn)) => {
                 // It is allowed for one of these cases to be true, and checked in this order:
                 // - A and B are mergable, and C and D are mergable
                 // - A and B are mergable
