@@ -153,7 +153,8 @@ impl<'a> OperatingSystemInterface<'a> {
 
         // Draw text indicator
         if os().text_mode {
-            framework().display.print_at(180, 6, "t");
+            (framework().display.draw_rect)(152, 4, 42, 24, colour::WHITE, false, 5);
+            framework().display.print_at(155, 6, "text");
         }
     }
 
