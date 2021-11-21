@@ -184,7 +184,7 @@ impl ButtonsInterface {
                 ButtonInput::MoveRight => OSInput::MoveRight,
                 ButtonInput::MoveUp => OSInput::MoveUp,
                 ButtonInput::MoveDown => OSInput::MoveDown,
-                ButtonInput::Delete => todo!(),
+                ButtonInput::Delete => OSInput::Delete,
 
                 ButtonInput::Digit0 => OSInput::Digit(0),
                 ButtonInput::Digit1 => OSInput::Digit(1),
