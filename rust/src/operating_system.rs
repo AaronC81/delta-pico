@@ -153,8 +153,12 @@ impl<'a> OperatingSystemInterface<'a> {
 
         // Draw text indicator
         if os().text_mode {
-            (framework().display.draw_rect)(152, 4, 42, 24, colour::WHITE, false, 5);
-            framework().display.print_at(155, 6, "text");
+            (framework().display.draw_rect)(145, 4, 50, 24, colour::WHITE, false, 5);
+            if os().multi_tap.shift {
+                framework().display.print_at(149, 6, "TEXT");
+            } else {
+                framework().display.print_at(153, 6, "text");
+            }
         }
     }
 

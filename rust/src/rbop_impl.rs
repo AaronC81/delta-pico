@@ -79,7 +79,12 @@ impl RbopContext {
                 OSInput::Exe => return None,
                 OSInput::List => return None,
                 OSInput::Shift => {
-                    self.input_shift = true;
+                    // TODO: should there just be one shift?
+                    if os().text_mode {
+                        os().multi_tap.shift = true;
+                    } else {
+                        self.input_shift = true;
+                    }
                     None
                 }
             }

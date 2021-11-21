@@ -4,7 +4,9 @@ pub struct MultiTapState {
     current_list: Option<&'static [char]>,
     current_index: Option<usize>,
     current_digit: Option<u8>,
+    current_shifted: bool,
     last_press_ms: u32,
+    pub shift: bool,
 }
 
 const PRESS_COOLDOWN_MS: u32 = 750;
@@ -29,11 +31,19 @@ impl MultiTapState {
         current_index: None,
         current_list: None,
         current_digit: None,
+        current_shifted: false,
         last_press_ms: 0,
+        shift: false,
     } }
 
     pub fn input(&mut self, input: OSInput) -> Option<OSInput> {
-        if let OSInput::Digit(digit) = input {
+        // Get whether shift was pressed, then clear shift
+        let shift = self.shift;
+        self.shift = false;
+
+        if input == OSInput::Shift {
+            self.shift = true;
+        } else if let OSInput::Digit(digit) = input {
             // If it's been more than the threshold time since a key was pressed, discard the
             // information about the previous keypress and start a new character
             let now_ms = (framework().millis)();
@@ -51,7 +61,10 @@ impl MultiTapState {
                     );
 
                     // Replace last character in string with new one
-                    let new_char = self.current_list.unwrap()[self.current_index.unwrap()];
+                    let mut new_char = self.current_list.unwrap()[self.current_index.unwrap()];
+                    if self.current_shifted {
+                        new_char = new_char.to_ascii_uppercase();
+                    }
 
                     return Some(OSInput::TextMultiTapCycle(new_char));
                 } 
@@ -76,9 +89,15 @@ impl MultiTapState {
             });
             self.current_index = Some(0);
             self.current_digit = Some(digit);
+            self.current_shifted = shift;
 
             // Insert new character
-            return Some(OSInput::TextMultiTapNew(self.current_list.unwrap()[0]));
+            let mut new_char = self.current_list.unwrap()[0];
+            if shift {
+                new_char = new_char.to_ascii_uppercase();
+            }
+
+            return Some(OSInput::TextMultiTapNew(new_char));
         }
 
         None
@@ -88,5 +107,7 @@ impl MultiTapState {
         self.current_list = None;
         self.current_digit = None;
         self.current_index = None;
+        self.current_shifted = false;
+        self.shift = false;
     }
 }
