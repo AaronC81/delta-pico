@@ -1,6 +1,6 @@
 use alloc::{format, string::ToString, vec};
 use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{UnstructuredNodeRoot, MoveResult}, render::{Area, CalculatedPoint, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility}};
-use crate::{debug, graphics::colour, interface::{ApplicationFrameworkInterface, ButtonInput, framework}, operating_system::{OSInput, os}};
+use crate::{debug, interface::{ApplicationFrameworkInterface, ButtonInput, Colour, ShapeFill, framework}, operating_system::{OSInput, os}};
 
 use core::cmp::max;
 
@@ -189,45 +189,45 @@ impl Renderer for ApplicationFrameworkInterface {
         let point = glyph.point;
 
         match glyph.glyph.glyph {
-            Glyph::Digit { number } => (self.display.draw_char)(point.x, point.y, number + ('0' as u8)),
-            Glyph::Point => (self.display.draw_char)(point.x, point.y, '.' as u8),
-            Glyph::Variable { name } => (self.display.draw_char)(point.x, point.y, name as u8),
-            Glyph::Add => (self.display.draw_char)(point.x, point.y, '+' as u8),
-            Glyph::Subtract => (self.display.draw_char)(point.x, point.y, '-' as u8),
-            Glyph::Multiply => (self.display.draw_char)(point.x, point.y, '*' as u8),
-            Glyph::Divide => (self.display.draw_char)(point.x, point.y, '/' as u8),
+            Glyph::Digit { number } => self.display.draw_char(point.x, point.y, (number + '0' as u8) as char),
+            Glyph::Point => self.display.draw_char(point.x, point.y, '.'),
+            Glyph::Variable { name } => self.display.draw_char(point.x, point.y, name),
+            Glyph::Add => self.display.draw_char(point.x, point.y, '+'),
+            Glyph::Subtract => self.display.draw_char(point.x, point.y, '-'),
+            Glyph::Multiply => self.display.draw_char(point.x, point.y, '*'),
+            Glyph::Divide => self.display.draw_char(point.x, point.y, '/'),
             
             Glyph::Fraction { inner_width } =>
-            (self.display.draw_line)(point.x, point.y, point.x + inner_width as i64, point.y, 0xFFFF),
+                self.display.draw_line(point.x, point.y, point.x + inner_width as i64, point.y, Colour::WHITE),
             
             Glyph::Cursor { height } =>
-                (self.display.draw_line)(point.x, point.y, point.x, point.y + height as i64, 0xFFFF),
+                self.display.draw_line(point.x, point.y, point.x, point.y + height as i64, Colour::WHITE),
 
-            Glyph::Placeholder => (self.display.draw_rect)(
-                point.x + 4, point.y + 5, 6, 6, colour::GREY, true, 0
+            Glyph::Placeholder => self.display.draw_rect(
+                point.x + 4, point.y + 5, 6, 6, Colour::GREY, ShapeFill::Filled, 0
             ),
 
             Glyph::LeftParenthesis { inner_height } => {
                 let inner_height = max(MINIMUM_PAREN_HEIGHT, inner_height) as i64;
                 
-                (self.display.draw_line)(point.x + 3, point.y, point.x + 3, point.y + 1, 0xFFFF);
-                (self.display.draw_line)(point.x + 2, point.y + 2, point.x + 2, point.y + 6, 0xFFFF);
+                self.display.draw_line(point.x + 3, point.y, point.x + 3, point.y + 1, Colour::WHITE);
+                self.display.draw_line(point.x + 2, point.y + 2, point.x + 2, point.y + 6, Colour::WHITE);
 
-                (self.display.draw_line)(point.x + 1, point.y + 7, point.x + 1, point.y + inner_height - 8, 0xFFFF);
+                self.display.draw_line(point.x + 1, point.y + 7, point.x + 1, point.y + inner_height - 8, Colour::WHITE);
 
-                (self.display.draw_line)(point.x + 3, point.y + inner_height - 2, point.x + 3, point.y + inner_height - 1, 0xFFFF);
-                (self.display.draw_line)(point.x + 2, point.y + inner_height - 7, point.x + 2, point.y + inner_height - 3, 0xFFFF);
+                self.display.draw_line(point.x + 3, point.y + inner_height - 2, point.x + 3, point.y + inner_height - 1, Colour::WHITE);
+                self.display.draw_line(point.x + 2, point.y + inner_height - 7, point.x + 2, point.y + inner_height - 3, Colour::WHITE);
             }
             Glyph::RightParenthesis { inner_height } => {
                 let inner_height = max(MINIMUM_PAREN_HEIGHT, inner_height) as i64;
                 
-                (self.display.draw_line)(point.x + 1, point.y, point.x + 1, point.y + 1, 0xFFFF);
-                (self.display.draw_line)(point.x + 2, point.y + 2, point.x + 2, point.y + 6, 0xFFFF);
+                self.display.draw_line(point.x + 1, point.y, point.x + 1, point.y + 1, Colour::WHITE);
+                self.display.draw_line(point.x + 2, point.y + 2, point.x + 2, point.y + 6, Colour::WHITE);
 
-                (self.display.draw_line)(point.x + 3, point.y + 7, point.x + 3, point.y + inner_height - 8, 0xFFFF);
+                self.display.draw_line(point.x + 3, point.y + 7, point.x + 3, point.y + inner_height - 8, Colour::WHITE);
 
-                (self.display.draw_line)(point.x + 1, point.y + inner_height - 2, point.x + 1, point.y + inner_height - 1, 0xFFFF);
-                (self.display.draw_line)(point.x + 2, point.y + inner_height - 7, point.x + 2, point.y + inner_height - 3, 0xFFFF);
+                self.display.draw_line(point.x + 1, point.y + inner_height - 2, point.x + 1, point.y + inner_height - 1, Colour::WHITE);
+                self.display.draw_line(point.x + 2, point.y + inner_height - 7, point.x + 2, point.y + inner_height - 3, Colour::WHITE);
             }
 
             Glyph::Sqrt { .. } => unimplemented!(),

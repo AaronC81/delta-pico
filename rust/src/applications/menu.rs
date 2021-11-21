@@ -1,7 +1,7 @@
 use alloc::{format, string::{String, ToString}, vec};
 use rbop::{UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 
-use crate::{interface::ButtonInput, operating_system::{OSInput, os}, rbop_impl::{RbopContext}};
+use crate::{interface::{ButtonInput, Colour, ShapeFill}, operating_system::{OSInput, os}, rbop_impl::{RbopContext}};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -30,7 +30,7 @@ impl Application for MenuApplication {
     }
 
     fn tick(&mut self) {
-        (framework().display.fill_screen)(0);
+        framework().display.fill_screen(Colour::BLACK);
         os().ui_draw_title("Menu");
 
         // Draw items
@@ -39,15 +39,15 @@ impl Application for MenuApplication {
             .skip(self.page_scroll_offset).take(Self::ITEMS_PER_PAGE) {
 
             if i == self.selected_index {
-                (framework().display.draw_rect)(
+                framework().display.draw_rect(
                     5, y, framework().display.width as i64 - 5 * 2 - 8, 54,
-                    crate::graphics::colour::BLUE, true, 7
+                    Colour::BLUE, ShapeFill::Filled, 7
                 );
             }
             (framework().display.set_cursor)(65, y + 18);
             framework().display.print(app.name.clone());
 
-            framework().display.draw_bitmap(7, y + 2, app.icon_name());
+            framework().display.draw_bitmap(7, y + 2, &app.icon_name());
 
             y += 54;
         }
@@ -58,9 +58,9 @@ impl Application for MenuApplication {
         let scroll_indicator_bar_offset = scroll_indicator_bar_height_per_item * self.page_scroll_offset;
         let scroll_indicator_bar_height = scroll_indicator_bar_height_per_item * Self::ITEMS_PER_PAGE;
 
-        (framework().display.draw_rect)(
+        framework().display.draw_rect(
             framework().display.width as i64 - 8, 40 + scroll_indicator_bar_offset as i64,
-            4, scroll_indicator_bar_height as i64, crate::graphics::colour::DARK_BLUE, true, 2
+            4, scroll_indicator_bar_height as i64, Colour::DARK_BLUE, ShapeFill::Filled, 2
         );
 
         (framework().display.draw)();

@@ -2,10 +2,9 @@ use alloc::{format, string::{String, ToString}, vec};
 use rbop::{UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 use rust_decimal::prelude::ToPrimitive;
 
-use crate::{interface::ButtonInput, operating_system::{OSInput, os}, rbop_impl::{RbopContext}};
+use crate::{interface::{ButtonInput, Colour}, operating_system::{OSInput, os}, rbop_impl::{RbopContext}};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
-use crate::graphics::colour;
 
 const SHOW_BYTES: u16 = 64;
 
@@ -26,7 +25,7 @@ impl Application for StorageApplication {
     } }
 
     fn tick(&mut self) {
-        (framework().display.fill_screen)(colour::BLACK);
+        framework().display.fill_screen(Colour::BLACK);
 
         os().ui_draw_title("Storage");
 

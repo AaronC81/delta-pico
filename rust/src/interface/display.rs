@@ -2,6 +2,27 @@ use core::fmt::Debug;
 
 use alloc::{string::{String, ToString}, vec, vec::Vec};
 
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub struct Sprite(*mut u8);
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub struct Colour(pub u16);
+
+impl Colour {
+    pub const WHITE: Self = Self(0xFFFF);
+    pub const BLACK: Self = Self(0x0000);
+    pub const ORANGE: Self = Self(0xD340);
+    pub const BLUE: Self = Self(0x0392);
+    pub const DARK_BLUE: Self = Self(0x024B);
+    pub const GREY: Self = Self(0x31A6);
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum ShapeFill {
+    Filled,
+    Hollow,
+}
+
 #[repr(C)]
 pub struct DisplayInterface {
     pub width: u64,
@@ -12,12 +33,12 @@ pub struct DisplayInterface {
     switch_to_sprite: extern "C" fn(*mut u8),
     switch_to_screen: extern "C" fn(),
 
-    pub fill_screen: extern "C" fn(c: u16),
-    pub draw_char: extern "C" fn(x: i64, y: i64, character: u8),
-    pub draw_line: extern "C" fn(x1: i64, y1: i64, x2: i64, y2: i64, c: u16),
-    pub draw_rect: extern "C" fn(x1: i64, y1: i64, w: i64, h: i64, c: u16, fill: bool, radius: u16),
+    fill_screen: extern "C" fn(c: u16),
+    draw_char: extern "C" fn(x: i64, y: i64, character: u8),
+    draw_line: extern "C" fn(x1: i64, y1: i64, x2: i64, y2: i64, c: u16),
+    draw_rect: extern "C" fn(x1: i64, y1: i64, w: i64, h: i64, c: u16, fill: bool, radius: u16),
     draw_sprite: extern "C" fn(x: i64, y: i64, sprite: *mut u8),
-    pub draw_bitmap: extern "C" fn(x: i64, y: i64, name: *const u8),
+    draw_bitmap: extern "C" fn(x: i64, y: i64, name: *const u8),
 
     pub print: extern "C" fn(s: *const u8),
     pub set_cursor: extern "C" fn(x: i64, y: i64),
@@ -25,9 +46,6 @@ pub struct DisplayInterface {
 
     pub draw: extern "C" fn(),
 }
-
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
- pub struct Sprite(*mut u8);
 
 impl DisplayInterface {
     /// Creates a new sprite with a given size and returns it. The sprite must be freed manually
@@ -51,6 +69,38 @@ impl DisplayInterface {
     /// needs to be called if you have switched to a sprite using `switch_to_sprite`.
     pub fn switch_to_screen(&self) {
         (self.switch_to_screen)()
+    }
+
+    /// Fills the screen with a colour.
+    pub fn fill_screen(&self, colour: Colour) {
+        (self.fill_screen)(colour.0)
+    }
+
+    /// Draws a single ASCII character to the screen.
+    pub fn draw_char(&self, x: i64, y: i64, char: char) {
+        (self.draw_char)(x, y, char as u8);
+    }
+
+    /// Draws a line to the screen.
+    pub fn draw_line(&self, x1: i64, y1: i64, x2: i64, y2: i64, colour: Colour) {
+        (self.draw_line)(x1, y1, x2, y2, colour.0);
+    }
+
+    /// Draws a rectangle to the screen.
+    pub fn draw_rect(&self, x: i64, y: i64, width: i64, height: i64, colour: Colour, fill: ShapeFill, radius: u16) {
+        (self.draw_rect)(x, y, width, height, colour.0, fill == ShapeFill::Filled, radius)
+    }
+
+    /// Draws a bitmap to the screen, by the bitmap's name.
+    pub fn draw_bitmap(&self, x: i64, y: i64, name: &str) {
+        let mut bytes = name.as_bytes().to_vec();
+        bytes.push(0);
+        (self.draw_bitmap)(x, y, bytes.as_ptr());
+    }
+
+    /// Draws a sprite to the screen.
+    pub fn draw_sprite(&self, x: i64, y: i64, sprite: &Sprite) {
+        (self.draw_sprite)(x, y, sprite.0);
     }
 
     pub fn print(&self, s: impl Into<String>) {
@@ -117,16 +167,6 @@ impl DisplayInterface {
 
         // Factor in width of last line into height
         (lines, char_height, y + char_height)
-    }
-
-    pub fn draw_bitmap(&self, x: i64, y: i64, s: impl Into<String>) {
-        let mut bytes = s.into().as_bytes().to_vec();
-        bytes.push(0);
-        (self.draw_bitmap)(x, y, bytes.as_ptr());
-    }
-
-    pub fn draw_sprite(&self, x: i64, y: i64, sprite: &Sprite) {
-        (self.draw_sprite)(x, y, sprite.0);
     }
 }
 

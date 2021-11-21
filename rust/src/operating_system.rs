@@ -2,7 +2,7 @@ use alloc::{boxed::Box, format, string::String, vec};
 use rbop::{Number, UnstructuredNode, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 use core::{cmp::max, mem};
 
-use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, filesystem::{CalculationHistory, ChunkTable, Filesystem}, graphics::colour, interface::{ButtonInput, framework}, multi_tap::MultiTapState, rbop_impl::RbopContext};
+use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, filesystem::{CalculationHistory, ChunkTable, Filesystem}, interface::{ButtonInput, Colour, ShapeFill, framework}, multi_tap::MultiTapState, rbop_impl::RbopContext};
 
 static mut OPERATING_SYSTEM_INTERFACE: Option<OperatingSystemInterface> = None;
 pub fn os() -> &'static mut OperatingSystemInterface<'static> {
@@ -132,9 +132,9 @@ impl<'a> OperatingSystemInterface<'a> {
         let millis_elapsed = now_millis - self.last_title_millis;
         self.last_title_millis = now_millis;
 
-        (framework().display.draw_rect)(
+        framework().display.draw_rect(
             0, 0, framework().display.width as i64, Self::TITLE_BAR_HEIGHT,
-            crate::graphics::colour::ORANGE, true, 0
+            Colour::ORANGE, ShapeFill::Filled, 0
         );
         (framework().display.set_cursor)(5, 7);
         // framework().display.print(format!("{} ({} ms)", s.into(), millis_elapsed));
@@ -149,11 +149,11 @@ impl<'a> OperatingSystemInterface<'a> {
         // Draw charge indicator
         let charge_status = (framework().charge_status)();
         let charge_bitmap = if charge_status == -1 { "power_usb".into() } else { format!("battery_{}", charge_status) };
-        framework().display.draw_bitmap(200, 6, charge_bitmap);
+        framework().display.draw_bitmap(200, 6, &charge_bitmap);
 
         // Draw text indicator
         if os().text_mode {
-            (framework().display.draw_rect)(145, 4, 50, 24, colour::WHITE, false, 5);
+            framework().display.draw_rect(145, 4, 50, 24, Colour::WHITE, ShapeFill::Hollow, 5);
             if os().multi_tap.shift {
                 framework().display.print_at(149, 6, "TEXT");
             } else {
@@ -174,16 +174,16 @@ impl<'a> OperatingSystemInterface<'a> {
         loop {
             // Draw background
             let mut y = (framework().display.height as i64 - ITEM_GAP * items.len() as i64 - 10) as i64;
-            (framework().display.draw_rect)(0, y, 240, 400, colour::GREY, true, 10);
-            (framework().display.draw_rect)(0, y, 240, 400, colour::WHITE, false, 10);
+            framework().display.draw_rect(0, y, 240, 400, Colour::GREY, ShapeFill::Filled, 10);
+            framework().display.draw_rect(0, y, 240, 400, Colour::WHITE, ShapeFill::Hollow, 10);
 
             // Draw items
             y += 10;
             for (i, item) in items.iter().enumerate() {
                 if i == selected_index {
-                    (framework().display.draw_rect)(
+                    framework().display.draw_rect(
                         5, y, framework().display.width as i64 - 5 * 2, 25,
-                        crate::graphics::colour::BLUE, true, 7
+                        Colour::BLUE, ShapeFill::Filled, 7
                     );
                 }
                 (framework().display.set_cursor)(10, y as i64 + 4);
@@ -255,8 +255,8 @@ impl<'a> OperatingSystemInterface<'a> {
                 - height
                 - 30
                 - PADDING * 2;
-            (framework().display.draw_rect)(0, y as i64, 240, 400, colour::GREY, true, 10);
-            (framework().display.draw_rect)(0, y as i64, 240, 400, colour::WHITE, false, 10);      
+            framework().display.draw_rect(0, y as i64, 240, 400, Colour::GREY, ShapeFill::Filled, 10);
+            framework().display.draw_rect(0, y as i64, 240, 400, Colour::WHITE, ShapeFill::Hollow, 10);      
             
             // Draw title
             (framework().display.set_cursor)(PADDING as i64, (y + PADDING) as i64);
@@ -329,15 +329,15 @@ impl<'a> OperatingSystemInterface<'a> {
         let (lines, ch, h) = framework().display.wrap_text(s, w - H_INNER_PADDING * 2);
         let y_start = (framework().display.height as i64 - h) / 2;
 
-        (framework().display.draw_rect)(
+        framework().display.draw_rect(
             H_PADDING, y_start,
             w, h + V_PADDING * 2,
-            colour::GREY, true, 10
+            Colour::GREY, ShapeFill::Filled, 10
         );
-        (framework().display.draw_rect)(
+        framework().display.draw_rect(
             H_PADDING, y_start,
             w, h + V_PADDING * 2,
-            colour::WHITE, false, 10
+            Colour::WHITE, ShapeFill::Hollow, 10
         );
         
         for (i, line) in lines.iter().enumerate() {

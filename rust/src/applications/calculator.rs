@@ -2,7 +2,7 @@ use alloc::{format, string::{String, ToString}, vec, vec::{Vec}};
 use rbop::{Number, StructuredNode, Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::{self, unstructured::{MoveResult, UnstructuredNodeRoot, Upgradable}}, render::{Area, CalculatedPoint, Layoutable, Renderer, Viewport}};
 use rust_decimal::{Decimal, prelude::Zero};
 
-use crate::{filesystem::{Calculation, ChunkIndex}, graphics::colour, interface::{ButtonInput, Sprite}, operating_system::{OSInput, OperatingSystemInterface, os}, rbop_impl::{RbopContext}, timer::Timer};
+use crate::{filesystem::{Calculation, ChunkIndex}, interface::{ButtonInput, Colour, Sprite}, operating_system::{OSInput, OperatingSystemInterface, os}, rbop_impl::{RbopContext}, timer::Timer};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -108,7 +108,7 @@ impl Application for CalculatorApplication {
 
     fn tick(&mut self) {
         // Clear screen
-        (framework().display.fill_screen)(colour::BLACK);
+        framework().display.fill_screen(Colour::BLACK);
 
         let result_string_height = framework().display.string_size("A").1;
 
@@ -275,10 +275,10 @@ impl Application for CalculatorApplication {
 
             // Draw a big line, unless this is the last item
             if i != calculation_count - 1 {
-                (framework().display.draw_line)(
+                framework().display.draw_line(
                     0, this_calculation_current_y as i64,
                     framework().display.width as i64, this_calculation_current_y as i64,
-                    colour::WHITE,
+                    Colour::WHITE,
                 )
             }
 
@@ -471,10 +471,10 @@ impl CalculatorApplication {
 
     fn draw_result(&self, y: i64, result: &Option<Number>) {
         // Draw a line
-        (framework().display.draw_line)(
+        framework().display.draw_line(
             PADDING as i64, y + PADDING as i64,
             (framework().display.width - PADDING) as i64, y + PADDING as i64,
-            colour::GREY
+            Colour::GREY
         );
 
         // Is there a result?

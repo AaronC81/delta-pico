@@ -1,10 +1,9 @@
 use alloc::{format, string::{String, ToString}, vec};
 use rbop::{UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 
-use crate::{interface::ButtonInput, operating_system::os, rbop_impl::{RbopContext}};
+use crate::{interface::{ButtonInput, Colour}, operating_system::os, rbop_impl::{RbopContext}};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
-use crate::graphics::colour;
 
 pub struct AboutApplication {}
 
@@ -19,7 +18,7 @@ impl Application for AboutApplication {
     fn new() -> Self where Self: Sized { Self {} }
 
     fn tick(&mut self) {
-        (framework().display.fill_screen)(colour::BLACK);
+        framework().display.fill_screen(Colour::BLACK);
         (framework().display.set_cursor)(60, 50);
 
         os().ui_draw_title("About Delta Pico");

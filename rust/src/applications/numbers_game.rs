@@ -5,10 +5,9 @@ use rbop::{UnstructuredNodeList, nav::NavPath, node::unstructured::{Unstructured
 use rust_decimal::prelude::ToPrimitive;
 use rand::{self, SeedableRng, Rng};
 
-use crate::{graphics, interface::ButtonInput, operating_system::{OSInput, os}, rbop_impl::{RbopContext}};
+use crate::{interface::{ButtonInput, Colour, ShapeFill}, operating_system::{OSInput, os}, rbop_impl::{RbopContext}};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
-use crate::graphics::colour;
 
 pub struct NumbersGame {
     score: u64,
@@ -57,7 +56,7 @@ impl Application for NumbersGame {
     } }
 
     fn tick(&mut self) {
-        (framework().display.fill_screen)(colour::BLACK);
+        framework().display.fill_screen(Colour::BLACK);
 
         os().ui_draw_title("Numbers Game");
 
@@ -71,11 +70,11 @@ impl Application for NumbersGame {
 
             for item in row.iter() {
                 let (text, colour) = match *item.borrow() {
-                    Tile::Blank => ("".into(), colour::GREY),
-                    Tile::Filled(n) => (n.to_string(), colour::ORANGE),
+                    Tile::Blank => ("".into(), Colour::GREY),
+                    Tile::Filled(n) => (n.to_string(), Colour::ORANGE),
                 };
 
-                (framework().display.draw_rect)(x, y, tile_size, tile_size, colour, true, 4);
+                framework().display.draw_rect(x, y, tile_size, tile_size, colour, ShapeFill::Filled, 4);
 
                 framework().display.print_centred(x, y + tile_size / 3, tile_size, format!("  {}  ", text));
 

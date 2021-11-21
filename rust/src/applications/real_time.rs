@@ -1,6 +1,6 @@
 use alloc::{format, vec::Vec, vec};
 
-use crate::{graphics::colour, interface::{self, ButtonInput, framework}, operating_system::OSInput};
+use crate::{interface::{self, ButtonInput, Colour, framework}, operating_system::OSInput};
 
 use super::{Application, ApplicationInfo};
 
@@ -179,7 +179,7 @@ impl RealTimeApplication for RealTimeTestApplication {
     }
 
     fn draw(&mut self) {
-        (framework().display.fill_screen)(colour::BLACK);
+        framework().display.fill_screen(Colour::BLACK);
         framework().display.print_at(50, 50, format!("{} {}", self.second_counter, self.exe_counter));
         (framework().display.draw)();
     }

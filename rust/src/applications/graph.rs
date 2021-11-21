@@ -2,10 +2,9 @@ use alloc::{format, string::{String, ToString}, vec, vec::{Vec}};
 use rbop::{Number, StructuredNode, UnstructuredNodeList, nav::NavPath, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 use rust_decimal::prelude::{One, ToPrimitive, Zero};
 
-use crate::{interface::ButtonInput, operating_system::{OSInput, os}, rbop_impl::{RbopContext}};
+use crate::{interface::{ButtonInput, Colour}, operating_system::{OSInput, os}, rbop_impl::{RbopContext}};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
-use crate::graphics::colour;
 
 const PADDING: u64 = 10;
 
@@ -133,7 +132,7 @@ impl Application for GraphApplication {
 
 impl GraphApplication {
     fn draw(&mut self) {
-        (framework().display.fill_screen)(colour::BLACK);
+        framework().display.fill_screen(Colour::BLACK);
 
         if self.edit_mode {
             os().ui_draw_title("Graph");
@@ -156,8 +155,8 @@ impl GraphApplication {
         } else {
             // Draw axes
             let (x_axis, y_axis) = self.view_window.axis_screen_coords();
-            (framework().display.draw_line)(x_axis, 0, x_axis, framework().display.height as i64, colour::BLUE);
-            (framework().display.draw_line)(0, y_axis, framework().display.width as i64, y_axis, colour::BLUE);
+            framework().display.draw_line(x_axis, 0, x_axis, framework().display.height as i64, Colour::BLUE);
+            framework().display.draw_line(0, y_axis, framework().display.width as i64, y_axis, Colour::BLUE);
 
             // Upgrade, substitute, and draw graph
             if let Ok(sn) = self.rbop_ctx.root.upgrade() {
@@ -178,10 +177,10 @@ impl GraphApplication {
                     if let Ok(this_y) = values[this_x] {
                         let next_y = values[next_x].as_ref().unwrap_or(&this_y);
             
-                        (framework().display.draw_line)(
+                        framework().display.draw_line(
                             this_x as i64, self.view_window.y_to_screen(this_y),
                             next_x as i64, self.view_window.y_to_screen(*next_y),
-                            colour::WHITE
+                            Colour::WHITE
                         );
                     }
                 }

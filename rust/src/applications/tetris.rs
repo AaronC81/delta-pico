@@ -3,7 +3,7 @@ use core::cell::RefCell;
 use alloc::{format, rc::Rc, vec::Vec, vec};
 use rand::{Rng, SeedableRng};
 
-use crate::{graphics::colour, interface::{ButtonEvent, ButtonInput, framework}, operating_system::OSInput};
+use crate::{interface::{ButtonEvent, ButtonInput, Colour, ShapeFill, framework}, operating_system::OSInput};
 
 use super::{ApplicationInfo, real_time::{RealTimeApplication, RealTimeResult, RealTimeState}};
 
@@ -28,7 +28,7 @@ enum TetrominoShape {
 
 struct Tetromino {
     shape: TetrominoShape,
-    colour: u16,
+    colour: Colour,
     origin_x: usize,
     origin_y: usize,
 }
@@ -96,7 +96,7 @@ impl Tetromino {
 }
 
 enum Tile {
-    Filled(u16),
+    Filled(Colour),
     Blank,
 }
 
@@ -148,7 +148,7 @@ impl RealTimeApplication for TetrisApplication {
                 origin_x: 3,
                 origin_y: 0,
                 shape: TetrominoShape::T,
-                colour: colour::ORANGE,
+                colour: Colour::ORANGE,
             }),
             rng: rand::StdRng::from_seed(&[5, 6, 7, 8]) // TODO
         };
@@ -203,10 +203,10 @@ impl RealTimeApplication for TetrisApplication {
                         tetromino.origin_x = 3;
 
                         tetromino.colour = *self.rng.choose(&[
-                            colour::BLUE,
-                            colour::ORANGE,
-                            colour::DARK_BLUE,
-                            colour::WHITE
+                            Colour::BLUE,
+                            Colour::ORANGE,
+                            Colour::DARK_BLUE,
+                            Colour::WHITE
                         ]).unwrap();
                         tetromino.shape = *self.rng.choose(&[
                             TetrominoShape::I,
@@ -223,17 +223,17 @@ impl RealTimeApplication for TetrisApplication {
     }
 
     fn draw(&mut self) {
-        (framework().display.fill_screen)(colour::BLACK);
+        framework().display.fill_screen(Colour::BLACK);
         
         // Draw playfield
         let mut y = 0;
         for row in &self.playfield {
             let mut x = 0;
             for item in row {
-                (framework().display.draw_rect)(x, y, 20, 20, match *item.borrow() {
+                framework().display.draw_rect(x, y, 20, 20, match *item.borrow() {
                     Tile::Filled(c) => c,
-                    Tile::Blank => colour::GREY,
-                }, true, 0);
+                    Tile::Blank => Colour::GREY,
+                }, ShapeFill::Filled, 0);
                 x += 20;
             }
             y += 20;
@@ -246,7 +246,7 @@ impl RealTimeApplication for TetrisApplication {
                 let mut x = 20 * tetromino.origin_x;
                 for item in row {
                     if item {
-                        (framework().display.draw_rect)(x as i64, y as i64, 20, 20, tetromino.colour, true, 0);
+                        framework().display.draw_rect(x as i64, y as i64, 20, 20, tetromino.colour, ShapeFill::Filled, 0);
                     }
                     x += 20;
                 }

@@ -14,7 +14,6 @@ mod interface;
 mod operating_system;
 mod rbop_impl;
 mod applications;
-mod graphics;
 mod filesystem;
 mod timer;
 mod multi_tap;
