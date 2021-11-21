@@ -1,4 +1,4 @@
-use alloc::{format, vec};
+use alloc::{format, string::ToString, vec};
 use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{UnstructuredNodeRoot, MoveResult}, render::{Area, CalculatedPoint, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility}};
 use crate::{debug, graphics::colour, interface::{ApplicationFrameworkInterface, ButtonInput, framework}, operating_system::{OSInput, os}};
 
@@ -124,7 +124,13 @@ impl Renderer for ApplicationFrameworkInterface {
             Glyph::Placeholder => text_character_size,
 
             Glyph::Digit { .. } => text_character_size,
-            Glyph::Variable { .. } => text_character_size,
+            Glyph::Variable { name } => {
+                let (width, height) = framework().display.string_size(&name.to_string());
+                Area {
+                    width: width as u64,
+                    height: height as u64,
+                }
+            },
 
             Glyph::Point => Area { width: text_character_size.width / 2, ..text_character_size },
             Glyph::Add => text_character_size,
