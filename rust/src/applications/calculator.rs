@@ -2,7 +2,7 @@ use alloc::{format, string::{String, ToString}, vec, vec::{Vec}};
 use rbop::{Number, StructuredNode, Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::{self, unstructured::{MoveResult, UnstructuredNodeRoot, Upgradable}}, render::{Area, CalculatedPoint, Layoutable, Renderer, Viewport}};
 use rust_decimal::{Decimal, prelude::Zero};
 
-use crate::{filesystem::{Calculation, ChunkIndex}, graphics::colour, interface::ButtonInput, operating_system::{OSInput, OperatingSystemInterface, os}, rbop_impl::{RbopContext}, timer::Timer};
+use crate::{filesystem::{Calculation, ChunkIndex}, graphics::colour, interface::{ButtonInput, Sprite}, operating_system::{OSInput, OperatingSystemInterface, os}, rbop_impl::{RbopContext}, timer::Timer};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -20,7 +20,7 @@ enum SpriteCacheEntry {
 
     /// This item has been recomputing since the sprite cache was last cleared, and is at least
     /// partially visible on the screen.
-    Entry { area: Area, sprite: *mut u8 },
+    Entry { area: Area, sprite: Sprite },
 }
 
 pub struct CalculatorApplication {
@@ -254,10 +254,10 @@ impl Application for CalculatorApplication {
                 );
             } else {
                 // Draw stored nodes
-                (framework().display.draw_sprite)(
+                framework().display.draw_sprite(
                     framework().rbop_location_x,
                     framework().rbop_location_y,
-                    cached_sprite,
+                    &cached_sprite,
                 )
             }
 
@@ -365,7 +365,7 @@ impl CalculatorApplication {
         // Free the sprite cache
         for item in &self.sprite_cache {
             if let &SpriteCacheEntry::Entry { sprite, .. } = item {
-                (framework().display.free_sprite)(sprite);
+                framework().display.free_sprite(sprite);
             }
         }
 
@@ -379,7 +379,7 @@ impl CalculatorApplication {
     /// Retrieves an index in the sprite cache, or computes it if the entry is blank. Returns the
     /// area and sprite pointer if the sprite is has not been marked as clipped, otherwise returns
     /// None.
-    fn sprite_cache_entry(&mut self, index: usize) -> Option<(Area, *mut u8)> {
+    fn sprite_cache_entry(&mut self, index: usize) -> Option<(Area, Sprite)> {
         if self.sprite_cache[index] == SpriteCacheEntry::Blank {
             // This entry does not exist
             // Grab calculation
@@ -389,14 +389,14 @@ impl CalculatorApplication {
             let layout = framework().layout(root, None);
 
             // Draw layout onto a new sprite
-            let sprite = (framework().display.new_sprite)(
-                layout.area.width as i16, layout.area.height as i16
+            let sprite = framework().display.new_sprite(
+                layout.area.width as u16, layout.area.height as u16
             );
-            (framework().display.switch_to_sprite)(sprite);
+            framework().display.switch_to_sprite(&sprite);
             framework().rbop_location_x = 0;
             framework().rbop_location_y = 0;
             framework().draw_all_by_layout(&layout, None);
-            (framework().display.switch_to_screen)();
+            framework().display.switch_to_screen();
 
             self.sprite_cache[index] = SpriteCacheEntry::Entry {
                 area: layout.area,
