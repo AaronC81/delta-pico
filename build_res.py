@@ -47,7 +47,7 @@ for file in os.listdir(res_dir):
                     (red, green, blue, alpha) = image.getpixel((x, y))
 
                     # Only complete transparency or opacity is allowed
-                    if alpha == 255:
+                    if alpha > 200:
                         # Conversion: http://www.barth-dev.de/online/rgb565-color-picker/
                         pixel_565 = (((red & 0b11111000)<<8) + ((green & 0b11111100)<<3)+(blue>>3))
                         used_colours.add(pixel_565)
