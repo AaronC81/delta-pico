@@ -32,6 +32,7 @@ impl Application for MenuApplication {
             .map(|(app, _)| UIMenuItem {
                 title: app.name.clone(),
                 icon: app.icon_name(),
+                toggle: None,
             })
             .collect::<Vec<_>>();
         self.menu.draw();

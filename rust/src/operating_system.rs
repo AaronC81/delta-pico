@@ -389,6 +389,7 @@ pub enum OSInput {
 pub struct UIMenuItem {
     pub title: String,
     pub icon: String,
+    pub toggle: Option<bool>,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -421,6 +422,12 @@ impl UIMenu {
             }
             framework().display.print_at(65, y + 18, &item.title);
             framework().display.draw_bitmap(7, y + 2, &item.icon);
+
+            // Draw toggle, if necessary
+            if let Some(toggle_position) = item.toggle {
+                let toggle_bitmap_name = if toggle_position { "toggle_on" } else { "toggle_off" };
+                framework().display.draw_bitmap(195, y + 20, toggle_bitmap_name);
+            }
 
             y += 54;
         }
