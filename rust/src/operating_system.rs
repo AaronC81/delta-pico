@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, format, string::String};
+use alloc::{boxed::Box, format, string::String, vec::Vec};
 use rbop::{Number, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 use core::{cmp::max, mem};
 
@@ -143,7 +143,7 @@ impl<'a> OperatingSystemInterface<'a> {
         used_memory /= 1000;
         available_memory /= 1000;
 
-        framework().display.print(&format!("{}/{}kB", used_memory, available_memory));
+        framework().display.print_at(5, 7, &format!("{}/{}kB", used_memory, available_memory));
 
         // Draw charge indicator
         let charge_status = (framework().charge_status)();
@@ -383,4 +383,87 @@ pub enum OSInput {
 
     TextMultiTapNew(char),
     TextMultiTapCycle(char),
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct UIMenuItem {
+    pub title: String,
+    pub icon: String,
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct UIMenu {
+    pub items: Vec<UIMenuItem>,
+    pub selected_index: usize,
+    page_scroll_offset: usize,
+}
+
+impl UIMenu {
+    const ITEMS_PER_PAGE: usize = 5;
+
+    pub fn new(items: Vec<UIMenuItem>) -> Self {
+        Self {
+            items,
+            selected_index: 0,
+            page_scroll_offset: 0,
+        }
+    }
+
+    pub fn draw(&self) {
+        // Draw items
+        let mut y = OperatingSystemInterface::TITLE_BAR_HEIGHT + 10;
+        for (i, item) in self.items.iter().enumerate().skip(self.page_scroll_offset).take(Self::ITEMS_PER_PAGE) {
+            if i == self.selected_index {
+                framework().display.draw_rect(
+                    5, y, framework().display.width as i64 - 5 * 2 - 8, 54,
+                    Colour::BLUE, ShapeFill::Filled, 7
+                );
+            }
+            framework().display.print_at(65, y + 18, &item.title);
+            framework().display.draw_bitmap(7, y + 2, &item.icon);
+
+            y += 54;
+        }
+
+        // Draw scroll amount indicator
+        let scroll_indicator_column_height = 54 * Self::ITEMS_PER_PAGE;
+        let scroll_indicator_bar_height_per_item = scroll_indicator_column_height / os().application_list.applications.len();
+        let scroll_indicator_bar_offset = scroll_indicator_bar_height_per_item * self.page_scroll_offset;
+        let scroll_indicator_bar_height = scroll_indicator_bar_height_per_item * Self::ITEMS_PER_PAGE;
+
+        framework().display.draw_rect(
+            framework().display.width as i64 - 8, 40 + scroll_indicator_bar_offset as i64,
+            4, scroll_indicator_bar_height as i64, Colour::DARK_BLUE, ShapeFill::Filled, 2
+        );        
+    }
+
+    pub fn move_up(&mut self) {
+        if self.selected_index == 0 {
+            // Wrap
+            self.selected_index = os().application_list.applications.len() - 1;
+            self.page_scroll_offset = os().application_list.applications.len() - Self::ITEMS_PER_PAGE;
+        } else {
+            self.selected_index -= 1;
+
+            // If scrolled off the screen, scroll up
+            if self.selected_index < self.page_scroll_offset {
+                self.page_scroll_offset -= 1;
+            }
+        }
+    }
+
+    pub fn move_down(&mut self) {
+        self.selected_index += 1;
+
+        // Wrap
+        if self.selected_index == os().application_list.applications.len() {
+            self.selected_index = 0;
+            self.page_scroll_offset = 0;
+        }
+
+        // If scrolled off the screen, scroll down
+        if self.selected_index >= self.page_scroll_offset + Self::ITEMS_PER_PAGE {
+            self.page_scroll_offset += 1;
+        }
+    }
 }
