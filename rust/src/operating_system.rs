@@ -444,7 +444,7 @@ impl UIMenu {
 
         // Draw scroll amount indicator
         let scroll_indicator_column_height = 54 * Self::ITEMS_PER_PAGE;
-        let scroll_indicator_bar_height_per_item = scroll_indicator_column_height / os().application_list.applications.len();
+        let scroll_indicator_bar_height_per_item = scroll_indicator_column_height / self.items.len();
         let scroll_indicator_bar_offset = scroll_indicator_bar_height_per_item * self.page_scroll_offset;
         let scroll_indicator_bar_height = scroll_indicator_bar_height_per_item * Self::ITEMS_PER_PAGE;
 
@@ -457,8 +457,8 @@ impl UIMenu {
     pub fn move_up(&mut self) {
         if self.selected_index == 0 {
             // Wrap
-            self.selected_index = os().application_list.applications.len() - 1;
-            self.page_scroll_offset = os().application_list.applications.len() - Self::ITEMS_PER_PAGE;
+            self.selected_index = self.items.len() - 1;
+            self.page_scroll_offset = self.items.len() - Self::ITEMS_PER_PAGE;
         } else {
             self.selected_index -= 1;
 
@@ -473,7 +473,7 @@ impl UIMenu {
         self.selected_index += 1;
 
         // Wrap
-        if self.selected_index == os().application_list.applications.len() {
+        if self.selected_index == self.items.len() {
             self.selected_index = 0;
             self.page_scroll_offset = 0;
         }
