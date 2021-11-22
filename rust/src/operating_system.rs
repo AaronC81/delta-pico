@@ -414,13 +414,23 @@ impl UIMenu {
         // Draw items
         let mut y = OperatingSystemInterface::TITLE_BAR_HEIGHT + 10;
         for (i, item) in self.items.iter().enumerate().skip(self.page_scroll_offset).take(Self::ITEMS_PER_PAGE) {
+            // Work out whether we need to wrap
+            // TODO: not an exact width
+            let (lines, _, _) = framework().display.wrap_text(&item.title, 120);
+
             if i == self.selected_index {
                 framework().display.draw_rect(
                     5, y, framework().display.width as i64 - 5 * 2 - 8, 54,
                     Colour::BLUE, ShapeFill::Filled, 7
                 );
             }
-            framework().display.print_at(65, y + 18, &item.title);
+
+            if lines.len() == 1 {
+                framework().display.print_at(65, y + 18, &lines[0]);
+            } else {
+                framework().display.print_at(65, y + 7, &lines[0]);
+                framework().display.print_at(65, y + 28 , &lines[1]);
+            }
             framework().display.draw_bitmap(7, y + 2, &item.icon);
 
             // Draw toggle, if necessary
