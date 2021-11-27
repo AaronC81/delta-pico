@@ -44,9 +44,26 @@ impl Application for SettingsApplication {
             match btn {
                 OSInput::MoveUp => self.menu.move_up(),
                 OSInput::MoveDown => self.menu.move_down(),
-                OSInput::Exe => todo!(),
+                OSInput::Exe => self.change_selected_setting(),
                 _ => (),
             }
         }
+    }
+}
+
+impl SettingsApplication {
+    fn change_selected_setting(&mut self) {
+        match self.menu.selected_index {
+            0 => self.toggle_setting(0, &mut os().filesystem.settings.values.show_frame_time),
+            1 => self.toggle_setting(1, &mut os().filesystem.settings.values.show_heap_usage),
+            _ => unreachable!()
+        }
+    }
+
+    fn toggle_setting(&mut self, index: usize, setting: &mut bool) {
+        *setting = !*setting;
+        self.menu.items[index].toggle = Some(*setting);
+        
+        os().filesystem.settings.save();
     }
 }
