@@ -44,16 +44,31 @@ void displayGetCursor(int64_t *x, int64_t *y) {
 void displayDrawBitmap(int64_t sx, int64_t sy, uint16_t *bitmap) {
   if (bitmap == nullptr) return;
 
-  int width = bitmap[0];
-  int height = bitmap[1];
-  int transparency = bitmap[2];
+  uint16_t width = bitmap[0];
+  uint16_t height = bitmap[1];
+  uint16_t transparency = bitmap[2];
+  uint16_t runLength = bitmap[3];
 
-  for (int x = 0; x < width; x++) {
-    for (int y = 0; y < height; y++) {
-      int index = x * height + y + 3;
+  int index = 4;
+  for (uint16_t x = 0; x < width; x++) {
+    for (uint16_t y = 0; y < height; y++) {
+      if (bitmap[index] == runLength) {
+        uint16_t times = bitmap[index + 1];
+        uint16_t colour = bitmap[index + 2];
 
-      if (bitmap[index] != transparency) {
-        ApplicationFramework::instance.sprite().drawPixel(sx + x, sy + y, bitmap[index]);
+        if (colour != transparency) {
+          for (uint16_t i = 0; i < times; i++) {
+            ApplicationFramework::instance.sprite().drawPixel(sx + x, sy + y + i, colour);
+          }
+        }
+
+        y += times - 1;
+        index += 3;
+      } else {
+        if (bitmap[index] != transparency) {
+          ApplicationFramework::instance.sprite().drawPixel(sx + x, sy + y, bitmap[index]);
+        }
+        index++;
       }
     }
   }
