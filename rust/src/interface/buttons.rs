@@ -23,68 +23,74 @@ impl ButtonsInterface {
     }
 
     fn press_func_wrapper(&self, func: extern "C" fn(input: *mut ButtonInput, event: *mut ButtonEvent) -> bool) -> Option<OSInput> {
-        // Garbage default values
-        let mut input: ButtonInput = ButtonInput::None;
-        let mut event: ButtonEvent = ButtonEvent::Release;
+        loop {
+            // Garbage default values
+            let mut input: ButtonInput = ButtonInput::None;
+            let mut event: ButtonEvent = ButtonEvent::Release;
 
-        if (func)(&mut input as *mut _, &mut event as *mut _) && event == ButtonEvent::Press {
-            let mut result = Some(match input {
-                // Special cases
-                ButtonInput::Menu => {
-                    os().toggle_menu();
-                    return None
+            if (func)(&mut input as *mut _, &mut event as *mut _) && event == ButtonEvent::Press {
+                let mut result = Some(match input {
+                    // Special cases
+                    ButtonInput::Menu => {
+                        os().toggle_menu();
+                        return None
+                    }
+                    ButtonInput::Text => {
+                        os().text_mode = !os().text_mode;
+                        return None
+                    }
+                    ButtonInput::None => return None,
+
+                    // Straight key mappings
+                    ButtonInput::Exe => OSInput::Exe,
+                    ButtonInput::Shift => OSInput::Shift,
+                    ButtonInput::List => OSInput::List,
+
+                    ButtonInput::MoveLeft => OSInput::MoveLeft,
+                    ButtonInput::MoveRight => OSInput::MoveRight,
+                    ButtonInput::MoveUp => OSInput::MoveUp,
+                    ButtonInput::MoveDown => OSInput::MoveDown,
+                    ButtonInput::Delete => OSInput::Delete,
+
+                    ButtonInput::Digit0 => OSInput::Digit(0),
+                    ButtonInput::Digit1 => OSInput::Digit(1),
+                    ButtonInput::Digit2 => OSInput::Digit(2),
+                    ButtonInput::Digit3 => OSInput::Digit(3),
+                    ButtonInput::Digit4 => OSInput::Digit(4),
+                    ButtonInput::Digit5 => OSInput::Digit(5),
+                    ButtonInput::Digit6 => OSInput::Digit(6),
+                    ButtonInput::Digit7 => OSInput::Digit(7),
+                    ButtonInput::Digit8 => OSInput::Digit(8),
+                    ButtonInput::Digit9 => OSInput::Digit(9),
+
+                    ButtonInput::Point => OSInput::Point,
+                    ButtonInput::Parentheses => OSInput::Parentheses,
+                    ButtonInput::Add => OSInput::Add,
+                    ButtonInput::Subtract => OSInput::Subtract,
+                    ButtonInput::Multiply => OSInput::Multiply,
+                    ButtonInput::Fraction => OSInput::Fraction,
+                    ButtonInput::Power => OSInput::Power,
+                });
+
+                // Intercept if a digit was pressed in text mode - this needs to be converted to a
+                // character according to the OS' multi-tap state
+                if os().text_mode {
+                    if let Some(OSInput::Digit(d)) = result {
+                        result = os().multi_tap.input(OSInput::Digit(d));
+                    } else {
+                        // Make sure we don't cycle the wrong character if we e.g. move with the arrows
+                        os().multi_tap.drop_keypress();
+                    }
                 }
-                ButtonInput::Text => {
-                    os().text_mode = !os().text_mode;
-                    return None
-                }
-                ButtonInput::None => return None,
 
-                // Straight key mappings
-                ButtonInput::Exe => OSInput::Exe,
-                ButtonInput::Shift => OSInput::Shift,
-                ButtonInput::List => OSInput::List,
-
-                ButtonInput::MoveLeft => OSInput::MoveLeft,
-                ButtonInput::MoveRight => OSInput::MoveRight,
-                ButtonInput::MoveUp => OSInput::MoveUp,
-                ButtonInput::MoveDown => OSInput::MoveDown,
-                ButtonInput::Delete => OSInput::Delete,
-
-                ButtonInput::Digit0 => OSInput::Digit(0),
-                ButtonInput::Digit1 => OSInput::Digit(1),
-                ButtonInput::Digit2 => OSInput::Digit(2),
-                ButtonInput::Digit3 => OSInput::Digit(3),
-                ButtonInput::Digit4 => OSInput::Digit(4),
-                ButtonInput::Digit5 => OSInput::Digit(5),
-                ButtonInput::Digit6 => OSInput::Digit(6),
-                ButtonInput::Digit7 => OSInput::Digit(7),
-                ButtonInput::Digit8 => OSInput::Digit(8),
-                ButtonInput::Digit9 => OSInput::Digit(9),
-
-                ButtonInput::Point => OSInput::Point,
-                ButtonInput::Parentheses => OSInput::Parentheses,
-                ButtonInput::Add => OSInput::Add,
-                ButtonInput::Subtract => OSInput::Subtract,
-                ButtonInput::Multiply => OSInput::Multiply,
-                ButtonInput::Fraction => OSInput::Fraction,
-                ButtonInput::Power => OSInput::Power,
-            });
-
-            // Intercept if a digit was pressed in text mode - this needs to be converted to a
-            // character according to the OS' multi-tap state
-            if os().text_mode {
-                if let Some(OSInput::Digit(d)) = result {
-                    result = os().multi_tap.input(OSInput::Digit(d));
+                return result
+            } else {
+                if os().filesystem.settings.values.fire_button_press_only {
+                    // Let this loop
                 } else {
-                    // Make sure we don't cycle the wrong character if we e.g. move with the arrows
-                    os().multi_tap.drop_keypress();
+                    return None
                 }
             }
-
-            result
-        } else {
-            None
         }
     }
 }

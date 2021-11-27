@@ -29,6 +29,11 @@ impl Application for SettingsApplication {
                     icon: "settings_show_memory_usage".into(),
                     toggle: Some(os().filesystem.settings.values.show_heap_usage),
                 },
+                UIMenuItem {
+                    title: "Fire button press only".into(),
+                    icon: "settings_fire_button_press_only".into(),
+                    toggle: Some(os().filesystem.settings.values.fire_button_press_only),
+                }
             ]),
         }
     }
@@ -56,6 +61,14 @@ impl SettingsApplication {
         match self.menu.selected_index {
             0 => self.toggle_setting(0, &mut os().filesystem.settings.values.show_frame_time),
             1 => self.toggle_setting(1, &mut os().filesystem.settings.values.show_heap_usage),
+            2 => {
+                // Show a warning if we're turning it on
+                if !os().filesystem.settings.values.fire_button_press_only {
+                    os().ui_text_dialog("This setting is experimental! Responsiveness will improve, but frame times will become inaccurate, and some apps may break.");
+                }
+                
+                self.toggle_setting(2, &mut os().filesystem.settings.values.fire_button_press_only)
+            },
             _ => unreachable!()
         }
     }

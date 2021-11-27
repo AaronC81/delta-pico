@@ -10,6 +10,7 @@ pub struct Settings<'a> {
 pub struct SettingsValues {
     pub show_heap_usage: bool,
     pub show_frame_time: bool,
+    pub fire_button_press_only: bool,
 }
 
 impl Default for SettingsValues {
@@ -17,6 +18,7 @@ impl Default for SettingsValues {
         SettingsValues {
             show_heap_usage: false,
             show_frame_time: false,
+            fire_button_press_only: true,
         }
     }
 }
@@ -59,6 +61,7 @@ impl<'a> Settings<'a> {
             // TODO: index 0 should be a storage version
             show_heap_usage: self.read_bool(RawStorageAddress(1), default.show_heap_usage)?,
             show_frame_time: self.read_bool(RawStorageAddress(2), default.show_frame_time)?,
+            fire_button_press_only: self.read_bool(RawStorageAddress(3), default.fire_button_press_only)?,
         })
     }
 
@@ -67,6 +70,7 @@ impl<'a> Settings<'a> {
     pub fn save(&mut self) -> Option<()> {
         self.write_bool(RawStorageAddress(1), self.values.show_heap_usage)?;
         self.write_bool(RawStorageAddress(2), self.values.show_frame_time)?;
+        self.write_bool(RawStorageAddress(3), self.values.fire_button_press_only)?;
         Some(())
     }
 
