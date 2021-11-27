@@ -23,7 +23,6 @@ pub extern "C" fn delta_pico_set_framework(fw: *mut ApplicationFrameworkInterfac
 
 #[repr(C)]
 pub struct ApplicationFrameworkInterface {
-    pub panic_handler: extern "C" fn(*const u8) -> (),
     pub debug_handler: extern "C" fn(*const u8) -> (),
 
     pub millis: extern "C" fn() -> u32,

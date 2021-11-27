@@ -15,6 +15,7 @@ impl Colour {
     pub const BLUE: Self = Self(0x0392);
     pub const DARK_BLUE: Self = Self(0x024B);
     pub const GREY: Self = Self(0x31A6);
+    pub const RED: Self = Self(0xF800);
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
@@ -163,8 +164,8 @@ impl DisplayInterface {
     /// 
     /// (
     ///     list of lines,
-    ///     total width,
-    ///     total height,
+    ///     height of each line,
+    ///     total height of text,
     /// )
     pub fn wrap_text(&self, string: &str, width: i64) -> (Vec<String>, i64, i64) {
         // All characters are assumed to have the same height
@@ -174,15 +175,60 @@ impl DisplayInterface {
         let mut lines: Vec<String> = vec!["".into()];
         let char_height = self.string_size("A").1;
 
-        for word in Into::<String>::into(string).split_whitespace() {
+        for word in string.split_whitespace() {
+            // Work out size of this word
             let (this_char_x, this_char_y) = self.string_size(&word.to_string());
+
+            // Rare special case - what if this word will never fit on a single line?
+            // I've only seen this in panic messages so far
+            // VERY slow, but panic messages occur infrequently enough that I don't think that's a
+            // huge problem
+            if this_char_x > width {
+                // For clarity (and ease of implementation!) start a new line for extremely long
+                // words
+                lines.push("".into());
+
+                // Break it up character-by-character until we've exhausted the whole word
+                let word_chars = word.chars();
+                let mut buffer = String::new();
+
+                for char in word_chars {
+                    // Add character to buffer
+                    buffer.push(char);
+                    
+                    // If the word no longer fits on a line, insert buffer minus last character as
+                    // a line, start new line, and reset buffer
+                    let (buffer_width, _) = self.string_size(&buffer);
+                    if buffer_width > width {
+                        buffer.remove(buffer.len() - 1);
+                        lines.last_mut().unwrap().push_str(&buffer);
+
+                        lines.push("".into());
+                        y += this_char_y;
+
+                        buffer = char.to_string();
+                    } 
+                }
+
+                // We might be left with a buffer, empty it and set current X position
+                lines.last_mut().unwrap().push_str(&buffer);
+                lines.last_mut().unwrap().push(' ');
+
+                x = self.string_size(&buffer).0;
+
+                continue;
+            }
+
+            // Is it going to fit on this line?
             x += this_char_x;
             if x > width {
+                // No - start a new line
                 lines.push("".into());
                 x = this_char_x;
                 y += this_char_y;
             }
-
+            
+            // Add to end of current line
             lines.last_mut().unwrap().push_str(word);
             lines.last_mut().unwrap().push(' ');
         }

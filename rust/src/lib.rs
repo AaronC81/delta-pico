@@ -20,18 +20,39 @@ mod multi_tap;
 use interface::framework;
 use operating_system::os;
 
-use crate::{operating_system::OSInput};
+use crate::{interface::Colour, operating_system::{OSInput, OperatingSystemInterface}};
 
 #[global_allocator]
 static ALLOCATOR: CAllocator = CAllocator;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    let message = format!("{}", info);
-    let mut message_bytes = message.as_bytes().iter().cloned().collect::<Vec<_>>();
-    message_bytes.push(0);
+    framework().display.switch_to_screen();
+    framework().display.fill_screen(Colour::BLACK);
 
-    (framework().panic_handler)(message_bytes.as_ptr());
+    // Draw panic title bar
+    framework().display.draw_rect(
+        0, 0, framework().display.width as i64, OperatingSystemInterface::TITLE_BAR_HEIGHT,
+        Colour::RED, interface::ShapeFill::Filled, 0,
+    );
+    framework().display.print_at(5, 7, "Panic   :(");
+
+    // Draw error text
+    let (lines, line_height, _) =
+        framework().display.wrap_text(&format!("{}", info), framework().display.width as i64 - 20);
+    for (i, line) in lines.iter().enumerate() {
+        framework().display.print_at(
+            10, OperatingSystemInterface::TITLE_BAR_HEIGHT + 5 + line_height * i as i64,
+            line
+        );
+    }
+
+    // Draw keys
+    framework().display.print_at(
+        0, framework().display.height as i64 - 50, "Restart the device, or use\n[EXE] to enter bootloader"
+    );
+    
+    framework().display.draw();
 
     loop {
         if let Some(OSInput::Exe) = framework().buttons.wait_press() {

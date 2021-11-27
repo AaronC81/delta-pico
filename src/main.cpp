@@ -102,32 +102,6 @@ bool storageRead(uint16_t address, uint8_t count, uint8_t *buffer) {
   return ApplicationFramework::instance.storage().read(address, count, buffer);
 }
 
-void panicHandler(const uint8_t *message) {
-  // if (Serial.available()) {
-  //   Serial.println("=== PANIC ===");
-  //   Serial.println((char*)message);
-  //   Serial.println("=== PANIC ===");
-  // }
-
-  ApplicationFramework::instance.sprite().setCursor(0, 0);
-  ApplicationFramework::instance.sprite().println("PANIC!");
-
-  // Chunk the string into 20-character lines
-  String result;
-  uint32_t idx = 0;
-  while (message[idx] != 0) {
-    result.concat((char)message[idx]);
-    idx++;
-    if (idx % 20 == 0) {
-      result.concat("\n");
-    }
-  }
-
-  ApplicationFramework::instance.sprite().println(result.c_str());
-  
-  ApplicationFramework::instance.draw();
-}
-
 void debugHandler(const uint8_t *message) {
   // if (Serial.available()) {
   //   Serial.println((const char*)message);
@@ -135,7 +109,6 @@ void debugHandler(const uint8_t *message) {
 }
 
 auto framework_interface = ApplicationFrameworkInterface {
-  .panic_handler = panicHandler,
   .debug_handler = debugHandler,
   .millis = millis,
   .micros = micros,
