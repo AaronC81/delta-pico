@@ -479,7 +479,12 @@ impl UIMenu {
         if self.selected_index == 0 {
             // Wrap
             self.selected_index = self.items.len() - 1;
-            self.page_scroll_offset = self.items.len() - Self::ITEMS_PER_PAGE;
+
+            if self.items.len() > Self::ITEMS_PER_PAGE {
+                self.page_scroll_offset = self.items.len() - Self::ITEMS_PER_PAGE;
+            } else {
+                self.page_scroll_offset = 0;
+            }
         } else {
             self.selected_index -= 1;
 
