@@ -135,23 +135,36 @@ impl<'a> OperatingSystemInterface<'a> {
     }
 
     /// Draws a title bar to the top of the screen, with the text `s`.
-    pub fn ui_draw_title(&mut self, _s: impl Into<String>) {
+    pub fn ui_draw_title(&mut self, s: &str) {
         let now_millis = (framework().millis)();
-        let _millis_elapsed = now_millis - self.last_title_millis;
+        let millis_elapsed = now_millis - self.last_title_millis;
         self.last_title_millis = now_millis;
 
         framework().display.draw_rect(
             0, 0, framework().display.width as i64, Self::TITLE_BAR_HEIGHT,
             Colour::ORANGE, ShapeFill::Filled, 0
         );
-        // framework().display.print_at(5, 7, format!("{} ({} ms)", s.into(), millis_elapsed));
+
+        // Draw title, according to settings
+        let frame_time = format!("{} ms", millis_elapsed);
+
         let mut used_memory: u64 = 0;
         let mut available_memory: u64 = 0;
         (framework().heap_usage)(&mut used_memory, &mut available_memory);
         used_memory /= 1000;
         available_memory /= 1000;
 
-        framework().display.print_at(5, 7, &format!("{}/{}kB", used_memory, available_memory));
+        let heap_usage = format!("{}/{}kB", used_memory, available_memory);
+
+        let settings = &os().filesystem.settings.values;
+        let title_text = match (settings.show_frame_time, settings.show_heap_usage) {
+            (true, true) => format!("{} | {}", heap_usage, frame_time),
+            (true, false) => frame_time,
+            (false, true) => heap_usage,
+            (false, false) => s.into(),
+        };
+
+        framework().display.print_at(5, 7, &title_text);
 
         // Draw charge indicator
         let charge_status = (framework().charge_status)();
