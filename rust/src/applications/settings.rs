@@ -1,4 +1,4 @@
-use alloc::{vec, vec::Vec};
+use alloc::vec;
 
 use crate::{interface::Colour, operating_system::{OSInput, UIMenu, UIMenuItem, os}};
 use super::{Application, ApplicationInfo};
