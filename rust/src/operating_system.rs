@@ -2,7 +2,7 @@ use alloc::{boxed::Box, format, string::String, vec::Vec};
 use rbop::{Number, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 use core::{cmp::max, mem};
 
-use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, filesystem::{CalculationHistory, ChunkTable, Filesystem}, interface::{Colour, ShapeFill, framework}, multi_tap::MultiTapState, rbop_impl::RbopContext};
+use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, filesystem::{CalculationHistory, ChunkTable, Filesystem, RawStorage, Settings}, interface::{Colour, ShapeFill, framework}, multi_tap::MultiTapState, rbop_impl::RbopContext};
 
 static mut OPERATING_SYSTEM_INTERFACE: Option<OperatingSystemInterface> = None;
 pub fn os() -> &'static mut OperatingSystemInterface<'static> {
@@ -15,6 +15,14 @@ pub fn os() -> &'static mut OperatingSystemInterface<'static> {
                 menu: MenuApplication::new(),
                 showing_menu: true,
                 filesystem: Filesystem {
+                    settings: Settings::new(
+                        RawStorage {
+                            start_address: 0,
+                            // TODO: static assert that this doesn't hit the calculation history
+                            length: Settings::MINIMUM_STORAGE_SIZE,
+                            storage: &mut framework().storage,
+                        }
+                    ),
                     calculations: CalculationHistory {
                         table: ChunkTable {
                             start_address: 0x1000,

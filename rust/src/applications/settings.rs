@@ -22,12 +22,12 @@ impl Application for SettingsApplication {
                 UIMenuItem {
                     title: "Show frame time".into(),
                     icon: "settings_show_frame_time".into(),
-                    toggle: Some(false),
+                    toggle: Some(os().filesystem.settings.values.show_frame_time),
                 },
                 UIMenuItem {
                     title: "Show heap usage".into(),
                     icon: "settings_show_memory_usage".into(),
-                    toggle: Some(true),
+                    toggle: Some(os().filesystem.settings.values.show_heap_usage),
                 },
             ]),
         }
