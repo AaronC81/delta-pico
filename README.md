@@ -77,3 +77,4 @@ D8.](img/wire-fix.png)
 - Broken out VSYS and GND near the JST battery connector
     - VSYS is broken both before (`SW. VSYS`) and after (`BYP. VSYS`) the power switch
 - Connect PCF8574 interrupt pins to GPIO 16/17
+- Add Schottky diode on VSYS
