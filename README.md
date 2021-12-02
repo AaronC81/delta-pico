@@ -78,3 +78,5 @@ D8.](img/wire-fix.png)
     - VSYS is broken both before (`SW. VSYS`) and after (`BYP. VSYS`) the power switch
 - Connect PCF8574 interrupt pins to GPIO 16/17
 - Add Schottky diode on VSYS
+- Add MOSFET to allow Pico to turn display on/off
+    - Gate controllable with GPIO 22
