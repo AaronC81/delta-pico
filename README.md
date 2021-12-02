@@ -74,9 +74,14 @@ D8.](img/wire-fix.png)
     - 2 of the extra pins are SWCLK and SWDIO (marked SWC and SWD respectively)
     - Other 2 are GPIO 18 and GPIO 19, currently unused
     - Moved to not be in the way of SD card slot
-- Broken out VSYS and GND near the JST battery connector
-    - VSYS is broken both before (`SW. VSYS`) and after (`BYP. VSYS`) the power switch
 - Connect PCF8574 interrupt pins to GPIO 16/17
-- Add Schottky diode on VSYS
-- Add MOSFET to allow Pico to turn display on/off
-    - Gate controllable with GPIO 22
+- Power-related tweaks
+    - Broken out VSYS and GND near the JST battery connector
+    - Add MOSFET to allow Pico to turn display on/off
+        - Gate controllable with GPIO 22
+    - Connect power switch to 3V3 and two GPIOs instead
+        - The Pico is now always drawing battery power through VSYS
+        - GPIO 26 or 27 will be high in the switch's on or off position respectively
+        - In future, the device will soft-power-off by having the Pico turn off the display and
+          enter DORMANT mode
+    - Add Schottky diode on VSYS, to comply with the datasheet's suggestion
