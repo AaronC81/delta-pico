@@ -1,5 +1,9 @@
 #include "application_framework.hpp"
 #include "hardware.hpp"
+#include "ili9341.hpp"
+
+#include "hardware/gpio.h"
+#include "hardware/i2c.h"
 
 extern "C" {
     #include <DroidSans-20.h>
@@ -8,22 +12,39 @@ extern "C" {
 void ApplicationFramework::initialize() {
     if (_initialized) return;
 
-    _tft = new TFT_eSPI();
-    _i2c = new arduino::MbedI2C(I2C_SDA_PIN, I2C_SCL_PIN);
-    _colPcf = new PCF8574(*_i2c, I2C_EXPANDER_ADDRESS_1);
-    _rowPcf = new PCF8574(*_i2c, I2C_EXPANDER_ADDRESS_2);
+    // TODO: put in hardware.h
+    _tft = new ILI9341(
+        spi0,
+        0, // MISO
+        3, // MOSI
+        2, // SCLK
+        5, // DC
+        4, // CS
+        6, // RST
+        28 // Power
+    );
+
+    // Initialize I2C bus
+    gpio_set_function(I2C_SDA_PIN, GPIO_FUNC_I2C);
+    gpio_set_function(I2C_SCL_PIN, GPIO_FUNC_I2C);
+    gpio_pull_up(I2C_SDA_PIN);
+    gpio_pull_up(I2C_SCL_PIN);
+    i2c_init(i2c0, 1000000);
+
+    _colPcf = new PCF8574(i2c0, I2C_EXPANDER_ADDRESS_1);
+    _rowPcf = new PCF8574(i2c0, I2C_EXPANDER_ADDRESS_2);
     _buttons = new ButtonMatrix(*_rowPcf, *_colPcf);
-    _screenSprite = newSprite(TFT_WIDTH, TFT_HEIGHT);
+    // _screenSprite = newSprite(TFT_WIDTH, TFT_HEIGHT); TODO
     _sprite = _screenSprite;
-    _storage = new CAT24C(*_i2c, CAT24C_ADDRESS);
+    _storage = new CAT24C(i2c0, CAT24C_ADDRESS);
 
-    _i2c->begin();
     _buttons->begin();
+    _tft->begin();
 
-    _tft->init();
-    _tft->fillScreen(TFT_BLACK);
-    _tft->initDMA();
-    _tft->setRotation(0);
+    // TODO
+    // _tft->fillScreen(TFT_BLACK);
+    // _tft->initDMA();
+    // _tft->setRotation(0);
 
     switchToScreen();
 
@@ -31,34 +52,18 @@ void ApplicationFramework::initialize() {
 }
 
 void ApplicationFramework::draw() {
-    _tft->startWrite();
-
-#ifdef USE_8BPP
-    _tft->pushImage(0, 0, IWIDTH, IHEIGHT, (uint8_t*)_sprite->getPointer(), true, (uint16_t*)nullptr);
-#else
-    _tft->pushImage(0, 0, IWIDTH, IHEIGHT, (uint16_t*)_sprite->getPointer());
-#endif
-    _tft->endWrite();
+    _tft->drawSprite(0, 0, _screenSprite);
 }
 
-TFT_eSprite* ApplicationFramework::newSprite(int16_t width, int16_t height) {
-    auto sprite = new TFT_eSprite(_tft);
-    sprite->setColorDepth(SOFTWARE_COLOR_DEPTH);
-    sprite->createSprite(width, height);
-
-    sprite->loadFont(DroidSans_20_vlw);
-    sprite->setTextColor(TFT_WHITE);
-    sprite->setTextDatum(MC_DATUM);
-    sprite->setTextWrap(false, false);
-
-    return sprite;
+ILI9341Sprite* ApplicationFramework::newSprite(int16_t width, int16_t height) {
+    return _tft->createSprite(width, height);
 }
 
-void ApplicationFramework::freeSprite(TFT_eSprite *sprite) {
+void ApplicationFramework::freeSprite(ILI9341Sprite *sprite) {
     delete sprite;
 }
 
-void ApplicationFramework::switchToSprite(TFT_eSprite *sprite) {
+void ApplicationFramework::switchToSprite(ILI9341Sprite *sprite) {
     _sprite = sprite;
 }
 
@@ -66,8 +71,9 @@ void ApplicationFramework::switchToScreen() {
     _sprite = _screenSprite;
 }
 
-ButtonMatrix& ApplicationFramework::buttons() const { return *_buttons; }
-TFT_eSprite&  ApplicationFramework::sprite()  const { return *_sprite;  }
-CAT24C&       ApplicationFramework::storage() const { return *_storage; }
+ButtonMatrix&  ApplicationFramework::buttons() const { return *_buttons; }
+ILI9341Sprite& ApplicationFramework::sprite()  const { return *_sprite;  }
+ILI9341&       ApplicationFramework::tft()     const { return *_tft;  }
+CAT24C&        ApplicationFramework::storage() const { return *_storage; }
 
 ApplicationFramework ApplicationFramework::instance = {};

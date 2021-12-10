@@ -1,12 +1,11 @@
 #include "pcf8574.hpp"
 
 void PCF8574::write(uint8_t byte) {
-    wire.beginTransmission(i2cAddress);
-    wire.write(byte);
-    wire.endTransmission();
+    i2c_write_blocking(i2c, i2cAddress, &byte, 1, false);
 }
 
 uint8_t PCF8574::read(void) {
-    wire.requestFrom(i2cAddress, 1);
-    return wire.read();
+    uint8_t byte;
+    i2c_read_blocking(i2c, i2cAddress, &byte, 1, false);
+    return byte;
 }

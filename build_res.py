@@ -1,13 +1,10 @@
 import subprocess, os, shutil
 from PIL import Image
 
-Import("env")
-
-root_dir = env.GetLaunchDir()
-
 print("Building resources...")
 
 # "cargo build" the bridge project
+root_dir = os.path.dirname(os.path.realpath(__file__))
 res_dir = os.path.join(root_dir, "res")
 
 bitmaps = []

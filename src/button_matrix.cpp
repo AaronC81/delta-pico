@@ -1,6 +1,8 @@
 #include "button_matrix.hpp"
 #include "hardware.hpp"
 
+#include "pico/time.h"
+
 void ButtonMatrix::begin(void) {
     // Set to input
     col.write(0xFF);
@@ -82,7 +84,7 @@ bool ButtonMatrix::getEvent(uint8_t &eventRow, uint8_t &eventCol, ButtonEvent &e
         event = ButtonEvent::Press;
         currentlyPressedRow = eventRow;
         currentlyPressedCol = eventCol;
-        currentlyPressedTime = millis();
+        currentlyPressedTime = to_ms_since_boot(get_absolute_time());
         return true;
     }
 

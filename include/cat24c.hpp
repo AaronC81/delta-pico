@@ -1,11 +1,11 @@
 #pragma once
 
-#include <Wire.h>
+#include <stdint.h>
+#include "hardware/i2c.h"
 
 class CAT24C {
 public:
-    CAT24C(arduino::MbedI2C &_wire, uint8_t _i2cAddress)
-        : wire(_wire), i2cAddress(_i2cAddress) {}
+    CAT24C(i2c_inst_t *_i2c, uint8_t _i2cAddress) : i2c(_i2c), i2cAddress(_i2cAddress) {}
 
     bool connected();
     bool busy();
@@ -15,6 +15,6 @@ public:
     const uint16_t PAGE_SIZE = 64;
     const uint16_t PAGE_WRITE_MS = 5;
 protected:
-    arduino::MbedI2C &wire;
+    i2c_inst_t *i2c;
     uint8_t i2cAddress;
 };

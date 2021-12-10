@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Wire.h>
 #include "pcf8574.hpp"
 
 extern "C" {

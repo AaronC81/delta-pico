@@ -21,7 +21,7 @@ extern "C" {
 #define SOFTWARE_COLOR_DEPTH 16
 #endif
 
-#define IWIDTH  240
-#define IHEIGHT 320
+#define TFT_WIDTH  240
+#define TFT_HEIGHT 320
 
 extern const ButtonInput buttonMapping[7][7];

@@ -1,24 +1,19 @@
 #include "cat24c.hpp"
 
 bool CAT24C::connected() {
-    wire.beginTransmission(i2cAddress);
-    return !wire.endTransmission(i2cAddress);
+    i2c_write_blocking(i2c, i2cAddress, 0, 0, false) != PICO_ERROR_GENERIC;
 }
 
 bool CAT24C::busy() {
+    // When busy, the device essentially falls off the bus
     return !connected();
 }
 
 bool CAT24C::read(uint16_t address, uint8_t count, uint8_t *buffer) {
-    wire.beginTransmission(i2cAddress);
-    wire.write(address >> 8);
-    wire.write(address & 0xFF);
-    if (wire.endTransmission()) return false;
+    uint8_t bytes[] = { address >> 8, address & 0xFF };
+    if (i2c_write_blocking(i2c, i2cAddress, bytes, 2, false) != PICO_ERROR_GENERIC) return false;
 
-    wire.requestFrom(i2cAddress, count);
-    for (uint8_t i = 0; i < count; i++) {
-        buffer[i] = wire.read();
-    }
+    i2c_read_blocking(i2c, i2cAddress, buffer, count, false);
 
     return true;
 }
@@ -44,18 +39,20 @@ bool CAT24C::write(uint16_t address, uint8_t count, const uint8_t *buffer) {
 
         //See if EEPROM is available or still writing a previous request
         while (busy()) //Poll device
-            delayMicroseconds(100);          //This shortens the amount of time waiting between writes but hammers the I2C bus
+            sleep_us(100);          //This shortens the amount of time waiting between writes but hammers the I2C bus
 
-        wire.beginTransmission(i2cAddress);
-        wire.write((uint8_t)((address + recorded) >> 8));   // MSB
-        wire.write((uint8_t)((address + recorded) & 0xFF)); // LSB
+        uint8_t bytes[] = {
+            (uint8_t)((address + recorded) >> 8),
+            (uint8_t)((address + recorded) & 0xFF),
+        };
+        i2c_write_blocking(i2c, i2cAddress, bytes, 2, true);   // MSB
         for (uint8_t x = 0; x < amtToWrite; x++)
-            wire.write(buffer[recorded + x]);
-        if (wire.endTransmission()) return false; //Send stop condition
+            i2c_write_blocking(i2c, i2cAddress, &buffer[recorded + x], 1, true);
+        i2c_write_blocking(i2c, i2cAddress, NULL, 0, false);
 
         recorded += amtToWrite;
 
-        delay(PAGE_WRITE_MS); //Delay the amount of time to record a page
+        sleep_ms(PAGE_WRITE_MS); //Delay the amount of time to record a page
     }
 
     return true;
