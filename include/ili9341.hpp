@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include "hardware/spi.h"
 
+#include "hardware.hpp"
+
 class ILI9341Sprite {
 public:
     ILI9341Sprite(uint16_t _width, uint16_t _height) : width(_width), height(_height) {}
@@ -12,6 +14,10 @@ public:
 
     void fill(uint16_t colour);
     void drawRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t radius, bool filled, uint16_t colour);
+
+    inline void drawPixel(uint16_t x, uint16_t y, uint16_t colour) {
+        data[y * TFT_WIDTH + x] = colour;
+    }
 
     uint16_t width, height;
     uint16_t *data;
