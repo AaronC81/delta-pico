@@ -25,11 +25,11 @@ void ApplicationFramework::initialize() {
     );
 
     // Initialize I2C bus
+    i2c_init(i2c0, 100000);
     gpio_set_function(I2C_SDA_PIN, GPIO_FUNC_I2C);
     gpio_set_function(I2C_SCL_PIN, GPIO_FUNC_I2C);
     gpio_pull_up(I2C_SDA_PIN);
     gpio_pull_up(I2C_SCL_PIN);
-    i2c_init(i2c0, 1000000);
 
     _colPcf = new PCF8574(i2c0, I2C_EXPANDER_ADDRESS_1);
     _rowPcf = new PCF8574(i2c0, I2C_EXPANDER_ADDRESS_2);
