@@ -17,7 +17,9 @@ public:
     void drawRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t radius, bool filled, uint16_t colour);
 
     inline void drawPixel(uint16_t x, uint16_t y, uint16_t colour) {
-        data[y * TFT_WIDTH + x] = colour;
+        // Draw pixels with endianness flipped, since we assume this is the case when sending data
+        // to the screen later
+        data[y * TFT_WIDTH + x] = ((colour & 0xFF) << 8) | ((colour & 0xFF00) >> 8);
     }
 
     uint16_t width, height;
