@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include "hardware/spi.h"
+#include "hardware/gpio.h"
 
 #include "hardware.hpp"
 
@@ -36,6 +37,18 @@ public:
 
     void writeData(uint8_t d);
     void writeCommand(uint8_t c);
+
+    inline void writeDataFastBegin() {
+        gpio_put(dc, 1);
+    }
+
+    inline void writeDataFast(uint8_t d) {
+        spi_write_blocking(spi0, &d, 1);
+    }
+
+    inline void writeDataFastMultiple(uint8_t *d, size_t len) {
+        spi_write_blocking(spi0, d, len);
+    }
 
 protected:
     spi_inst_t *spi;

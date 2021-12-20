@@ -1,8 +1,5 @@
 #include "ili9341.hpp"
 
-#include "hardware/gpio.h"
-#include "hardware/spi.h"
-
 void ILI9341Sprite::allocate() {
     data = new uint16_t[width * height];
 }
@@ -129,10 +126,10 @@ void ILI9341::drawSprite(uint16_t x, uint16_t y, ILI9341Sprite *sprite) {
 
     // RAMRW
     writeCommand(0x2C);
-    for (int i = 0; i < sprite->width * sprite->height; i++) {
-        uint16_t datum = sprite->data[i];
-        writeData((datum & 0xFF00) >> 8);
-        writeData(datum & 0xFF);
+
+    writeDataFastBegin();
+    for (int i = 0; i < sprite->height; i++) {
+        writeDataFastMultiple(((uint8_t*)sprite->data) + (i * sprite->width * 2), sprite->width * 2);
     }
 }
 
