@@ -1,7 +1,10 @@
 #include "cat24c.hpp"
 
 bool CAT24C::connected() {
-    i2c_write_blocking(i2c, i2cAddress, 0, 0, false) != PICO_ERROR_GENERIC;
+    // TODO: I think 0-byte writes are invalid in the Pico SDK
+    // https://github.com/raspberrypi/pico-sdk/blob/master/src/rp2_common/hardware_i2c/i2c.c#L141
+    // There is a bus_scan example, maybe look at what that does
+    return i2c_write_blocking(i2c, i2cAddress, 0, 0, false) != PICO_ERROR_GENERIC;
 }
 
 bool CAT24C::busy() {
