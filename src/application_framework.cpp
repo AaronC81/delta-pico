@@ -34,7 +34,7 @@ void ApplicationFramework::initialize() {
     _colPcf = new PCF8574(i2c0, I2C_EXPANDER_ADDRESS_1);
     _rowPcf = new PCF8574(i2c0, I2C_EXPANDER_ADDRESS_2);
     _buttons = new ButtonMatrix(*_rowPcf, *_colPcf);
-    // _screenSprite = newSprite(TFT_WIDTH, TFT_HEIGHT); TODO
+    _screenSprite = _tft->createSprite(TFT_WIDTH, TFT_HEIGHT);
     _sprite = _screenSprite;
     _storage = new CAT24C(i2c0, CAT24C_ADDRESS);
 
@@ -60,6 +60,7 @@ ILI9341Sprite* ApplicationFramework::newSprite(int16_t width, int16_t height) {
 }
 
 void ApplicationFramework::freeSprite(ILI9341Sprite *sprite) {
+    sprite->free();
     delete sprite;
 }
 

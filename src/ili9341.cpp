@@ -3,12 +3,28 @@
 #include "hardware/gpio.h"
 #include "hardware/spi.h"
 
+#include "hardware.hpp"
+
 void ILI9341Sprite::allocate() {
     data = new uint16_t[width * height];
 }
 
 void ILI9341Sprite::free() {
     delete data;
+}
+
+void ILI9341Sprite::fill(uint16_t colour) {
+    drawRect(0, 0, TFT_WIDTH, TFT_HEIGHT, 0, true, colour);
+}
+
+void ILI9341Sprite::drawRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t radius, bool filled, uint16_t colour) {
+    // TODO: radius is ignored
+    // TODO: filled is ignored
+    for (uint16_t ix = 0; ix < w; ix++) {
+        for (uint16_t iy = 0; iy < h; iy++) {
+            data[(y + iy) * TFT_WIDTH + (ix + x)] = colour;
+        }
+    }
 }
 
 void ILI9341::begin() {
@@ -96,8 +112,28 @@ ILI9341Sprite* ILI9341::createSprite(uint16_t width, uint16_t height) {
 }
 
 void ILI9341::drawSprite(uint16_t x, uint16_t y, ILI9341Sprite *sprite) {
-    // TODO
-    return;
+    uint16_t x2 = x + sprite->width + 1;
+    uint16_t y2 = y + sprite->height + 1;
+
+    // CASET
+    writeCommand(0x2A);
+    writeData((x & 0xFF00) >> 8);
+    writeData(x & 0x00FF);
+    writeData((x2 & 0xFF00) >> 8);
+    writeData(x2 & 0x00FF);
+
+    // PASET
+    writeCommand(0x2B); 
+    writeData((y & 0xFF00) >> 8);
+    writeData(y & 0x00FF);
+    writeData((y2 & 0xFF00) >> 8);
+    writeData(y2 & 0x00FF);
+
+    // RAMRW
+    writeCommand(0x2C);
+    for (int i = 0; i < sprite->width * sprite->height * 2; i++) {
+        writeData(((uint8_t*)sprite->data)[i]);
+    }
 }
 
 void ILI9341::writeCommand(uint8_t c) {

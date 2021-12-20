@@ -10,9 +10,11 @@ public:
     void allocate();
     void free();
 
-protected:
-    uint16_t *data;
+    void fill(uint16_t colour);
+    void drawRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t radius, bool filled, uint16_t colour);
+
     uint16_t width, height;
+    uint16_t *data;
 };
 
 class ILI9341 {

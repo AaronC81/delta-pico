@@ -8,40 +8,44 @@ extern "C" {
 }
 
 void displayFillScreen(uint16_t colour) {
-    //ApplicationFramework::instance.sprite().fillScreen(colour);
+  ApplicationFramework::instance.sprite().fill(colour);
 }
 
 void displayDrawLine(int64_t x1, int64_t y1, int64_t x2, int64_t y2, uint16_t colour) {
-    //ApplicationFramework::instance.sprite().drawLine(x1, y1, x2, y2, colour);
+  // TODO
+  // ApplicationFramework::instance.sprite().drawLine(x1, y1, x2, y2, colour);
 }
 
 void displayDrawChar(int64_t x, int64_t y, uint8_t c) {
-    // ApplicationFramework::instance.sprite().setCursor(x, y);
-    // ApplicationFramework::instance.sprite().print((char)c);
+  // TODO
+  // ApplicationFramework::instance.sprite().setCursor(x, y);
+  // ApplicationFramework::instance.sprite().print((char)c);
 }
 
-void displayDrawRect(int64_t x, int64_t y, int64_t w, int64_t h, uint16_t colour, bool fill, uint16_t radius) {
-  // if (fill) {
-  //   ApplicationFramework::instance.sprite().fillRoundRect(x, y, w, h, radius, colour);
-  // } else {
-  //   ApplicationFramework::instance.sprite().drawRoundRect(x, y, w, h, radius, colour);
-  // }
+void displayDrawRect(int64_t x, int64_t y, int64_t w, int64_t h, uint16_t colour, bool filled, uint16_t radius) {
+  ApplicationFramework::instance.sprite().drawRect(x, y, w, h, radius, filled, colour);
 }
 
 void displayPrint(const uint8_t *s) {
+  // TODO
   // ApplicationFramework::instance.sprite().print((char*)s);
 }
 
 void displaySetCursor(int64_t x, int64_t y) {
+  // TODO
   // ApplicationFramework::instance.sprite().setCursor(x, y);
 }
 
 void displayGetCursor(int64_t *x, int64_t *y) {
+  // TODO
   // *x = ApplicationFramework::instance.sprite().getCursorX();
   // *y = ApplicationFramework::instance.sprite().getCursorY();
+  *x = 0;
+  *y = 0;
 }
 
 void displayDrawBitmap(int64_t sx, int64_t sy, uint16_t *bitmap) {
+  // TODO
   // if (bitmap == nullptr) return;
 
   // uint16_t width = bitmap[0];
@@ -75,7 +79,7 @@ void displayDrawBitmap(int64_t sx, int64_t sy, uint16_t *bitmap) {
 }
 
 void displayDraw() {
-  // ApplicationFramework::instance.draw();
+  ApplicationFramework::instance.draw();
 }
 
 bool buttonsWaitInputEvent(ButtonInput *input, ButtonEvent *event) {
@@ -211,43 +215,11 @@ int main() {
   // pinMode(A3, INPUT);
 
   ApplicationFramework::instance.initialize();
-  // delta_pico_set_framework(&framework_interface);
+  delta_pico_set_framework(&framework_interface);
 
-  // ILI9341 tft(
-  //     spi0,
-  //     0, // MISO
-  //     3, // MOSI
-  //     2, // SCLK
-  //     5, // DC
-  //     4, // CS
-  //     6, // RST
-  //     28 // Power
-  // );
-  // tft.begin();
-
-  // Draw test rectangle
-  uint16_t x = 20;
-  uint16_t y = 20;
-  uint16_t x2 = 39;
-  uint16_t y2 = 39;
-  uint16_t c = 0xAB;
-
-  ApplicationFramework::instance.tft().writeCommand(0x2A); // CASET
-  ApplicationFramework::instance.tft().writeData((x & 0xFF00) >> 8);
-  ApplicationFramework::instance.tft().writeData(x & 0x00FF);
-  ApplicationFramework::instance.tft().writeData((x2 & 0xFF00) >> 8);
-  ApplicationFramework::instance.tft().writeData(x2 & 0x00FF);
-
-  ApplicationFramework::instance.tft().writeCommand(0x2B); // PASET
-  ApplicationFramework::instance.tft().writeData((y & 0xFF00) >> 8);
-  ApplicationFramework::instance.tft().writeData(y & 0x00FF);
-  ApplicationFramework::instance.tft().writeData((y2 & 0xFF00) >> 8);
-  ApplicationFramework::instance.tft().writeData(y2 & 0x00FF);
-
-  ApplicationFramework::instance.tft().writeCommand(0x2C); // RAMRW
-  for (int i = 0; i < 20 * 20 * 2; i++) {
-      ApplicationFramework::instance.tft().writeData(c);
-  }
+  ApplicationFramework::instance.sprite().fill(0);
+  ApplicationFramework::instance.sprite().drawRect(60, 60, 20, 10, 0, true, 0xABAB);
+  ApplicationFramework::instance.draw();
 
   delta_pico_main();
 }
