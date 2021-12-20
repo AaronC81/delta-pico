@@ -41,11 +41,6 @@ void ApplicationFramework::initialize() {
     _buttons->begin();
     _tft->begin();
 
-    // TODO
-    // _tft->fillScreen(TFT_BLACK);
-    // _tft->initDMA();
-    // _tft->setRotation(0);
-
     switchToScreen();
 
     _initialized = true;
