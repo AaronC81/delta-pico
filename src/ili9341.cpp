@@ -65,15 +65,15 @@ void ILI9341Sprite::drawChar(char character) {
                 int8_t fontB = (fontColour & 0b0000000000011111);
 
                 // 4bpp = 16 steps
-                // TODO: would probably be faster to use a larger integer (e.g. multiplied by 256)
-                // and truncate later
-                float stepR = (float)(backgroundR - fontR) / 16;
-                float stepG = (float)(backgroundG - fontG) / 16;
-                float stepB = (float)(backgroundB - fontB) / 16;
+                // Multiply integers by 8 while we're working with them, so that we have room to
+                // spare on the truncating division
+                int16_t stepR = (backgroundR * 8 - fontR * 8) / 16;
+                int16_t stepG = (backgroundG * 8 - fontG * 8) / 16;
+                int16_t stepB = (backgroundB * 8 - fontB * 8) / 16;
 
-                int8_t compositedR = (int8_t)(backgroundR - stepR * alphaNibble);
-                int8_t compositedG = (int8_t)(backgroundG - stepG * alphaNibble);
-                int8_t compositedB = (int8_t)(backgroundB - stepB * alphaNibble);
+                int8_t compositedR = (int8_t)(backgroundR - (stepR * alphaNibble) / 8);
+                int8_t compositedG = (int8_t)(backgroundG - (stepG * alphaNibble) / 8);
+                int8_t compositedB = (int8_t)(backgroundB - (stepB * alphaNibble) / 8);
 
                 uint16_t colour = ((uint16_t)compositedR << 11) | ((uint16_t)compositedG << 5) | ((uint16_t)compositedB);
                 drawPixel(cursorX + x, cursorY + y, colour);
