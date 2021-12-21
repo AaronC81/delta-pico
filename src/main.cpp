@@ -3,6 +3,9 @@
 
 #include "pico/time.h"
 #include "pico/stdlib.h"
+#include "hardware/gpio.h"
+#include "hardware/adc.h"
+
 #include <stdio.h>
 
 extern "C" {
@@ -115,12 +118,11 @@ auto framework_interface = ApplicationFrameworkInterface {
   .millis = []() -> uint32_t { return to_ms_since_boot(get_absolute_time()); },
   .micros = []() -> uint32_t { return to_us_since_boot(get_absolute_time()); },
   .charge_status = []() -> int32_t {
-    // TODO
-    // int adcReading = analogRead(A3);
-    int adcReading = 50;
-
-    // Divide by resolution, times by Pico logical voltage, times by 3
+    // Read from Pico's VSYS ADC
+    // Then divide by resolution, times by Pico logical voltage, times by 3
     // (Voltage is divided by 3 - see Pico Datasheet section 4.4) 
+    adc_select_input(3);
+    int adcReading = adc_read();
     float voltage = ((float)adcReading / 1024.0) * 3.3 * 3;
 
     // Source: https://phantompilots.com/threads/how-does-lipo-voltage-relate-to-percent.13597/
@@ -209,8 +211,8 @@ auto framework_interface = ApplicationFrameworkInterface {
 };
 
 int main() {
-  // TODO
-  // pinMode(A3, INPUT);
+  stdio_init_all();
+  adc_init();
 
   ApplicationFramework::instance.initialize();
   delta_pico_set_framework(&framework_interface);
