@@ -23,9 +23,6 @@ void ILI9341Sprite::drawRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uin
 }
 
 void ILI9341Sprite::drawChar(char character) {
-    // TODO: Aliasing needs to be relative to underlying colour, not black
-    // TODO: fontColour is ignored
-
     // Special case - move down by the height of one character
     if (character == '\n') {
         cursorX = 0;
@@ -42,18 +39,43 @@ void ILI9341Sprite::drawChar(char character) {
     size_t idx = 2;
     for (int x = 0; x < characterBitmap[0]; x++) {
         for (int y = 0; y < characterBitmap[1]; y++) {
-            uint8_t colourNibble;
+            uint8_t alphaNibble;
             if (lowerByte) {
-                colourNibble = characterBitmap[idx] & 0xF;
+                alphaNibble = characterBitmap[idx] & 0xF;
                 lowerByte = false;
                 idx++;
             } else {
-                colourNibble = (characterBitmap[idx] & 0xF0) >> 4;
+                alphaNibble = (characterBitmap[idx] & 0xF0) >> 4;
                 lowerByte = true;
             }
 
-            if (colourNibble != 0) {
-                uint16_t colour = (colourNibble << 12) | (colourNibble << 7) | (colourNibble << 1);
+            if (alphaNibble != 0) {
+                // Interpolate between the existing pixel (background colour) and the text colour,
+                // using the font's alpha for this pixel, to make the anti-aliasing look good!
+                // This is effectively alpha compositing, but it's a really simple case of it, since
+                // our background always has maximum alpha.
+
+                uint16_t backgroundColour = getPixel(cursorX + x, cursorY + y);
+                int8_t backgroundR = (backgroundColour & 0b1111100000000000) >> 11;
+                int8_t backgroundG = (backgroundColour & 0b0000011111100000) >> 5;
+                int8_t backgroundB = (backgroundColour & 0b0000000000011111);
+
+                int8_t fontR = (fontColour & 0b1111100000000000) >> 11;
+                int8_t fontG = (fontColour & 0b0000011111100000) >> 5;
+                int8_t fontB = (fontColour & 0b0000000000011111);
+
+                // 4bpp = 16 steps
+                // TODO: would probably be faster to use a larger integer (e.g. multiplied by 256)
+                // and truncate later
+                float stepR = (float)(backgroundR - fontR) / 16;
+                float stepG = (float)(backgroundG - fontG) / 16;
+                float stepB = (float)(backgroundB - fontB) / 16;
+
+                int8_t compositedR = (int8_t)(backgroundR - stepR * alphaNibble);
+                int8_t compositedG = (int8_t)(backgroundG - stepG * alphaNibble);
+                int8_t compositedB = (int8_t)(backgroundB - stepB * alphaNibble);
+
+                uint16_t colour = ((uint16_t)compositedR << 11) | ((uint16_t)compositedG << 5) | ((uint16_t)compositedB);
                 drawPixel(cursorX + x, cursorY + y, colour);
             }
         }

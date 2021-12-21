@@ -28,6 +28,16 @@ public:
         }
     }
 
+    inline uint16_t getPixel(uint16_t x, uint16_t y) {
+        if (x < TFT_WIDTH && y < TFT_HEIGHT) {
+            // Correct endianness after drawPixel flips it
+            uint16_t colour = data[y * TFT_WIDTH + x];
+            return ((colour & 0xFF) << 8) | ((colour & 0xFF00) >> 8);
+        } else {
+            return 0;
+        }
+    }
+
     uint16_t width, height, cursorX, cursorY, fontColour;
     uint8_t **font;
     uint16_t *data;
