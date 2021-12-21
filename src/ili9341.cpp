@@ -26,6 +26,13 @@ void ILI9341Sprite::drawChar(char character) {
     // TODO: Aliasing needs to be relative to underlying colour, not black
     // TODO: fontColour is ignored
 
+    // Special case - move down by the height of one character
+    if (character == '\n') {
+        cursorX = 0;
+        cursorY += font['A'][1];
+        return;
+    }
+
     uint8_t *characterBitmap = font[character];
     if (characterBitmap == NULL) return;
 
