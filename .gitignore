@@ -12,3 +12,4 @@ cad/*/*.kicad_prl
 .DS_Store
 cad/*/_autosave-*
 build
+__pycache__
