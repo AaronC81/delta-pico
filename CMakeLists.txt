@@ -24,7 +24,7 @@ add_executable(delta-pico
   src/pcf8574.cpp
 )
 
-include_directories(include res rust/target/include)
+include_directories(include res font rust/target/include)
 
 # Make the stdio functions use USB rather than the serial pins
 pico_enable_stdio_usb(delta-pico 1)
@@ -44,5 +44,6 @@ target_link_libraries(delta-pico
   ${CMAKE_CURRENT_SOURCE_DIR}/rust/target/thumbv6m-none-eabi/release/libdelta_pico_rust.a
 )
 
-# Build resources
+# Build resources and fonts
 add_custom_target(build_res ALL COMMAND python3 ../build_res.py)
+add_custom_target(build_font ALL COMMAND python3 ../build_font.py)

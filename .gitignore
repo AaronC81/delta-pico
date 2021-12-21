@@ -3,6 +3,7 @@
 test/bin
 rust/target
 res/*.h
+font/*.h
 cad/*/gerbers
 cad/*/*cache*
 cad/*/*-bak
