@@ -220,6 +220,7 @@ int main() {
   ApplicationFramework::instance.sprite().fill(0);
   ApplicationFramework::instance.sprite().drawRect(60, 60, 20, 10, 0, true, 0xABAB);
   ApplicationFramework::instance.sprite().font = (uint8_t**)droid_sans_20_font;
+  ApplicationFramework::instance.sprite().fontColour = 0xFFFF;
 
   ApplicationFramework::instance.draw();
 
