@@ -165,26 +165,26 @@ auto framework_interface = ApplicationFrameworkInterface {
     .width = TFT_WIDTH,
     .height = TFT_HEIGHT,
 
-    .new_sprite = [](int16_t w, int16_t h){ return (uint8_t*)ApplicationFramework::instance.newSprite(w, h); },
+    .new_sprite = [](int16_t w, int16_t h){
+      return (uint8_t*)ApplicationFramework::instance.newSprite(w, h);
+    },
     .free_sprite = [](uint8_t* s){
-      // TODO
-      // ApplicationFramework::instance.freeSprite((TFT_eSprite*)s);
+      ApplicationFramework::instance.freeSprite((ILI9341Sprite*)s);
     },
     .switch_to_sprite = [](uint8_t* s){
-      // TODO
-      // ApplicationFramework::instance.switchToSprite((TFT_eSprite*)s);
+      ApplicationFramework::instance.switchToSprite((ILI9341Sprite*)s);
     },
-    .switch_to_screen = []{ ApplicationFramework::instance.switchToScreen(); },
+    .switch_to_screen = []{
+      ApplicationFramework::instance.switchToScreen();
+    },
 
     .fill_screen = displayFillScreen,
     .draw_char = displayDrawChar,
     .draw_line = displayDrawLine,
     .draw_rect = displayDrawRect,
     .draw_sprite = [](int64_t x, int64_t y, uint8_t *s){
-      // auto sprite = (TFT_eSprite*)s;
-      // ApplicationFramework::instance.sprite().pushImage(
-      //   x, y, sprite->width(), sprite->height(), (uint16_t*)sprite->getPointer(), SOFTWARE_COLOR_DEPTH
-      // );
+      auto sprite = (ILI9341Sprite*)s;
+      ApplicationFramework::instance.sprite().drawSprite(x, y, sprite);
     },
     .draw_bitmap = [](int64_t x, int64_t y, const uint8_t* bitmap) {
       displayDrawBitmap(x, y, getBitmapByName((char*)bitmap));

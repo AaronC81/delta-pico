@@ -9,7 +9,7 @@ void ILI9341Sprite::free() {
 }
 
 void ILI9341Sprite::fill(uint16_t colour) {
-    drawRect(0, 0, TFT_WIDTH, TFT_HEIGHT, 0, true, colour);
+    drawRect(0, 0, width, height, 0, true, colour);
 }
 
 void ILI9341Sprite::drawRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t radius, bool filled, uint16_t colour) {
@@ -18,6 +18,18 @@ void ILI9341Sprite::drawRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uin
     for (uint16_t ix = 0; ix < w; ix++) {
         for (uint16_t iy = 0; iy < h; iy++) {
             drawPixel(x + ix, y + iy, colour);
+        }
+    }
+}
+
+void ILI9341Sprite::drawSprite(uint16_t x, uint16_t y, ILI9341Sprite *other) {
+    for (uint16_t ix = 0; ix < other->width; ix++) {
+        for (uint16_t iy = 0; iy < other->height; iy++) {
+            // Not using drawPixel because that would flip the endianness
+            // Because we're drawing from another sprite, the endianness was already flipped
+            if ((ix + x) < width && (iy + y) < height) {
+                data[(iy + y) * width + (ix + x)] = other->data[iy * other->width + ix];
+            }
         }
     }
 }
@@ -173,6 +185,7 @@ void ILI9341::begin() {
 ILI9341Sprite* ILI9341::createSprite(uint16_t width, uint16_t height) {
     auto sprite = new ILI9341Sprite(width, height);
     sprite->allocate();
+    sprite->fill(0);
     return sprite;
 }
 

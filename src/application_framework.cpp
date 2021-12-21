@@ -51,7 +51,13 @@ void ApplicationFramework::draw() {
 }
 
 ILI9341Sprite* ApplicationFramework::newSprite(int16_t width, int16_t height) {
-    return _tft->createSprite(width, height);
+    auto sprite = _tft->createSprite(width, height);
+
+    // Inherit font from screen sprite
+    sprite->font = _screenSprite->font;
+    sprite->fontColour = _screenSprite->fontColour;
+
+    return sprite;
 }
 
 void ApplicationFramework::freeSprite(ILI9341Sprite *sprite) {

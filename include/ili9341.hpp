@@ -16,22 +16,27 @@ public:
 
     void fill(uint16_t colour);
     void drawRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t radius, bool filled, uint16_t colour);
+    void drawSprite(uint16_t x, uint16_t y, ILI9341Sprite *other);
 
     void drawChar(char character);
     void drawString(char *str);
 
+    // TODO: for the screen sprite, checking `x < width && y < height` rather than
+    // `x < TFT_WIDTH && y < TFT_HEIGHT` costs us about 15ms of frame time!!
+    // Can we special-case/optimise this somehow for the screen sprite?
+
     inline void drawPixel(uint16_t x, uint16_t y, uint16_t colour) {
-        if (x < TFT_WIDTH && y < TFT_HEIGHT) {
+        if (x < width && y < height) {
             // Draw pixels with endianness flipped, since we assume this is the case when sending data
             // to the screen later
-            data[y * TFT_WIDTH + x] = ((colour & 0xFF) << 8) | ((colour & 0xFF00) >> 8);
+            data[y * width + x] = ((colour & 0xFF) << 8) | ((colour & 0xFF00) >> 8);
         }
     }
 
     inline uint16_t getPixel(uint16_t x, uint16_t y) {
-        if (x < TFT_WIDTH && y < TFT_HEIGHT) {
+        if (x < width && y < height) {
             // Correct endianness after drawPixel flips it
-            uint16_t colour = data[y * TFT_WIDTH + x];
+            uint16_t colour = data[y * width + x];
             return ((colour & 0xFF) << 8) | ((colour & 0xFF00) >> 8);
         } else {
             return 0;

@@ -389,7 +389,11 @@ impl CalculatorApplication {
 
             // Draw layout onto a new sprite
             let sprite = framework().display.new_sprite(
-                layout.area.width as u16, layout.area.height as u16
+                layout.area.width as u16,
+
+                // This was off-by-one after switching to my own ILI9341 library
+                // No idea why!!
+                layout.area.height as u16 + 1
             );
             framework().display.switch_to_sprite(&sprite);
             framework().rbop_location_x = 0;
