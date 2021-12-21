@@ -8,7 +8,8 @@
 
 class ILI9341Sprite {
 public:
-    ILI9341Sprite(uint16_t _width, uint16_t _height) : width(_width), height(_height) {}
+    ILI9341Sprite(uint16_t _width, uint16_t _height)
+        : width(_width), height(_height), cursorX(0), cursorY(0), fontColour(0) {}
 
     void allocate();
     void free();
@@ -16,13 +17,17 @@ public:
     void fill(uint16_t colour);
     void drawRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t radius, bool filled, uint16_t colour);
 
+    void drawChar(char character);
+    void drawString(char *str);
+
     inline void drawPixel(uint16_t x, uint16_t y, uint16_t colour) {
         // Draw pixels with endianness flipped, since we assume this is the case when sending data
         // to the screen later
         data[y * TFT_WIDTH + x] = ((colour & 0xFF) << 8) | ((colour & 0xFF00) >> 8);
     }
 
-    uint16_t width, height;
+    uint16_t width, height, cursorX, cursorY, fontColour;
+    uint8_t **font;
     uint16_t *data;
 };
 

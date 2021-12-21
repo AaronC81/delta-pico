@@ -2,9 +2,12 @@
 #include "bitmap.h"
 
 #include "pico/time.h"
+#include "pico/stdlib.h"
+#include <stdio.h>
 
 extern "C" {
   #include <delta_pico_rust.h>
+  #include <droid_sans_20.h>
 }
 
 void displayFillScreen(uint16_t colour) {
@@ -17,9 +20,9 @@ void displayDrawLine(int64_t x1, int64_t y1, int64_t x2, int64_t y2, uint16_t co
 }
 
 void displayDrawChar(int64_t x, int64_t y, uint8_t c) {
-  // TODO
-  // ApplicationFramework::instance.sprite().setCursor(x, y);
-  // ApplicationFramework::instance.sprite().print((char)c);
+  ApplicationFramework::instance.sprite().cursorX = x;
+  ApplicationFramework::instance.sprite().cursorY = y;
+  ApplicationFramework::instance.sprite().drawChar((char)c);
 }
 
 void displayDrawRect(int64_t x, int64_t y, int64_t w, int64_t h, uint16_t colour, bool filled, uint16_t radius) {
@@ -27,21 +30,17 @@ void displayDrawRect(int64_t x, int64_t y, int64_t w, int64_t h, uint16_t colour
 }
 
 void displayPrint(const uint8_t *s) {
-  // TODO
-  // ApplicationFramework::instance.sprite().print((char*)s);
+  ApplicationFramework::instance.sprite().drawString((char*)s);
 }
 
 void displaySetCursor(int64_t x, int64_t y) {
-  // TODO
-  // ApplicationFramework::instance.sprite().setCursor(x, y);
+  ApplicationFramework::instance.sprite().cursorX = x;
+  ApplicationFramework::instance.sprite().cursorY = y;
 }
 
 void displayGetCursor(int64_t *x, int64_t *y) {
-  // TODO
-  // *x = ApplicationFramework::instance.sprite().getCursorX();
-  // *y = ApplicationFramework::instance.sprite().getCursorY();
-  *x = 0;
-  *y = 0;
+  *x = ApplicationFramework::instance.sprite().cursorX;
+  *y = ApplicationFramework::instance.sprite().cursorY;
 }
 
 void displayDrawBitmap(int64_t sx, int64_t sy, uint16_t *bitmap) {
@@ -218,6 +217,8 @@ int main() {
 
   ApplicationFramework::instance.sprite().fill(0);
   ApplicationFramework::instance.sprite().drawRect(60, 60, 20, 10, 0, true, 0xABAB);
+  ApplicationFramework::instance.sprite().font = (uint8_t**)droid_sans_20_font;
+
   ApplicationFramework::instance.draw();
 
   delta_pico_main();

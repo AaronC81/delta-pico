@@ -22,6 +22,47 @@ void ILI9341Sprite::drawRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uin
     }
 }
 
+void ILI9341Sprite::drawChar(char character) {
+    // TODO: Aliasing needs to be relative to underlying colour, not black
+    // TODO: fontColour is ignored
+
+    uint8_t *characterBitmap = font[character];
+    if (characterBitmap == NULL) return;
+
+    // Each character is 4bpp;, so we maintain a flip-flopping boolean of whether to read the upper
+    // or lower byte
+    bool lowerByte = false;
+    size_t idx = 2;
+    for (int x = 0; x < characterBitmap[0]; x++) {
+        for (int y = 0; y < characterBitmap[1]; y++) {
+            uint8_t colourNibble;
+            if (lowerByte) {
+                colourNibble = characterBitmap[idx] & 0xF;
+                lowerByte = false;
+                idx++;
+            } else {
+                colourNibble = (characterBitmap[idx] & 0xF0) >> 4;
+                lowerByte = true;
+            }
+
+            if (colourNibble != 0) {
+                uint16_t colour = (colourNibble << 12) | (colourNibble << 7) | (colourNibble << 2);
+                drawPixel(cursorX + x, cursorY + y, colour);
+            }
+        }
+    }
+
+    cursorX += characterBitmap[0];
+}
+
+void ILI9341Sprite::drawString(char *str) {
+    size_t idx = 0;
+    while (str[idx]) {
+        drawChar(str[idx]);
+        idx++;
+    }
+}
+
 void ILI9341::begin() {
     // Turn on display
     gpio_init(power);
