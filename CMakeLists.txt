@@ -31,7 +31,7 @@ pico_enable_stdio_usb(delta-pico 1)
 pico_enable_stdio_uart(delta-pico 0)
 
 # Pull in our pico_stdlib which pulls in commonly used features
-target_link_libraries(delta-pico pico_stdlib hardware_spi hardware_i2c pico_time)
+target_link_libraries(delta-pico pico_stdlib hardware_spi hardware_i2c hardware_adc pico_time)
 
 # create map/bin/hex file etc.
 pico_add_extra_outputs(delta-pico)
