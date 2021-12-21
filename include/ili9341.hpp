@@ -21,9 +21,11 @@ public:
     void drawString(char *str);
 
     inline void drawPixel(uint16_t x, uint16_t y, uint16_t colour) {
-        // Draw pixels with endianness flipped, since we assume this is the case when sending data
-        // to the screen later
-        data[y * TFT_WIDTH + x] = ((colour & 0xFF) << 8) | ((colour & 0xFF00) >> 8);
+        if (x < TFT_WIDTH && y < TFT_HEIGHT) {
+            // Draw pixels with endianness flipped, since we assume this is the case when sending data
+            // to the screen later
+            data[y * TFT_WIDTH + x] = ((colour & 0xFF) << 8) | ((colour & 0xFF00) >> 8);
+        }
     }
 
     uint16_t width, height, cursorX, cursorY, fontColour;
