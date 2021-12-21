@@ -59,7 +59,7 @@ void ILI9341Sprite::drawChar(char character) {
         }
     }
 
-    cursorX += characterBitmap[0];
+    cursorX += characterBitmap[0] - 1;
 }
 
 void ILI9341Sprite::drawString(char *str) {
