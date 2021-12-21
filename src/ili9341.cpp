@@ -53,7 +53,7 @@ void ILI9341Sprite::drawChar(char character) {
             }
 
             if (colourNibble != 0) {
-                uint16_t colour = (colourNibble << 12) | (colourNibble << 7) | (colourNibble << 2);
+                uint16_t colour = (colourNibble << 12) | (colourNibble << 7) | (colourNibble << 1);
                 drawPixel(cursorX + x, cursorY + y, colour);
             }
         }
