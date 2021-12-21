@@ -108,9 +108,7 @@ bool storageRead(uint16_t address, uint8_t count, uint8_t *buffer) {
 }
 
 void debugHandler(const uint8_t *message) {
-  // if (Serial.available()) {
-  //   Serial.println((const char*)message);
-  // }
+  printf("%s\n", message);
 }
 
 auto framework_interface = ApplicationFrameworkInterface {
