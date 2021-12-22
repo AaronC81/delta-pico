@@ -23,6 +23,33 @@ void ILI9341Sprite::draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, ui
     }
 }
 
+void ILI9341Sprite::draw_line(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t colour) {
+    // We expect the 1s to be lower than the 2s - if not, swap them
+    if (x1 > x2) {
+        int tmp = x2;
+        x1 = x2;
+        x2 = x1;
+    }
+    if (y1 > y2) {
+        int tmp = y2;
+        y1 = y2;
+        y2 = y1;
+    }
+
+    // Only horizontal and vertical lines supported, but the OS doesn't need to draw anything else
+    if (y1 == y2) {
+        // Horizontal
+        for (int x = x1; x < x2; x++) {
+            draw_pixel(x, y1, colour);
+        }
+    } else if (x1 == x2) {
+        // Vertical
+        for (int y = y1; y < y2; y++) {
+            draw_pixel(x1, y, colour);
+        }
+    }
+}
+
 void ILI9341Sprite::draw_sprite(uint16_t x, uint16_t y, ILI9341Sprite *other) {
     for (uint16_t ix = 0; ix < other->width; ix++) {
         for (uint16_t iy = 0; iy < other->height; iy++) {

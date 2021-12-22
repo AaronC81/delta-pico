@@ -122,7 +122,7 @@ auto framework_interface = ApplicationFrameworkInterface {
       sprite->draw_char((char)c);
     },
     .draw_line = [](int64_t x1, int64_t y1, int64_t x2, int64_t y2, uint16_t colour) {
-      // TODO
+      sprite->draw_line(x1, y1, x2, y2, colour);
     },
     .draw_rect = [](int64_t x, int64_t y, int64_t w, int64_t h, uint16_t colour, bool filled, uint16_t radius) {
       sprite->draw_rect(x, y, w, h, radius, filled, colour);

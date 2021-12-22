@@ -16,6 +16,7 @@ public:
 
     void fill(uint16_t colour);
     void draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t radius, bool filled, uint16_t colour);
+    void draw_line(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t colour);
     void draw_sprite(uint16_t x, uint16_t y, ILI9341Sprite *other);
     void draw_bitmap(uint16_t x, uint16_t y, uint16_t *bitmap);
 
