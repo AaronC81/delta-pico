@@ -16,6 +16,8 @@ void ILI9341Sprite::fill(uint16_t colour) {
 void ILI9341Sprite::draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t radius, bool filled, uint16_t colour) {
     // TODO: radius is ignored
     // TODO: filled is ignored
+    if (!filled) return;
+
     for (uint16_t ix = 0; ix < w; ix++) {
         for (uint16_t iy = 0; iy < h; iy++) {
             draw_pixel(x + ix, y + iy, colour);
