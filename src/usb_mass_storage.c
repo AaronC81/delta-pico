@@ -135,8 +135,8 @@ void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16
 
 // Callback when host asks for capacity of our LUN
 void tud_msc_capacity_cb(uint8_t lun, uint32_t* block_count, uint16_t* block_size) {
-    *block_count = DISK_BLOCK_NUM;
-    *block_size  = DISK_BLOCK_SIZE;
+    *block_count = USB_MASS_STORAGE_BLOCK_NUM;
+    *block_size  = USB_MASS_STORAGE_BLOCK_SIZE;
 }
 
 // Invoked when received Start Stop Unit command
@@ -159,7 +159,7 @@ bool tud_msc_start_stop_cb(uint8_t lun, uint8_t power_condition, bool start, boo
 int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void* buffer, uint32_t bufsize) {
     // Unsure why *reads* need to check capacity, but the TinyUSB example put this here, so I won't
     // touch it!
-    if (lba >= DISK_BLOCK_NUM) return -1;
+    if (lba >= USB_MASS_STORAGE_BLOCK_NUM) return -1;
     
     // Copy data into library-provided buffer
     uint8_t const* addr = (*usb_mass_storage_fat12_filesystem)[lba] + offset;
@@ -173,7 +173,7 @@ int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void* buff
 int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t* buffer, uint32_t bufsize)
 {
     // Error if we're run out of capacity (host tries to write to a block we don't have)
-    if (lba >= DISK_BLOCK_NUM) return -1;
+    if (lba >= USB_MASS_STORAGE_BLOCK_NUM) return -1;
 
     // Copy buffer into our filesystem
     uint8_t* addr = (*usb_mass_storage_fat12_filesystem)[lba] + offset;

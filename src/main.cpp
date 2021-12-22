@@ -204,10 +204,10 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
     "Your Delta Pico is mounted as USB flash storage. Add, edit, or remove files, " \
     "then eject the drive in your operating system."
 
-uint8_t default_fat12_fs[DISK_BLOCK_NUM][DISK_BLOCK_SIZE] =
+uint8_t default_fat12_fs[USB_MASS_STORAGE_BLOCK_NUM][USB_MASS_STORAGE_BLOCK_SIZE] =
 {
     //------------- Block0: Boot Sector -------------//
-    // byte_per_sector    = DISK_BLOCK_SIZE; fat12_sector_num_16  = DISK_BLOCK_NUM;
+    // byte_per_sector    = USB_MASS_STORAGE_BLOCK_SIZE; fat12_sector_num_16  = USB_MASS_STORAGE_BLOCK_NUM;
     // sector_per_cluster = 1; reserved_sectors = 1;
     // fat_num            = 1; fat12_root_entry_num = 16;
     // sector_per_fat     = 1; sector_per_track = 1; head_num = 1; hidden_sectors = 0;
