@@ -162,7 +162,7 @@ int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void* buff
     if (lba >= USB_MASS_STORAGE_BLOCK_NUM) return -1;
     
     // Copy data into library-provided buffer
-    uint8_t const* addr = (*usb_mass_storage_fat12_filesystem)[lba] + offset;
+    uint8_t const* addr = usb_mass_storage_fat12_filesystem + (lba * USB_MASS_STORAGE_BLOCK_SIZE) + offset;
     memcpy(buffer, addr, bufsize);
 
     return bufsize;
@@ -176,7 +176,7 @@ int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t* 
     if (lba >= USB_MASS_STORAGE_BLOCK_NUM) return -1;
 
     // Copy buffer into our filesystem
-    uint8_t* addr = (*usb_mass_storage_fat12_filesystem)[lba] + offset;
+    uint8_t* addr = usb_mass_storage_fat12_filesystem + (lba * USB_MASS_STORAGE_BLOCK_SIZE) + offset;
     memcpy(addr, buffer, bufsize);
 
     return bufsize;
