@@ -1,5 +1,7 @@
 #include "cat24c.hpp"
 
+#include <string.h>
+
 bool CAT24C::connected() {
     uint8_t b;
     return i2c_read_blocking(i2c, i2cAddress, &b, 1, false) != PICO_ERROR_GENERIC;
@@ -42,14 +44,12 @@ bool CAT24C::write(uint16_t address, uint8_t count, const uint8_t *buffer) {
         while (busy()) //Poll device
             sleep_us(100);          //This shortens the amount of time waiting between writes but hammers the I2C bus
 
-        uint8_t bytes[] = {
-            (uint8_t)((address + recorded) >> 8),
-            (uint8_t)((address + recorded) & 0xFF),
-        };
-        i2c_write_blocking(i2c, i2cAddress, bytes, 2, true);   // MSB
-        for (uint8_t x = 0; x < amtToWrite; x++)
-            i2c_write_blocking(i2c, i2cAddress, &buffer[recorded + x], 1, true);
-        i2c_write_blocking(i2c, i2cAddress, NULL, 0, false);
+        uint8_t write_buffer[count + 2];
+        write_buffer[0] = (uint8_t)((address + recorded) >> 8);
+        write_buffer[1] = (uint8_t)((address + recorded) & 0xFF);
+        memcpy(write_buffer + 2, buffer, count);
+
+        if (i2c_write_blocking(i2c, i2cAddress, write_buffer, count + 2, false) != count + 2) return false;
 
         recorded += amtToWrite;
 

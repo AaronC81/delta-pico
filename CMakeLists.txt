@@ -17,7 +17,6 @@ pico_sdk_init()
 add_executable(delta-pico
   src/main.cpp
   src/hardware.cpp
-  src/application_framework.cpp
   src/button_matrix.cpp
   src/cat24c.cpp
   src/ili9341.cpp
