@@ -76,9 +76,19 @@ name = "delta-pico-rust"
 version = "0.1.0"
 dependencies = [
  "cbindgen",
+ "fatfs",
  "rand 0.4.6",
  "rbop",
  "rust_decimal",
+]
+
+[[package]]
+name = "fatfs"
+version = "0.4.0"
+source = "git+https://github.com/rafalh/rust-fatfs#87fc1ed5074a32b4e0344fcdde77359ef9e75432"
+dependencies = [
+ "bitflags",
+ "log",
 ]
 
 [[package]]

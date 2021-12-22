@@ -5,8 +5,8 @@ extern crate alloc;
 
 mod c_allocator;
 
-use core::panic::PanicInfo;
-use alloc::{format, string::String, vec::Vec, vec};
+use core::{panic::PanicInfo, cell::RefCell};
+use alloc::{format, string::String, vec::Vec, vec, rc::Rc};
 use c_allocator::CAllocator;
 
 mod interface;
@@ -17,6 +17,7 @@ mod filesystem;
 mod timer;
 mod multi_tap;
 
+use fatfs::{FileSystem, FsOptions, Write, IoBase, Read, Seek};
 use interface::framework;
 use operating_system::os;
 
@@ -66,6 +67,52 @@ fn debug(info: String) {
     message_bytes.push(0);
 
     (framework().debug_handler)(message_bytes.as_ptr());
+}
+
+struct VecFS {
+    vec: Rc<RefCell<Vec<u8>>>,
+    ptr: usize,
+}
+
+impl IoBase for VecFS {
+    type Error = ();
+}
+
+impl Write for VecFS {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+        for i in 0..buf.len() {
+            self.vec.borrow_mut()[self.ptr] = buf[i];
+            self.ptr += 1;
+        }
+
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> Result<(), Self::Error> {
+        Ok(())
+    }
+}
+
+impl Read for VecFS {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+        for i in 0..buf.len() {
+            buf[i] = self.vec.borrow_mut()[self.ptr];
+            self.ptr += 1;
+        }
+
+        Ok(buf.len())
+    }
+}
+
+impl Seek for VecFS {
+    fn seek(&mut self, pos: fatfs::SeekFrom) -> Result<u64, Self::Error> {
+        match pos {
+            fatfs::SeekFrom::Start(x) => self.ptr = x as usize,
+            fatfs::SeekFrom::End(x) => self.ptr = self.vec.borrow().len() + x as usize - 1,
+            fatfs::SeekFrom::Current(x) => self.ptr += x as usize,
+        }
+        Ok(self.ptr as u64)
+    }
 }
 
 #[no_mangle]
@@ -152,7 +199,12 @@ pub extern "C" fn delta_pico_main() {
     // Add README.txt file content
     fat12_fs.splice((block_size * 3)..(block_size * 4 - 1), readme.as_bytes().iter().copied());
 
-    framework().usb_mass_storage.fat12_filesystem = fat12_fs.as_mut_ptr();
+    let fat12_fs = Rc::new(RefCell::new(fat12_fs));
+    let wrapper = VecFS { vec: fat12_fs.clone(), ptr: 0 };
+    let fs = FileSystem::new(wrapper, FsOptions::new()).unwrap();
+    fs.root_dir().create_file("test.txt").unwrap().write(&[b'w']).unwrap();
+
+    framework().usb_mass_storage.fat12_filesystem = fat12_fs.borrow_mut().as_mut_ptr();
 
 
     loop {
