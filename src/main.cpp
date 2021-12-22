@@ -13,6 +13,9 @@
 
 #include <stdio.h>
 
+#include "tusb_config.h"
+#include "tusb.h"
+
 extern "C" {
   #include <delta_pico_rust.h>
   #include <droid_sans_20.h>
@@ -153,9 +156,11 @@ auto framework_interface = ApplicationFrameworkInterface {
 
   .buttons = ButtonsInterface {
     .wait_input_event = [](ButtonInput *input, ButtonEvent *event) {
+      tud_task();
       return buttons.get_event_input(*input, *event, true);
     },
     .immediate_input_event = [](ButtonInput *input, ButtonEvent *event) {
+      tud_task();
       return buttons.get_event_input(*input, *event, false);
     },
   },
@@ -175,7 +180,7 @@ auto framework_interface = ApplicationFrameworkInterface {
 
 int main() {
   // Initialize IO and ADC
-  stdio_init_all();
+  // stdio_init_all();
   adc_init();
 
   // Initialize I2C bus
@@ -198,5 +203,43 @@ int main() {
 
   // Pass the Rust side our HAL struct and let it take over
   delta_pico_set_framework(&framework_interface);
+
+  // TEMPORARY
+  // Just do USB stuff
+  tusb_init();
+  while (1) {
+    tud_task();
+  }
+
   delta_pico_main();
+}
+
+
+// Invoked when device is mounted
+void tud_mount_cb(void)
+{
+}
+
+// Invoked when device is unmounted
+void tud_umount_cb(void)
+{
+}
+
+// Invoked when usb bus is suspended
+// remote_wakeup_en : if host allow us  to perform remote wakeup
+// Within 7ms, device must draw an average of current less than 2.5 mA from bus
+void tud_suspend_cb(bool remote_wakeup_en)
+{
+}
+
+// Invoked when usb bus is resumed
+void tud_resume_cb(void)
+{
+}
+
+//--------------------------------------------------------------------+
+// BLINKING TASK
+//--------------------------------------------------------------------+
+void led_blinking_task(void)
+{
 }
