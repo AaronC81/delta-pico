@@ -21,9 +21,7 @@ add_executable(delta-pico
   src/cat24c.cpp
   src/ili9341.cpp
   src/pcf8574.cpp
-
-  src/msc_disk_dual.c
-  src/usb_descriptors.c
+  src/usb_mass_storage.c
 )
 
 include_directories(include res font rust/target/include)
