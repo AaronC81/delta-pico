@@ -7,6 +7,9 @@ pub use buttons::*;
 mod storage;
 pub use storage::*;
 
+mod usb_mass_storage;
+pub use usb_mass_storage::*;
+
 static mut FRAMEWORK: *mut ApplicationFrameworkInterface = 0 as *mut _;
 pub fn framework() -> &'static mut ApplicationFrameworkInterface {
     unsafe {
@@ -34,9 +37,9 @@ pub struct ApplicationFrameworkInterface {
     pub display: DisplayInterface,
     pub buttons: ButtonsInterface,
     pub storage: StorageInterface,
+    pub usb_mass_storage: UsbMassStorageInterface,
 
     // Bit of a hack to have these here... ah well
     pub rbop_location_x: i64,
     pub rbop_location_y: i64,
 }
-

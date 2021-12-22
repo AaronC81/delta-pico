@@ -44,7 +44,7 @@ impl Application for StorageApplication {
                 OSInput::MoveDown => self.address += SHOW_BYTES,
                 OSInput::MoveUp => self.address -= SHOW_BYTES,
                 OSInput::List => {
-                    match os().ui_open_menu(&["Jump".into(), "Clear memory".into()], true) {
+                    match os().ui_open_menu(&["Jump".into(), "Clear memory".into(), "USB mass storage".into()], true) {
                         Some(0) => {
                             // TODO redraw
                             let address_dec = os().ui_input_expression_and_evaluate("Memory address", None, || ());
@@ -62,6 +62,9 @@ impl Application for StorageApplication {
                                 os().ui_text_dialog("Failed to clear memory.");
                             }
                         },
+                        Some(2) => {
+                            (framework().usb_mass_storage.enter)();
+                        }
                         _ => (),
                     }
                 }
