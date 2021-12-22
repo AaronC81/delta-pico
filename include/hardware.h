@@ -1,8 +1,6 @@
 #pragma once
 
-extern "C" {
-    #include "delta_pico_rust.h"
-}
+#include "delta_pico_rust.h"
 
 #define I2C_SDA_PIN 20
 #define I2C_SCL_PIN 21
@@ -31,5 +29,10 @@ extern "C" {
 
 #define TFT_WIDTH  240
 #define TFT_HEIGHT 320
+
+// Yep, these are ours :)
+// https://pid.codes/1209/DE1A/
+#define USB_VID 0x1209
+#define USB_PID 0xDE1A
 
 extern const ButtonInput button_mapping[7][7];

@@ -4,7 +4,7 @@
 #include "hardware/spi.h"
 #include "hardware/gpio.h"
 
-#include "hardware.hpp"
+#include "hardware.h"
 
 class ILI9341Sprite {
 public:

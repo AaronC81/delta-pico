@@ -1,5 +1,5 @@
 #include "button_matrix.hpp"
-#include "hardware.hpp"
+#include "hardware.h"
 
 #include "pico/time.h"
 

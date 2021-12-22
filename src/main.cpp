@@ -5,7 +5,10 @@
 #include "hardware/gpio.h"
 #include "hardware/adc.h"
 
-#include "hardware.hpp"
+extern "C" {
+  #include "hardware.h"
+}
+
 #include "pcf8574.hpp"
 #include "button_matrix.hpp"
 #include "cat24c.hpp"

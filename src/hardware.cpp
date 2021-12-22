@@ -1,4 +1,4 @@
-#include "hardware.hpp"
+#include "hardware.h"
 
 #define I ButtonInput
 

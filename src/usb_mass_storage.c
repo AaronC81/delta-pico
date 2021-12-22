@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "usb_mass_storage.h"
+#include "hardware.h"
 
 // Keep track of whether mass storage has been ejected
 bool usb_mass_storage_ejected = false;
@@ -26,8 +27,8 @@ tusb_desc_device_t const usb_mass_storage_device =
     .bDeviceProtocol    = 0x00,
     .bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
 
-    .idVendor           = 0xCafe,
-    .idProduct          = 0xdafe,
+    .idVendor           = USB_VID,
+    .idProduct          = USB_PID,
     .bcdDevice          = 0x0100,
 
     .iManufacturer      = 0x01,
