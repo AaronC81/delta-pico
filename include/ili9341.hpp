@@ -9,24 +9,24 @@
 class ILI9341Sprite {
 public:
     ILI9341Sprite(uint16_t _width, uint16_t _height)
-        : width(_width), height(_height), cursorX(0), cursorY(0), fontColour(0) {}
+        : width(_width), height(_height), cursor_x(0), cursor_y(0), font_colour(0) {}
 
     void allocate();
     void free();
 
     void fill(uint16_t colour);
-    void drawRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t radius, bool filled, uint16_t colour);
-    void drawSprite(uint16_t x, uint16_t y, ILI9341Sprite *other);
-    void drawBitmap(uint16_t x, uint16_t y, uint16_t *bitmap);
+    void draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t radius, bool filled, uint16_t colour);
+    void draw_sprite(uint16_t x, uint16_t y, ILI9341Sprite *other);
+    void draw_bitmap(uint16_t x, uint16_t y, uint16_t *bitmap);
 
-    void drawChar(char character);
-    void drawString(char *str);
+    void draw_char(char character);
+    void draw_string(char *str);
 
     // TODO: for the screen sprite, checking `x < width && y < height` rather than
     // `x < TFT_WIDTH && y < TFT_HEIGHT` costs us about 15ms of frame time!!
     // Can we special-case/optimise this somehow for the screen sprite?
 
-    inline void drawPixel(uint16_t x, uint16_t y, uint16_t colour) {
+    inline void draw_pixel(uint16_t x, uint16_t y, uint16_t colour) {
         if (x < width && y < height) {
             // Draw pixels with endianness flipped, since we assume this is the case when sending data
             // to the screen later
@@ -34,9 +34,9 @@ public:
         }
     }
 
-    inline uint16_t getPixel(uint16_t x, uint16_t y) {
+    inline uint16_t get_pixel(uint16_t x, uint16_t y) {
         if (x < width && y < height) {
-            // Correct endianness after drawPixel flips it
+            // Correct endianness after draw_pixel flips it
             uint16_t colour = data[y * width + x];
             return ((colour & 0xFF) << 8) | ((colour & 0xFF00) >> 8);
         } else {
@@ -44,7 +44,7 @@ public:
         }
     }
 
-    uint16_t width, height, cursorX, cursorY, fontColour;
+    uint16_t width, height, cursor_x, cursor_y, font_colour;
     uint8_t **font;
     uint16_t *data;
 };
@@ -57,21 +57,21 @@ public:
           power(_power) {}
 
     void begin();
-    ILI9341Sprite* createSprite(uint16_t width, uint16_t height);
-    void drawSprite(uint16_t x, uint16_t y, ILI9341Sprite *sprite);
+    ILI9341Sprite* create_sprite(uint16_t width, uint16_t height);
+    void draw_sprite(uint16_t x, uint16_t y, ILI9341Sprite *sprite);
 
-    void writeData(uint8_t d);
-    void writeCommand(uint8_t c);
+    void write_data(uint8_t d);
+    void write_command(uint8_t c);
 
-    inline void writeDataFastBegin() {
+    inline void write_data_fast_begin() {
         gpio_put(dc, 1);
     }
 
-    inline void writeDataFast(uint8_t d) {
+    inline void write_data_fast(uint8_t d) {
         spi_write_blocking(spi0, &d, 1);
     }
 
-    inline void writeDataFastMultiple(uint8_t *d, size_t len) {
+    inline void write_data_fast_multiple(uint8_t *d, size_t len) {
         spi_write_blocking(spi0, d, len);
     }
 

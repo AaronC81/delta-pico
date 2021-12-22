@@ -109,7 +109,7 @@ if len(bitmaps) > 0:
         for bitmap in bitmaps:
             f.write(f"#include <{bitmap}.h>\n")
 
-        f.write("\nuint16_t* getBitmapByName(char* name) {\n")
+        f.write("\nuint16_t* get_bitmap_by_name(char* name) {\n")
         for bitmap in bitmaps:
             f.write(f"  if (strcmp(name, \"{bitmap}\") == 0) return (uint16_t*){bitmap};\n")
         f.write("  return NULL;\n")

@@ -10,23 +10,23 @@ void ILI9341Sprite::free() {
 }
 
 void ILI9341Sprite::fill(uint16_t colour) {
-    drawRect(0, 0, width, height, 0, true, colour);
+    draw_rect(0, 0, width, height, 0, true, colour);
 }
 
-void ILI9341Sprite::drawRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t radius, bool filled, uint16_t colour) {
+void ILI9341Sprite::draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t radius, bool filled, uint16_t colour) {
     // TODO: radius is ignored
     // TODO: filled is ignored
     for (uint16_t ix = 0; ix < w; ix++) {
         for (uint16_t iy = 0; iy < h; iy++) {
-            drawPixel(x + ix, y + iy, colour);
+            draw_pixel(x + ix, y + iy, colour);
         }
     }
 }
 
-void ILI9341Sprite::drawSprite(uint16_t x, uint16_t y, ILI9341Sprite *other) {
+void ILI9341Sprite::draw_sprite(uint16_t x, uint16_t y, ILI9341Sprite *other) {
     for (uint16_t ix = 0; ix < other->width; ix++) {
         for (uint16_t iy = 0; iy < other->height; iy++) {
-            // Not using drawPixel because that would flip the endianness
+            // Not using draw_pixel because that would flip the endianness
             // Because we're drawing from another sprite, the endianness was already flipped
             if ((ix + x) < width && (iy + y) < height) {
                 data[(iy + y) * width + (ix + x)] = other->data[iy * other->width + ix];
@@ -35,24 +35,24 @@ void ILI9341Sprite::drawSprite(uint16_t x, uint16_t y, ILI9341Sprite *other) {
     }
 }
 
-void ILI9341Sprite::drawBitmap(uint16_t sx, uint16_t sy, uint16_t *bitmap) {
+void ILI9341Sprite::draw_bitmap(uint16_t sx, uint16_t sy, uint16_t *bitmap) {
   if (bitmap == nullptr) return;
 
   uint16_t width = bitmap[0];
   uint16_t height = bitmap[1];
   uint16_t transparency = bitmap[2];
-  uint16_t runLength = bitmap[3];
+  uint16_t run_length = bitmap[3];
 
   int index = 4;
   for (uint16_t x = 0; x < width; x++) {
     for (uint16_t y = 0; y < height; y++) {
-      if (bitmap[index] == runLength) {
+      if (bitmap[index] == run_length) {
         uint16_t times = bitmap[index + 1];
         uint16_t colour = bitmap[index + 2];
 
         if (colour != transparency) {
           for (uint16_t i = 0; i < times; i++) {
-            drawPixel(sx + x, sy + y + i, colour);
+            draw_pixel(sx + x, sy + y + i, colour);
           }
         }
 
@@ -60,7 +60,7 @@ void ILI9341Sprite::drawBitmap(uint16_t sx, uint16_t sy, uint16_t *bitmap) {
         index += 3;
       } else {
         if (bitmap[index] != transparency) {
-          drawPixel(sx + x, sy + y, bitmap[index]);
+          draw_pixel(sx + x, sy + y, bitmap[index]);
         }
         index++;
       }
@@ -69,72 +69,72 @@ void ILI9341Sprite::drawBitmap(uint16_t sx, uint16_t sy, uint16_t *bitmap) {
 }
 
 
-void ILI9341Sprite::drawChar(char character) {
+void ILI9341Sprite::draw_char(char character) {
     // Special case - move down by the height of one character
     if (character == '\n') {
-        cursorX = 0;
-        cursorY += font['A'][1];
+        cursor_x = 0;
+        cursor_y += font['A'][1];
         return;
     }
 
-    uint8_t *characterBitmap = font[character];
-    if (characterBitmap == NULL) return;
+    uint8_t *character_bitmap = font[character];
+    if (character_bitmap == NULL) return;
 
     // Each character is 4bpp;, so we maintain a flip-flopping boolean of whether to read the upper
     // or lower byte
-    bool lowerByte = false;
+    bool lower_byte = false;
     size_t idx = 2;
-    for (int x = 0; x < characterBitmap[0]; x++) {
-        for (int y = 0; y < characterBitmap[1]; y++) {
-            uint8_t alphaNibble;
-            if (lowerByte) {
-                alphaNibble = characterBitmap[idx] & 0xF;
-                lowerByte = false;
+    for (int x = 0; x < character_bitmap[0]; x++) {
+        for (int y = 0; y < character_bitmap[1]; y++) {
+            uint8_t alpha_nibble;
+            if (lower_byte) {
+                alpha_nibble = character_bitmap[idx] & 0xF;
+                lower_byte = false;
                 idx++;
             } else {
-                alphaNibble = (characterBitmap[idx] & 0xF0) >> 4;
-                lowerByte = true;
+                alpha_nibble = (character_bitmap[idx] & 0xF0) >> 4;
+                lower_byte = true;
             }
 
-            if (alphaNibble != 0) {
+            if (alpha_nibble != 0) {
                 // Interpolate between the existing pixel (background colour) and the text colour,
                 // using the font's alpha for this pixel, to make the anti-aliasing look good!
                 // This is effectively alpha compositing, but it's a really simple case of it, since
                 // our background always has maximum alpha.
 
-                uint16_t backgroundColour = getPixel(cursorX + x, cursorY + y);
-                int8_t backgroundR = (backgroundColour & 0b1111100000000000) >> 11;
-                int8_t backgroundG = (backgroundColour & 0b0000011111100000) >> 5;
-                int8_t backgroundB = (backgroundColour & 0b0000000000011111);
+                uint16_t background_colour = get_pixel(cursor_x + x, cursor_y + y);
+                int8_t background_r = (background_colour & 0b1111100000000000) >> 11;
+                int8_t background_g = (background_colour & 0b0000011111100000) >> 5;
+                int8_t background_b = (background_colour & 0b0000000000011111);
 
-                int8_t fontR = (fontColour & 0b1111100000000000) >> 11;
-                int8_t fontG = (fontColour & 0b0000011111100000) >> 5;
-                int8_t fontB = (fontColour & 0b0000000000011111);
+                int8_t font_r = (font_colour & 0b1111100000000000) >> 11;
+                int8_t font_g = (font_colour & 0b0000011111100000) >> 5;
+                int8_t font_b = (font_colour & 0b0000000000011111);
 
                 // 4bpp = 16 steps
                 // Multiply integers by 8 while we're working with them, so that we have room to
                 // spare on the truncating division
-                int16_t stepR = (backgroundR * 8 - fontR * 8) / 16;
-                int16_t stepG = (backgroundG * 8 - fontG * 8) / 16;
-                int16_t stepB = (backgroundB * 8 - fontB * 8) / 16;
+                int16_t step_r = (background_r * 8 - font_r * 8) / 16;
+                int16_t step_g = (background_g * 8 - font_g * 8) / 16;
+                int16_t step_b = (background_b * 8 - font_b * 8) / 16;
 
-                int8_t compositedR = (int8_t)(backgroundR - (stepR * alphaNibble) / 8);
-                int8_t compositedG = (int8_t)(backgroundG - (stepG * alphaNibble) / 8);
-                int8_t compositedB = (int8_t)(backgroundB - (stepB * alphaNibble) / 8);
+                int8_t composited_r = (int8_t)(background_r - (step_r * alpha_nibble) / 8);
+                int8_t composited_g = (int8_t)(background_g - (step_g * alpha_nibble) / 8);
+                int8_t composited_b = (int8_t)(background_b - (step_b * alpha_nibble) / 8);
 
-                uint16_t colour = ((uint16_t)compositedR << 11) | ((uint16_t)compositedG << 5) | ((uint16_t)compositedB);
-                drawPixel(cursorX + x, cursorY + y, colour);
+                uint16_t colour = ((uint16_t)composited_r << 11) | ((uint16_t)composited_g << 5) | ((uint16_t)composited_b);
+                draw_pixel(cursor_x + x, cursor_y + y, colour);
             }
         }
     }
 
-    cursorX += characterBitmap[0] - 1;
+    cursor_x += character_bitmap[0] - 1;
 }
 
-void ILI9341Sprite::drawString(char *str) {
+void ILI9341Sprite::draw_string(char *str) {
     size_t idx = 0;
     while (str[idx]) {
-        drawChar(str[idx]);
+        draw_char(str[idx]);
         idx++;
     }
 }
@@ -168,95 +168,95 @@ void ILI9341::begin() {
     sleep_ms(50);
 
     // Init sequence
-    writeCommand(0x0f);
-    writeData(0x03); writeData(0x80); writeData(0x02);
-    writeCommand(0xcf);
-    writeData(0x00); writeData(0xc1); writeData(0x30);
-    writeCommand(0xed);
-    writeData(0x64); writeData(0x03); writeData(0x12); writeData(0x81);
-    writeCommand(0xe8);
-    writeData(0x85); writeData(0x00); writeData(0x78);
-    writeCommand(0xcb);
-    writeData(0x39); writeData(0x2c); writeData(0x00); writeData(0x34); writeData(0x02);
-    writeCommand(0xf7);
-    writeData(0x20);
-    writeCommand(0xea);
-    writeData(0x00); writeData(0x00);
-    writeCommand(0xc0);
-    writeData(0x23);
-    writeCommand(0xc1);
-    writeData(0x10);
-    writeCommand(0xc5);
-    writeData(0x3e); writeData(0x28);
-    writeCommand(0xc7);
-    writeData(0x86);
+    write_command(0x0f);
+    write_data(0x03); write_data(0x80); write_data(0x02);
+    write_command(0xcf);
+    write_data(0x00); write_data(0xc1); write_data(0x30);
+    write_command(0xed);
+    write_data(0x64); write_data(0x03); write_data(0x12); write_data(0x81);
+    write_command(0xe8);
+    write_data(0x85); write_data(0x00); write_data(0x78);
+    write_command(0xcb);
+    write_data(0x39); write_data(0x2c); write_data(0x00); write_data(0x34); write_data(0x02);
+    write_command(0xf7);
+    write_data(0x20);
+    write_command(0xea);
+    write_data(0x00); write_data(0x00);
+    write_command(0xc0);
+    write_data(0x23);
+    write_command(0xc1);
+    write_data(0x10);
+    write_command(0xc5);
+    write_data(0x3e); write_data(0x28);
+    write_command(0xc7);
+    write_data(0x86);
     
-    writeCommand(0x36);
-    writeData(0x48);
+    write_command(0x36);
+    write_data(0x48);
 
-    writeCommand(0x3a);
-    writeData(0x55);
-    writeCommand(0xb1);
-    writeData(0x00); writeData(0x18);
-    writeCommand(0xb6);
-    writeData(0x08); writeData(0x82); writeData(0x27);
-    writeCommand(0xf2);
-    writeData(0x00);
-    writeCommand(0x26);
-    writeData(0x01);
+    write_command(0x3a);
+    write_data(0x55);
+    write_command(0xb1);
+    write_data(0x00); write_data(0x18);
+    write_command(0xb6);
+    write_data(0x08); write_data(0x82); write_data(0x27);
+    write_command(0xf2);
+    write_data(0x00);
+    write_command(0x26);
+    write_data(0x01);
     
-    writeCommand(0xe0);
-    writeData(0xf); writeData(0x31); writeData(0x2b); writeData(0xc); writeData(0xe); writeData(0x8); writeData(0x4e); writeData(0xf1); writeData(0x37); writeData(0x7); writeData(0x10); writeData(0x3); writeData(0xe); writeData(0x9); writeData(0x0);
+    write_command(0xe0);
+    write_data(0xf); write_data(0x31); write_data(0x2b); write_data(0xc); write_data(0xe); write_data(0x8); write_data(0x4e); write_data(0xf1); write_data(0x37); write_data(0x7); write_data(0x10); write_data(0x3); write_data(0xe); write_data(0x9); write_data(0x0);
 
-    writeCommand(0xe1);
-    writeData(0x0); writeData(0xe); writeData(0x14); writeData(0x3); writeData(0x11); writeData(0x7); writeData(0x31); writeData(0xc1); writeData(0x48); writeData(0x8); writeData(0xf); writeData(0xc); writeData(0x31); writeData(0x36); writeData(0xf);
+    write_command(0xe1);
+    write_data(0x0); write_data(0xe); write_data(0x14); write_data(0x3); write_data(0x11); write_data(0x7); write_data(0x31); write_data(0xc1); write_data(0x48); write_data(0x8); write_data(0xf); write_data(0xc); write_data(0x31); write_data(0x36); write_data(0xf);
 
-    writeCommand(0x11); // Unsleep
+    write_command(0x11); // Unsleep
     sleep_ms(150);
-    writeCommand(0x29); // Display on
+    write_command(0x29); // Display on
     sleep_ms(150);
 }
 
-ILI9341Sprite* ILI9341::createSprite(uint16_t width, uint16_t height) {
+ILI9341Sprite* ILI9341::create_sprite(uint16_t width, uint16_t height) {
     auto sprite = new ILI9341Sprite(width, height);
     sprite->allocate();
     sprite->fill(0);
     return sprite;
 }
 
-void ILI9341::drawSprite(uint16_t x, uint16_t y, ILI9341Sprite *sprite) {
+void ILI9341::draw_sprite(uint16_t x, uint16_t y, ILI9341Sprite *sprite) {
     uint16_t x2 = x + sprite->width + 1;
     uint16_t y2 = y + sprite->height + 1;
 
     // CASET
-    writeCommand(0x2A);
-    writeData((x & 0xFF00) >> 8);
-    writeData(x & 0x00FF);
-    writeData((x2 & 0xFF00) >> 8);
-    writeData(x2 & 0x00FF);
+    write_command(0x2A);
+    write_data((x & 0xFF00) >> 8);
+    write_data(x & 0x00FF);
+    write_data((x2 & 0xFF00) >> 8);
+    write_data(x2 & 0x00FF);
 
     // PASET
-    writeCommand(0x2B); 
-    writeData((y & 0xFF00) >> 8);
-    writeData(y & 0x00FF);
-    writeData((y2 & 0xFF00) >> 8);
-    writeData(y2 & 0x00FF);
+    write_command(0x2B); 
+    write_data((y & 0xFF00) >> 8);
+    write_data(y & 0x00FF);
+    write_data((y2 & 0xFF00) >> 8);
+    write_data(y2 & 0x00FF);
 
     // RAMRW
-    writeCommand(0x2C);
+    write_command(0x2C);
 
-    writeDataFastBegin();
+    write_data_fast_begin();
     for (int i = 0; i < sprite->height; i++) {
-        writeDataFastMultiple(((uint8_t*)sprite->data) + (i * sprite->width * 2), sprite->width * 2);
+        write_data_fast_multiple(((uint8_t*)sprite->data) + (i * sprite->width * 2), sprite->width * 2);
     }
 }
 
-void ILI9341::writeCommand(uint8_t c) {
+void ILI9341::write_command(uint8_t c) {
     gpio_put(dc, 0);
     spi_write_blocking(spi0, &c, 1);
 }
 
-void ILI9341::writeData(uint8_t d) {
+void ILI9341::write_data(uint8_t d) {
     gpio_put(dc, 1);
     spi_write_blocking(spi0, &d, 1);
 }

@@ -3,7 +3,7 @@
 #define I ButtonInput
 
 #ifdef DELTA_PICO_PROTOTYPE
-const ButtonInput buttonMapping[7][7] = {
+const ButtonInput button_mapping[7][7] = {
   { I::None,      I::MoveUp,    I::None,      I::None,      I::None,      I::None,      I::None, },
   { I::MoveLeft,  I::None,      I::MoveRight, I::None,      I::None,      I::None,      I::None, },
   { I::None,      I::MoveDown,  I::None,      I::None,      I::None,      I::None,      I::None, },
@@ -15,7 +15,7 @@ const ButtonInput buttonMapping[7][7] = {
 #endif
 
 #ifdef DELTA_PICO_REV1
-const ButtonInput buttonMapping[7][7] = {
+const ButtonInput button_mapping[7][7] = {
   { I::MoveUp, I::MoveRight, I::Menu, I::List, I::None, I::None, I::None, },
   { I::MoveLeft, I::MoveDown, I::Shift, I::Text, I::None, I::None, I::Parentheses, },
   { I::Digit7, I::Digit8, I::Digit9, I::Delete, I::None, I::None, I::None, },

@@ -20,16 +20,16 @@ public:
 
     void begin(void);
 
-    bool getRawButton(uint8_t &pressedRow, uint8_t &pressedCol);
-    bool getEvent(uint8_t &pressedRow, uint8_t &pressedCol, ButtonEvent &event, bool wait);
+    bool get_raw_button(uint8_t &pressed_row, uint8_t &pressed_col);
+    bool get_event(uint8_t &pressed_row, uint8_t &pressed_col, ButtonEvent &event, bool wait);
 
-    bool getEventInput(ButtonInput &input, ButtonEvent &event, bool wait);
+    bool get_event_input(ButtonInput &input, ButtonEvent &event, bool wait);
 
 protected:
     PCF8574 row, col;
 
-    bool currentlyPressed = false;
-    uint8_t currentlyPressedRow = 0;
-    uint8_t currentlyPressedCol = 0;
-    unsigned long currentlyPressedTime = 0;
+    bool currently_pressed = false;
+    uint8_t currently_pressed_row = 0;
+    uint8_t currently_pressed_col = 0;
+    unsigned long currently_pressed_time = 0;
 };

@@ -32,4 +32,4 @@ extern "C" {
 #define TFT_WIDTH  240
 #define TFT_HEIGHT 320
 
-extern const ButtonInput buttonMapping[7][7];
+extern const ButtonInput button_mapping[7][7];

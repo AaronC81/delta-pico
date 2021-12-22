@@ -29,11 +29,11 @@ ILI9341 tft(
   ILI9341_POWER_PIN
 );
 ILI9341Sprite *sprite;
-ILI9341Sprite *screenSprite;
+ILI9341Sprite *screen_sprite;
 
-PCF8574 colPcf(i2c0, I2C_EXPANDER_ADDRESS_1);
-PCF8574 rowPcf(i2c0, I2C_EXPANDER_ADDRESS_2);
-ButtonMatrix buttons(rowPcf, colPcf);
+PCF8574 col_pcf(i2c0, I2C_EXPANDER_ADDRESS_1);
+PCF8574 row_pcf(i2c0, I2C_EXPANDER_ADDRESS_2);
+ButtonMatrix buttons(row_pcf, col_pcf);
 CAT24C storage(i2c0, CAT24C_ADDRESS);
 
 auto framework_interface = ApplicationFrameworkInterface {
@@ -49,8 +49,8 @@ auto framework_interface = ApplicationFrameworkInterface {
     // Then divide by resolution, times by Pico logical voltage, times by 3
     // (Voltage is divided by 3 - see Pico Datasheet section 4.4) 
     adc_select_input(3);
-    int adcReading = adc_read();
-    float voltage = ((float)adcReading / 1024.0) * 3.3 * 3;
+    int adc_reading = adc_read();
+    float voltage = ((float)adc_reading / 1024.0) * 3.3 * 3;
 
     // Source: https://phantompilots.com/threads/how-does-lipo-voltage-relate-to-percent.13597/
     if (voltage > 4.5) {  
@@ -95,13 +95,13 @@ auto framework_interface = ApplicationFrameworkInterface {
     .height = TFT_HEIGHT,
 
     .new_sprite = [](int16_t w, int16_t h) {
-      auto newSprite = tft.createSprite(w, h);
+      auto new_sprite = tft.create_sprite(w, h);
 
       // Inherit font from screen sprite
-      newSprite->font = screenSprite->font;
-      newSprite->fontColour = screenSprite->fontColour;
+      new_sprite->font = screen_sprite->font;
+      new_sprite->font_colour = screen_sprite->font_colour;
 
-      return (uint8_t*)newSprite;
+      return (uint8_t*)new_sprite;
     },
     .free_sprite = [](uint8_t* s){
       ((ILI9341Sprite*)s)->free();
@@ -110,53 +110,53 @@ auto framework_interface = ApplicationFrameworkInterface {
       sprite = (ILI9341Sprite*)s;
     },
     .switch_to_screen = []{
-      sprite = screenSprite;
+      sprite = screen_sprite;
     },
 
     .fill_screen = [](uint16_t colour) {
       sprite->fill(colour);
     },
     .draw_char = [](int64_t x, int64_t y, uint8_t c) {
-      sprite->cursorX = x;
-      sprite->cursorY = y;
-      sprite->drawChar((char)c);
+      sprite->cursor_x = x;
+      sprite->cursor_y = y;
+      sprite->draw_char((char)c);
     },
     .draw_line = [](int64_t x1, int64_t y1, int64_t x2, int64_t y2, uint16_t colour) {
       // TODO
     },
     .draw_rect = [](int64_t x, int64_t y, int64_t w, int64_t h, uint16_t colour, bool filled, uint16_t radius) {
-      sprite->drawRect(x, y, w, h, radius, filled, colour);
+      sprite->draw_rect(x, y, w, h, radius, filled, colour);
     },
     .draw_sprite = [](int64_t x, int64_t y, uint8_t *s){
-      sprite->drawSprite(x, y, (ILI9341Sprite*)s);
+      sprite->draw_sprite(x, y, (ILI9341Sprite*)s);
     },
     .draw_bitmap = [](int64_t x, int64_t y, const uint8_t* bitmap) {
-      sprite->drawBitmap(x, y, getBitmapByName((char*)bitmap));
+      sprite->draw_bitmap(x, y, get_bitmap_by_name((char*)bitmap));
     },
 
     .print = [](const uint8_t *s) {
-      sprite->drawString((char*)s);
+      sprite->draw_string((char*)s);
     },
     .set_cursor = [](int64_t x, int64_t y) {
-      sprite->cursorX = x;
-      sprite->cursorY = y;
+      sprite->cursor_x = x;
+      sprite->cursor_y = y;
     },
     .get_cursor = [](int64_t *x, int64_t *y) {
-      *x = sprite->cursorX;
-      *y = sprite->cursorX;
+      *x = sprite->cursor_x;
+      *y = sprite->cursor_y;
     },
 
     .draw = []() {
-      tft.drawSprite(0, 0, screenSprite);
+      tft.draw_sprite(0, 0, screen_sprite);
     },
   },
 
   .buttons = ButtonsInterface {
     .wait_input_event = [](ButtonInput *input, ButtonEvent *event) {
-      return buttons.getEventInput(*input, *event, true);
+      return buttons.get_event_input(*input, *event, true);
     },
     .immediate_input_event = [](ButtonInput *input, ButtonEvent *event) {
-      return buttons.getEventInput(*input, *event, false);
+      return buttons.get_event_input(*input, *event, false);
     },
   },
 
@@ -190,11 +190,11 @@ int main() {
   tft.begin();
 
   // Set up screen sprite and switch to it
-  screenSprite = tft.createSprite(TFT_WIDTH, TFT_HEIGHT);
-  screenSprite->fill(0);
-  screenSprite->font = (uint8_t**)droid_sans_20_font;
-  screenSprite->fontColour = 0xFFFF;
-  sprite = screenSprite;
+  screen_sprite = tft.create_sprite(TFT_WIDTH, TFT_HEIGHT);
+  screen_sprite->fill(0);
+  screen_sprite->font = (uint8_t**)droid_sans_20_font;
+  screen_sprite->font_colour = 0xFFFF;
+  sprite = screen_sprite;
 
   // Pass the Rust side our HAL struct and let it take over
   delta_pico_set_framework(&framework_interface);

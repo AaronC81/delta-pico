@@ -29,15 +29,15 @@ bool CAT24C::write(uint16_t address, uint8_t count, const uint8_t *buffer) {
     while (recorded < count)
     {
         //Limit the amount to write to either the page size or the Arduino limit of 30
-        int amtToWrite = count - recorded;
+        int amt_to_write = count - recorded;
 
-        if (amtToWrite > 1)
+        if (amt_to_write > 1)
         {
             //Check for crossing of a page line. Writes cannot cross a page line.
-            uint16_t pageNumber1 = (address + recorded) / PAGE_SIZE;
-            uint16_t pageNumber2 = (address + recorded + amtToWrite - 1) / PAGE_SIZE;
-            if (pageNumber2 > pageNumber1)
-                amtToWrite = (pageNumber2 * PAGE_SIZE) - (address + recorded); //Limit the read amt to go right up to edge of page barrier
+            uint16_t page_number_1 = (address + recorded) / PAGE_SIZE;
+            uint16_t page_number_2 = (address + recorded + amt_to_write - 1) / PAGE_SIZE;
+            if (page_number_2 > page_number_1)
+                amt_to_write = (page_number_2 * PAGE_SIZE) - (address + recorded); //Limit the read amt to go right up to edge of page barrier
         }
 
         //See if EEPROM is available or still writing a previous request
@@ -51,7 +51,7 @@ bool CAT24C::write(uint16_t address, uint8_t count, const uint8_t *buffer) {
 
         if (i2c_write_blocking(i2c, i2cAddress, write_buffer, count + 2, false) != count + 2) return false;
 
-        recorded += amtToWrite;
+        recorded += amt_to_write;
 
         sleep_ms(PAGE_WRITE_MS); //Delay the amount of time to record a page
     }
