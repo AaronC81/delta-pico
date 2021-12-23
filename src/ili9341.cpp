@@ -139,6 +139,10 @@ void ILI9341Sprite::draw_char(char character) {
     uint8_t *character_bitmap = font[character];
     if (character_bitmap == NULL) return;
 
+    int8_t font_r = (font_colour & 0b1111100000000000) >> 11;
+    int8_t font_g = (font_colour & 0b0000011111100000) >> 5;
+    int8_t font_b = (font_colour & 0b0000000000011111);
+
     // Each character is 4bpp;, so we maintain a flip-flopping boolean of whether to read the upper
     // or lower byte
     bool lower_byte = false;
@@ -166,20 +170,9 @@ void ILI9341Sprite::draw_char(char character) {
                 int8_t background_g = (background_colour & 0b0000011111100000) >> 5;
                 int8_t background_b = (background_colour & 0b0000000000011111);
 
-                int8_t font_r = (font_colour & 0b1111100000000000) >> 11;
-                int8_t font_g = (font_colour & 0b0000011111100000) >> 5;
-                int8_t font_b = (font_colour & 0b0000000000011111);
-
-                // 4bpp = 16 steps
-                // Multiply integers by 8 while we're working with them, so that we have room to
-                // spare on the truncating division
-                int16_t step_r = (background_r * 8 - font_r * 8) / 16;
-                int16_t step_g = (background_g * 8 - font_g * 8) / 16;
-                int16_t step_b = (background_b * 8 - font_b * 8) / 16;
-
-                int8_t composited_r = (int8_t)(background_r - (step_r * alpha_nibble) / 8);
-                int8_t composited_g = (int8_t)(background_g - (step_g * alpha_nibble) / 8);
-                int8_t composited_b = (int8_t)(background_b - (step_b * alpha_nibble) / 8);
+                uint16_t composited_r = background_r + (alpha_nibble * (font_r - background_r)) / 16;
+                uint16_t composited_g = background_g + (alpha_nibble * (font_g - background_g)) / 16;
+                uint16_t composited_b = background_b + (alpha_nibble * (font_b - background_b)) / 16;
 
                 uint16_t colour = ((uint16_t)composited_r << 11) | ((uint16_t)composited_g << 5) | ((uint16_t)composited_b);
                 draw_pixel(cursor_x + x, cursor_y + y, colour);
