@@ -6,6 +6,8 @@
 
 #include "hardware.h"
 
+#define ILI9341_FLIP_COLOUR(x) ((x & 0xFF) << 8) | ((x & 0xFF00) >> 8)
+
 class ILI9341Sprite {
 public:
     ILI9341Sprite(uint16_t _width, uint16_t _height)
@@ -15,6 +17,7 @@ public:
     void free();
 
     void fill(uint16_t colour);
+    void fill_fast(uint8_t half_colour);
     void draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t radius, bool filled, uint16_t colour);
     void draw_line(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t colour);
     void draw_sprite(uint16_t x, uint16_t y, ILI9341Sprite *other);
@@ -31,7 +34,7 @@ public:
         if (x < width && y < height) {
             // Draw pixels with endianness flipped, since we assume this is the case when sending data
             // to the screen later
-            data[y * width + x] = ((colour & 0xFF) << 8) | ((colour & 0xFF00) >> 8);
+            data[y * width + x] = ILI9341_FLIP_COLOUR(colour);
         }
     }
 
@@ -39,7 +42,7 @@ public:
         if (x < width && y < height) {
             // Correct endianness after draw_pixel flips it
             uint16_t colour = data[y * width + x];
-            return ((colour & 0xFF) << 8) | ((colour & 0xFF00) >> 8);
+            return ILI9341_FLIP_COLOUR(colour);
         } else {
             return 0;
         }

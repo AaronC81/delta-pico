@@ -1,5 +1,7 @@
 #include "ili9341.hpp"
 
+#include <string.h>
+
 void ILI9341Sprite::allocate() {
     data = new uint16_t[width * height];
 }
@@ -10,7 +12,20 @@ void ILI9341Sprite::free() {
 }
 
 void ILI9341Sprite::fill(uint16_t colour) {
+    // If the colour has the same upper and lower byte, we can use an optimised version of this
+    // function instead
+    if ((colour & 0xFF00 >> 8) == (colour & 0xFF)) {
+        fill_fast((uint8_t)(colour & 0xFF));
+        return;
+    }
+
     draw_rect(0, 0, width, height, 0, true, colour);
+}
+
+void ILI9341Sprite::fill_fast(uint8_t half_colour) {
+    for (uint16_t y = 0; y < height; y++) {
+        memset(data + y * width, half_colour, width * 2);
+    }
 }
 
 void ILI9341Sprite::draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t radius, bool filled, uint16_t colour) {
