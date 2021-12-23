@@ -159,7 +159,9 @@ void ILI9341Sprite::draw_char(char character) {
                 lower_byte = true;
             }
 
-            if (alpha_nibble != 0) {
+            if (alpha_nibble == 0xF) {
+                draw_pixel(cursor_x + x, cursor_y + y, font_colour);
+            } else if (alpha_nibble != 0) {
                 // Interpolate between the existing pixel (background colour) and the text colour,
                 // using the font's alpha for this pixel, to make the anti-aliasing look good!
                 // This is effectively alpha compositing, but it's a really simple case of it, since
