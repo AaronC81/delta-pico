@@ -192,9 +192,18 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
       usb_mass_storage_ejected = false;
       usb_mass_storage_fat12_filesystem = framework_interface.usb_mass_storage.fat12_filesystem;
 
+      ButtonInput input;
+      ButtonEvent event;
       tusb_init();
       while (framework_interface.usb_mass_storage.active && !usb_mass_storage_ejected) {
         tud_task();
+
+        if (buttons.get_event_input(input, event, false)
+            && event == ButtonEvent::Press
+            && input == ButtonInput::Delete) {
+
+          break;
+        };
       }
       tud_disconnect();
 

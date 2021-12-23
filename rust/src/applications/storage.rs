@@ -63,7 +63,7 @@ impl Application for StorageApplication {
                             }
                         },
                         Some(2) => {
-                            (framework().usb_mass_storage.enter)();
+                            os().usb_mass_storage();
                         }
                         _ => (),
                     }

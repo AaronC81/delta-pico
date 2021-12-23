@@ -134,6 +134,32 @@ impl<'a> OperatingSystemInterface<'a> {
         panic!("failed to access bootloader")
     }
 
+    /// Enables USB mass storage mode. The calculator will appear as a mass storage device, and hang
+    /// until it is either ejected or the user presses DEL.
+    pub fn usb_mass_storage(&mut self) {
+        framework().display.fill_screen(Colour::BLACK);
+        self.ui_draw_title("USB Mass Storage");
+
+        framework().display.print_centred(
+            0, 50, framework().display.width as i64, "Now connected as a"
+        );
+        framework().display.print_centred(
+            0, 70, framework().display.width as i64, "USB storage device!"
+        );
+
+        framework().display.print_centred(
+            0, 290, framework().display.width as i64, "Press [DEL] to stop"
+        );
+
+        framework().display.draw_bitmap(10, 115, "pc_connection");
+
+        framework().display.draw();
+        
+        // The DEL behaviour is handled on the C side, because the USB stack is relatively
+        // low-level, and needs to be fast
+        (framework().usb_mass_storage.enter)();
+    }
+
     /// Draws a title bar to the top of the screen, with the text `s`.
     pub fn ui_draw_title(&mut self, s: &str) {
         let now_millis = (framework().millis)();
