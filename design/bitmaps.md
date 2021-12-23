@@ -10,6 +10,8 @@ Overview of what's supported:
 - RGB565 colour, minus any two colours (used as special markers within the image)
 - Transparency - only fully transparent or fully opaque, no partial transparency is supported
 
+> Note: This is not the same format as is used for the Delta Pico's [fonts](fonts).
+
 ## Encoding Format
 
 A bitmap is encoded as an array of 16-bit integers. The first four items of the array are metadata:
