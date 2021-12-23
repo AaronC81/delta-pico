@@ -25,18 +25,29 @@ Pico](img/ferris.jpg)
 
 ## Building
 
-This repository is a platform.io project, with a separate Cargo project in
-the `rust` directory. The Cargo project is compiled automatically when using
-`pio run`, so to build and flash this to your Pico:
+This repository is a Pico SDK project, with a separate Cargo project in
+the `rust` directory. The Cargo project is compiled automatically by CMake, so
+to build and flash this to your Pico:
 
 ```
-pio run
-picotool load .pio/build/pico/firmware.bin
+mkdir build
+cd build
+cmake ..
+make
+
+picotool load delta-pico.bin
 picotool reboot
 ```
 
 You will likely need a bleeding-edge checkout of rbop, so you should check this
 out too and adjust the path in `rust/Cargo.toml` accordingly.
+
+This project has a dependency on FontForge, which is used for compiling fonts
+into bitmaps. Install FontForge, and then set the `DELTA_PICO_FFPYTHON`
+environment variable to point to its included `ffpython` executable. If you've
+done this right, you should be able to run `$DELTA_PICO_FFPYTHON` in your 
+terminal (or `%DELTA_PICO_FFPYTHON%` on Windows) and get a Python interactive
+prompt.
 
 ## Hardware
 
@@ -85,3 +96,9 @@ D8.](img/wire-fix.png)
         - In future, the device will soft-power-off by having the Pico turn off the display and
           enter DORMANT mode
     - Add Schottky diode on VSYS, to comply with the datasheet's suggestion
+
+## License
+
+This repository is licensed entirely under the [MIT License](LICENSE), except
+for `font/DroidSans.ttf`, which is sourced from Adobe Fonts and licensed under
+the [Apache License](https://fonts.adobe.com/variations/1291/eula).
