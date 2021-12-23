@@ -15,14 +15,29 @@ void ILI9341Sprite::fill(uint16_t colour) {
 
 void ILI9341Sprite::draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t radius, bool filled, uint16_t colour) {
     // TODO: radius is ignored
-    // TODO: filled is ignored
-    if (!filled) return;
 
-    for (uint16_t ix = 0; ix < w; ix++) {
-        for (uint16_t iy = 0; iy < h; iy++) {
-            draw_pixel(x + ix, y + iy, colour);
-        }
+    // This is a very frequently called function, so we want it to be as optimised as possible!
+    // So we try to skip out unnecessary checks within the loop, and effectively duplicate the code
+    // of the function based on what parameters we have.
+    // Try to reduce code repetition with defines, but I'm not sure it helps :P
+
+    #define RECT_LOOP for (uint16_t ix = 0; ix < w; ix++) { for (uint16_t iy = 0; iy < h; iy++) {
+    #define RECT_END } }
+    #define RECT_DRAW { draw_pixel(x + ix, y + iy, colour); }
+
+    if (filled) {
+        // Just draw everything as-is
+        RECT_LOOP RECT_DRAW RECT_END
+    } else {
+        // Only draw pixels around the edges
+        RECT_LOOP
+            if (ix == 0 || iy == 0 || ix == w - 1 || iy == h - 1) RECT_DRAW
+        RECT_END
     }
+
+    #undef RECT_LOOP
+    #undef RECT_END
+    #undef RECT_DRAW
 }
 
 void ILI9341Sprite::draw_line(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t colour) {
