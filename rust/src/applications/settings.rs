@@ -1,6 +1,6 @@
-use alloc::vec;
+use alloc::{vec, format};
 
-use crate::{interface::Colour, operating_system::{OSInput, UIMenu, UIMenuItem, os}};
+use crate::{interface::{Colour, ShapeFill}, operating_system::{OSInput, UIMenu, UIMenuItem, os}, timer::Timer};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -33,6 +33,11 @@ impl Application for SettingsApplication {
                     title: "Fire button press only".into(),
                     icon: "settings_fire_button_press_only".into(),
                     toggle: Some(os().filesystem.settings.values.fire_button_press_only),
+                },
+                UIMenuItem {
+                    title: "Graphics benchmark".into(),
+                    icon: "settings_graphics_benchmark".into(),
+                    toggle: None,
                 }
             ]),
         }
@@ -69,6 +74,7 @@ impl SettingsApplication {
                 
                 self.toggle_setting(2, &mut os().filesystem.settings.values.fire_button_press_only)
             },
+            3 => self.graphics_benchmark(),
             _ => unreachable!()
         }
     }
@@ -78,5 +84,80 @@ impl SettingsApplication {
         self.menu.items[index].toggle = Some(*setting);
         
         os().filesystem.settings.save();
+    }
+
+    fn graphics_benchmark(&self) {
+        // TODO: We could test sprites too
+
+        let mut fill_timer = Timer::new("Fill");
+        let mut rectangles_timer = Timer::new("Rectangles");
+        let mut text_timer = Timer::new("Text");
+        let mut draw_timer = Timer::new("Draw");
+
+        // Run a simple drawing test many times
+        for _ in 0..50 {
+            // Clear the screen
+            fill_timer.start();
+            framework().display.fill_screen(Colour::BLACK);
+            fill_timer.stop();
+
+            // Draw some rectangles
+            rectangles_timer.start();
+            framework().display.draw_rect(
+                20, 20, 60, 60, Colour::ORANGE,
+                ShapeFill::Filled, 0
+            );
+            framework().display.draw_rect(
+                80, 20, 60, 60, Colour::BLUE,
+                ShapeFill::Filled, 11
+            );
+            framework().display.draw_rect(
+                20, 80, 60, 60, Colour::WHITE,
+                ShapeFill::Hollow, 0
+            );
+            framework().display.draw_rect(
+                80, 80, 60, 60, Colour::RED,
+                ShapeFill::Hollow, 11
+            );
+            rectangles_timer.stop();
+
+            // Draw some text
+            text_timer.start();
+            framework().display.print_at(30, 50, "Hello, world!\nHello again.");
+            framework().display.print_at(30, 110, "Another line...\nOne final line.");
+            text_timer.stop();
+
+            // Draw to screen
+            draw_timer.start();
+            framework().display.draw();
+            draw_timer.stop();
+        }
+
+        let total =
+            fill_timer.elapsed
+            + rectangles_timer.elapsed
+            + text_timer.elapsed
+            + draw_timer.elapsed;
+
+        // Present the results
+        framework().display.fill_screen(Colour::BLACK);
+        os().ui_draw_title("Results");
+
+        framework().display.print_at(0, 40, &format!(
+            "Total: {}\n\n{}{}{}{}\n(Lower is faster)",
+            total, fill_timer, rectangles_timer, text_timer, draw_timer
+        ));
+
+        framework().display.print_centred(
+            0, 290, framework().display.width as i64, "[EXE]: Close"
+        );
+        framework().display.draw();
+
+        // Wait until EXE press
+        loop {
+            if let Some(OSInput::Exe) = framework().buttons.wait_press() {
+                break;
+            }
+        }
     }
 }

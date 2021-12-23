@@ -7,7 +7,7 @@ use crate::interface::framework;
 #[derive(Debug)]
 pub struct Timer {
     pub name: String,
-    elapsed: u32,
+    pub elapsed: u32,
     current_start: Option<u32>,
     subtimers: Vec<Rc<RefCell<Timer>>>,
 }
