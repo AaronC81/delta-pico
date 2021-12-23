@@ -2,7 +2,7 @@ use alloc::{boxed::Box, format, string::String, vec::Vec};
 use rbop::{Number, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
 use core::{cmp::max, mem};
 
-use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, filesystem::{CalculationHistory, ChunkTable, Filesystem, RawStorage, Settings}, interface::{Colour, ShapeFill, framework}, multi_tap::MultiTapState, rbop_impl::RbopContext};
+use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, filesystem::{CalculationHistory, ChunkTable, Filesystem, RawStorage, Settings, FatInterface}, interface::{Colour, ShapeFill, framework}, multi_tap::MultiTapState, rbop_impl::RbopContext};
 
 static mut OPERATING_SYSTEM_INTERFACE: Option<OperatingSystemInterface> = None;
 pub fn os() -> &'static mut OperatingSystemInterface<'static> {
@@ -23,13 +23,25 @@ pub fn os() -> &'static mut OperatingSystemInterface<'static> {
                             storage: &mut framework().storage,
                         }
                     ),
+
+                    // 0x4880 long
                     calculations: CalculationHistory {
                         table: ChunkTable {
                             start_address: 0x1000,
                             chunks: 1024,
-                            storage: &mut framework().storage
+                            storage: &mut framework().storage,
                         }
-                    }
+                    },
+
+                    fat: FatInterface::new(
+                        RawStorage {
+                            start_address: 0x6000,
+                            length:
+                                (framework().usb_mass_storage.block_num
+                                * framework().usb_mass_storage.block_size) as u16,
+                            storage: &mut framework().storage,
+                        }
+                    ),
                 },
                 last_title_millis: 0,
                 text_mode: false,
@@ -137,9 +149,18 @@ impl<'a> OperatingSystemInterface<'a> {
     /// Enables USB mass storage mode. The calculator will appear as a mass storage device, and hang
     /// until it is either ejected or the user presses DEL.
     pub fn usb_mass_storage(&mut self) {
+        // Show the new layout now so the user knows something is happening
         framework().display.fill_screen(Colour::BLACK);
         self.ui_draw_title("USB Mass Storage");
+        framework().display.draw();
 
+        // Load the entire FAT12 image from EEPROM
+        // TODO: If you look at how the USB driver is structured, this is totally unnecessary. It'd
+        // be possible, and much better, to just read/write bits of the EEPROM that are requested!
+        let mut fat = os().filesystem.fat.read_all().unwrap();
+        framework().usb_mass_storage.fat12_filesystem = fat.as_mut_ptr();    
+
+        // Print rest of the things now we've loaded
         framework().display.print_centred(
             0, 50, framework().display.width as i64, "Now connected as a"
         );
@@ -158,6 +179,14 @@ impl<'a> OperatingSystemInterface<'a> {
         // The DEL behaviour is handled on the C side, because the USB stack is relatively
         // low-level, and needs to be fast
         (framework().usb_mass_storage.enter)();
+
+        // Eject or DEL press - save filesystem back
+        framework().display.fill_screen(Colour::BLACK);
+        self.ui_draw_title("USB Mass Storage");
+        framework().display.print_centred(0, 100, framework().display.width as i64, "Saving...");
+        framework().display.draw();
+
+        os().filesystem.fat.write_all(&fat).unwrap();
     }
 
     /// Draws a title bar to the top of the screen, with the text `s`.
