@@ -95,36 +95,36 @@ void ILI9341Sprite::draw_sprite(uint16_t x, uint16_t y, ILI9341Sprite *other) {
 }
 
 void ILI9341Sprite::draw_bitmap(uint16_t sx, uint16_t sy, uint16_t *bitmap) {
-  if (bitmap == nullptr) return;
+    if (bitmap == nullptr) return;
 
-  uint16_t width = bitmap[0];
-  uint16_t height = bitmap[1];
-  uint16_t transparency = bitmap[2];
-  uint16_t run_length = bitmap[3];
+    uint16_t width = bitmap[0];
+    uint16_t height = bitmap[1];
+    uint16_t transparency = bitmap[2];
+    uint16_t run_length = bitmap[3];
 
-  int index = 4;
-  for (uint16_t x = 0; x < width; x++) {
-    for (uint16_t y = 0; y < height; y++) {
-      if (bitmap[index] == run_length) {
-        uint16_t times = bitmap[index + 1];
-        uint16_t colour = bitmap[index + 2];
+    int index = 4;
+    for (uint16_t x = 0; x < width; x++) {
+        for (uint16_t y = 0; y < height; y++) {
+            if (bitmap[index] == run_length) {
+                uint16_t times = bitmap[index + 1];
+                uint16_t colour = bitmap[index + 2];
 
-        if (colour != transparency) {
-          for (uint16_t i = 0; i < times; i++) {
-            draw_pixel(sx + x, sy + y + i, colour);
-          }
+                if (colour != transparency) {
+                    for (uint16_t i = 0; i < times; i++) {
+                        draw_pixel(sx + x, sy + y + i, colour);
+                    }
+                }
+
+                y += times - 1;
+                index += 3;
+            } else {
+                if (bitmap[index] != transparency) {
+                    draw_pixel(sx + x, sy + y, bitmap[index]);
+                }
+                index++;
+            }
         }
-
-        y += times - 1;
-        index += 3;
-      } else {
-        if (bitmap[index] != transparency) {
-          draw_pixel(sx + x, sy + y, bitmap[index]);
-        }
-        index++;
-      }
     }
-  }
 }
 
 
