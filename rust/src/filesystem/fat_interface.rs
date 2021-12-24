@@ -1,6 +1,6 @@
 use core::convert::TryInto;
 
-use alloc::{vec, vec::Vec};
+use alloc::{vec, vec::Vec, format};
 use fatfs::{Read, IoBase, Write, Seek};
 
 use crate::interface::framework;
@@ -137,8 +137,9 @@ impl<'a> IoBase for FatInterface<'a> {
     type Error = ();
 }
 
-// To simplify things, these IO methods saturate to the page size of the CAT24C driver  - I'm sure
-// the FAT library can recover from this
+impl<'r, 'a> IoBase for &'r mut FatInterface<'a> {
+    type Error = ();
+}
 
 impl<'a> Read for FatInterface<'a> {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
@@ -149,27 +150,39 @@ impl<'a> Read for FatInterface<'a> {
         for i in 0..bytes.len() {
             buf[i] = bytes[i];
         }
+
+        self.pointer.0 += buf.len() as u16;
         return Ok(buf.len())
     }
 }
 
+impl<'r, 'a> Read for &'r mut FatInterface<'a> {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+        (**self).read(buf)
+    }
+}
+
 impl<'a> Write for FatInterface<'a> {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
-        // Truncate the buffer to be u8-sized
-        let buf =
-            if buf.len() > 64 {
-                &buf[0..64]
-            } else {
-                &buf[0..buf.len()]
-            };
-        
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {        
         self.storage.write_bytes(self.pointer, buf).ok_or(())?;
+        
+        self.pointer.0 += buf.len() as u16;
         Ok(buf.len())
     }
 
     fn flush(&mut self) -> Result<(), Self::Error> {
         // Our driver isn't clever enough to need to flush
         Ok(())
+    }
+}
+
+impl<'r, 'a> Write for &'r mut FatInterface<'a> {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+        (**self).write(buf)
+    }
+
+    fn flush(&mut self) -> Result<(), Self::Error> {
+        (**self).flush()
     }
 }
 
@@ -191,5 +204,11 @@ impl<'a> Seek for FatInterface<'a> {
         };
 
         Ok(self.pointer.0 as u64)
+    }
+}
+
+impl<'r, 'a> Seek for &'r mut FatInterface<'a> {
+    fn seek(&mut self, pos: fatfs::SeekFrom) -> Result<u64, Self::Error> {
+        (**self).seek(pos)
     }
 }
