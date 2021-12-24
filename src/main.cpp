@@ -165,16 +165,6 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
     },
 
     .draw = []() {
-      if (tud_cdc_connected()) {
-        tud_cdc_write_char('D');
-        tud_cdc_write_char('r');
-        tud_cdc_write_char('a');
-        tud_cdc_write_char('w');
-        tud_cdc_write_char('\r');
-        tud_cdc_write_char('\n');
-        tud_cdc_write_flush();
-      }
-
       tft.draw_sprite(0, 0, screen_sprite);
     },
   },
