@@ -35,4 +35,8 @@
 #define USB_VID 0x1209
 #define USB_PID 0xDE1A
 
+// Same as Pico SDK's stdio
+#define USB_INTERRUPT_IRQ 31
+#define USB_INTERRUPT_INTERVAL_US 1000
+
 extern const ButtonInput button_mapping[7][7];

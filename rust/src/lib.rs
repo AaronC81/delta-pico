@@ -86,6 +86,12 @@ pub extern "C" fn delta_pico_main() {
         os().ui_text_dialog("Unable to communicate with storage.");
     }
 
+    // Temporary
+    let mut fat = os().filesystem.fat.read_all().unwrap();
+    framework().usb_mass_storage.fat12_filesystem = fat.as_mut_ptr();    
+    
+    (framework().usb_mass_storage.begin)();
+
     loop {
         os().application_to_tick().tick();
     }

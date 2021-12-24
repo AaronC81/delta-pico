@@ -4,6 +4,7 @@
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 #include "hardware/adc.h"
+#include "hardware/irq.h"
 
 extern "C" {
   #include "hardware.h"
@@ -42,6 +43,16 @@ PCF8574 col_pcf(i2c0, I2C_EXPANDER_ADDRESS_1);
 PCF8574 row_pcf(i2c0, I2C_EXPANDER_ADDRESS_2);
 ButtonMatrix buttons(row_pcf, col_pcf);
 CAT24C storage(i2c0, CAT24C_ADDRESS);
+
+
+static void usb_interrupt_worker_irq(void) {
+  tud_task();
+}
+
+static int64_t usb_interrupt_timer_task(__unused alarm_id_t id, __unused void *user_data) {
+  irq_set_pending(31);
+  return USB_INTERRUPT_INTERVAL_US;
+}
 
 ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterface {
   .debug_handler = [](const uint8_t *string) {
@@ -154,6 +165,16 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
     },
 
     .draw = []() {
+      if (tud_cdc_connected()) {
+        tud_cdc_write_char('D');
+        tud_cdc_write_char('r');
+        tud_cdc_write_char('a');
+        tud_cdc_write_char('w');
+        tud_cdc_write_char('\r');
+        tud_cdc_write_char('\n');
+        tud_cdc_write_flush();
+      }
+
       tft.draw_sprite(0, 0, screen_sprite);
     },
   },
@@ -187,35 +208,15 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
     .fat12_filesystem = NULL,
 
     .active = false,
-    .enter = []() {
-      framework_interface.usb_mass_storage.active = true;
-      usb_mass_storage_ejected = false;
-      usb_mass_storage_fat12_filesystem = framework_interface.usb_mass_storage.fat12_filesystem;
-
-      ButtonInput input;
-      ButtonEvent event;
+    .begin = []() {
       tusb_init();
-      int i = 0;
-      while (framework_interface.usb_mass_storage.active && !usb_mass_storage_ejected) {
-        tud_task();
 
-        if (buttons.get_event_input(input, event, false)
-            && event == ButtonEvent::Press
-            && input == ButtonInput::Delete) {
+      // Set up periodic handler to deal with USB stuff
+      irq_set_exclusive_handler(USB_INTERRUPT_IRQ, usb_interrupt_worker_irq);
+      irq_set_enabled(USB_INTERRUPT_IRQ, true);
+      add_alarm_in_us(USB_INTERRUPT_INTERVAL_US, usb_interrupt_timer_task, NULL, true);
 
-          break;
-        };
-
-        i++;
-        if (i == 10) {
-          if (tud_cdc_connected()) {
-            tud_cdc_write_char('a');
-            tud_cdc_write_flush();
-          }
-          i = 0;
-        }
-      }
-      tud_disconnect();
+      usb_mass_storage_fat12_filesystem = framework_interface.usb_mass_storage.fat12_filesystem;
 
       return true;
     }

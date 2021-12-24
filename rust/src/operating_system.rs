@@ -1,6 +1,6 @@
 use alloc::{boxed::Box, format, string::String, vec::Vec};
 use rbop::{Number, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
-use core::{cmp::max, mem};
+use core::{cmp::max, mem, slice};
 
 use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, filesystem::{CalculationHistory, ChunkTable, Filesystem, RawStorage, Settings, FatInterface}, interface::{Colour, ShapeFill, framework}, multi_tap::MultiTapState, rbop_impl::RbopContext};
 
@@ -148,45 +148,19 @@ impl<'a> OperatingSystemInterface<'a> {
 
     /// Enables USB mass storage mode. The calculator will appear as a mass storage device, and hang
     /// until it is either ejected or the user presses DEL.
-    pub fn usb_mass_storage(&mut self) {
-        // Show the new layout now so the user knows something is happening
-        framework().display.fill_screen(Colour::BLACK);
-        self.ui_draw_title("USB Mass Storage");
-        framework().display.draw();
-
-        // Load the entire FAT12 image from EEPROM
-        // TODO: If you look at how the USB driver is structured, this is totally unnecessary. It'd
-        // be possible, and much better, to just read/write bits of the EEPROM that are requested!
-        let mut fat = os().filesystem.fat.read_all().unwrap();
-        framework().usb_mass_storage.fat12_filesystem = fat.as_mut_ptr();    
-
-        // Print rest of the things now we've loaded
-        framework().display.print_centred(
-            0, 50, framework().display.width as i64, "Now connected as a"
-        );
-        framework().display.print_centred(
-            0, 70, framework().display.width as i64, "USB storage device!"
-        );
-
-        framework().display.print_centred(
-            0, 290, framework().display.width as i64, "Press [DEL] to stop"
-        );
-
-        framework().display.draw_bitmap(10, 115, "pc_connection");
-
-        framework().display.draw();
-        
-        // The DEL behaviour is handled on the C side, because the USB stack is relatively
-        // low-level, and needs to be fast
-        (framework().usb_mass_storage.enter)();
-
-        // Eject or DEL press - save filesystem back
+    /// Temporary, can be removed when driver interacts directly with storage.
+    pub fn save_usb_mass_storage(&mut self) {
         framework().display.fill_screen(Colour::BLACK);
         self.ui_draw_title("USB Mass Storage");
         framework().display.print_centred(0, 100, framework().display.width as i64, "Saving...");
         framework().display.draw();
 
-        os().filesystem.fat.write_all(&fat).unwrap();
+        unsafe {
+            os().filesystem.fat.write_all(slice::from_raw_parts_mut(
+                framework().usb_mass_storage.fat12_filesystem,
+                framework().usb_mass_storage.block_size * framework().usb_mass_storage.block_num
+            )).unwrap();
+        }
     }
 
     /// Draws a title bar to the top of the screen, with the text `s`.
