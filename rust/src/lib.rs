@@ -5,8 +5,8 @@ extern crate alloc;
 
 mod c_allocator;
 
-use core::{panic::PanicInfo, cell::RefCell};
-use alloc::{format, string::String, vec::Vec, vec, rc::Rc};
+use core::{panic::PanicInfo};
+use alloc::{format, string::String, vec::Vec};
 use c_allocator::CAllocator;
 
 mod interface;
@@ -17,7 +17,6 @@ mod filesystem;
 mod timer;
 mod multi_tap;
 
-use fatfs::{FileSystem, FsOptions, Write, IoBase, Read, Seek};
 use interface::framework;
 use operating_system::os;
 

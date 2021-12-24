@@ -3,7 +3,7 @@ use core::convert::TryInto;
 use alloc::{vec, vec::Vec};
 use fatfs::{Read, IoBase, Write, Seek};
 
-use crate::interface::{StorageInterface, framework};
+use crate::interface::framework;
 
 use super::{RawStorage, RawStorageAddress};
 
