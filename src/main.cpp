@@ -61,6 +61,8 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
       tud_cdc_write_char('\r');
       tud_cdc_write_char('\n');
       tud_cdc_write_flush();
+      
+      tud_task();
     }
   },
 
