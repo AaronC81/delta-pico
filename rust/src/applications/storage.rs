@@ -14,7 +14,7 @@ pub struct StorageApplication {
 impl Application for StorageApplication {
     fn info() -> ApplicationInfo {
         ApplicationInfo {
-            name: "Storage".into(),
+            name: "Raw Storage".into(),
             visible: true,
         }
     }
@@ -26,7 +26,7 @@ impl Application for StorageApplication {
     fn tick(&mut self) {
         framework().display.fill_screen(Colour::BLACK);
 
-        os().ui_draw_title("Storage");
+        os().ui_draw_title("Raw Storage");
 
         framework().display.print_at(0, 50, &format!("Address range {}-{}\n\n\n", self.address, self.address + SHOW_BYTES - 1));
 
