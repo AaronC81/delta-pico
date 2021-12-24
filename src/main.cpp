@@ -195,6 +195,7 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
       ButtonInput input;
       ButtonEvent event;
       tusb_init();
+      int i = 0;
       while (framework_interface.usb_mass_storage.active && !usb_mass_storage_ejected) {
         tud_task();
 
@@ -204,6 +205,15 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
 
           break;
         };
+
+        i++;
+        if (i == 10) {
+          if (tud_cdc_connected()) {
+            tud_cdc_write_char('a');
+            tud_cdc_write_flush();
+          }
+          i = 0;
+        }
       }
       tud_disconnect();
 

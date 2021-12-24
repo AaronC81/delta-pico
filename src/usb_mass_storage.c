@@ -22,9 +22,9 @@ tusb_desc_device_t const usb_mass_storage_device =
     .bLength            = sizeof(tusb_desc_device_t),
     .bDescriptorType    = TUSB_DESC_DEVICE,
     .bcdUSB             = 0x0200,
-    .bDeviceClass       = 0x00,
-    .bDeviceSubClass    = 0x00,
-    .bDeviceProtocol    = 0x00,
+    .bDeviceClass       = TUSB_CLASS_MISC,
+    .bDeviceSubClass    = MISC_SUBCLASS_COMMON,
+    .bDeviceProtocol    = MISC_PROTOCOL_IAD,
     .bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
 
     .idVendor           = USB_VID,
@@ -49,8 +49,8 @@ static uint16_t usb_mass_storage_string_buffer[32];
 uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid)
 {
     const char *strings[] = {
-        // Vendor             Product       Serial
-        "Aaron Christiansen", "Delta Pico", "123456789012"
+        // Vendor             Product       Serial          // CDC name       // MSC name
+        "Aaron Christiansen", "Delta Pico", "123456789012", "Delta Pico CDC", "Delta Pico MSC"
     };
 
     char *string;
@@ -62,8 +62,8 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid)
         usb_mass_storage_string_buffer[2] = 0x04;
         return usb_mass_storage_string_buffer;
     
-    // Product, vendor, or serial
-    case 1: case 2: case 3:
+    // Product, vendor, serial, or CDC/MDC interface names
+    case 1: case 2: case 3: case 4: case 5:
         string = strings[index - 1];
         break;
 
@@ -88,22 +88,31 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid)
 // Some stuff related to config that I don't particularly understand, so haven't tweaked too much
 enum
 {
+    ITF_NUM_CDC = 0,
+    ITF_NUM_CDC_DATA,
     ITF_NUM_MSC,
     ITF_NUM_TOTAL
 };
 
-#define CONFIG_TOTAL_LEN    (TUD_CONFIG_DESC_LEN + TUD_MSC_DESC_LEN)
+#define CONFIG_TOTAL_LEN    (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN + TUD_MSC_DESC_LEN)
 
-#define EPNUM_MSC_OUT   0x01
-#define EPNUM_MSC_IN    0x81
+#define EPNUM_CDC_NOTIF   0x81
+#define EPNUM_CDC_OUT     0x02
+#define EPNUM_CDC_IN      0x82
+
+#define EPNUM_MSC_OUT     0x03
+#define EPNUM_MSC_IN      0x83
 
 uint8_t const desc_fs_configuration[] =
 {
     // Config number, interface count, string index, total length, attribute, power in mA
     TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_TOTAL_LEN, 0x00, 100),
 
+    // Interface number, string index, EP notification address and size, EP data address (out, in) and size.
+    TUD_CDC_DESCRIPTOR(ITF_NUM_CDC, 4, EPNUM_CDC_NOTIF, 8, EPNUM_CDC_OUT, EPNUM_CDC_IN, 64),
+
     // Interface number, string index, EP Out & EP In address, EP size
-    TUD_MSC_DESCRIPTOR(ITF_NUM_MSC, 0, EPNUM_MSC_OUT, EPNUM_MSC_IN, 64),
+    TUD_MSC_DESCRIPTOR(ITF_NUM_MSC, 5, EPNUM_MSC_OUT, EPNUM_MSC_IN, 64),
 };
 
 // Invoked when received GET CONFIGURATION DESCRIPTOR
