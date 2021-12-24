@@ -56,7 +56,12 @@ static int64_t usb_interrupt_timer_task(__unused alarm_id_t id, __unused void *u
 
 ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterface {
   .debug_handler = [](const uint8_t *string) {
-    printf("%s\n", string);
+    if (tud_cdc_connected()) {
+      tud_cdc_write_str((const char*)string);
+      tud_cdc_write_char('\r');
+      tud_cdc_write_char('\n');
+      tud_cdc_write_flush();
+    }
   },
 
   .millis = []() -> uint32_t { return to_ms_since_boot(get_absolute_time()); },
