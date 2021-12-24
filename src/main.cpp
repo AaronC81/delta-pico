@@ -189,10 +189,10 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
     .connected = []() { return storage.connected(); },
     .busy = []() { return storage.busy(); },
     
-    .write = [](uint16_t address, uint8_t count, const uint8_t *buffer) {
+    .write = [](uint16_t address, uint16_t count, const uint8_t *buffer) {
       return storage.write(address, count, buffer);
     },
-    .read = [](uint16_t address, uint8_t count, uint8_t *buffer) {
+    .read = [](uint16_t address, uint16_t count, uint8_t *buffer) {
       return storage.read(address, count, buffer);
     },
   },

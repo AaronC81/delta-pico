@@ -9,8 +9,8 @@ public:
 
     bool connected();
     bool busy();
-    bool write(uint16_t address, uint8_t count, const uint8_t *buffer);
-    bool read(uint16_t address, uint8_t count, uint8_t *buffer);
+    bool write(uint16_t address, uint16_t count, const uint8_t *buffer);
+    bool read(uint16_t address, uint16_t count, uint8_t *buffer);
 
     const uint16_t PAGE_SIZE = 64;
     const uint16_t PAGE_WRITE_MS = 5;

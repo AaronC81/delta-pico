@@ -108,7 +108,7 @@ impl<'a> FatInterface<'a> {
             let address = i * CAT24C_PAGE_SIZE;
 
             fat12_fs.append(
-                &mut self.storage.read_bytes(RawStorageAddress(address as u16), CAT24C_PAGE_SIZE as u8)?
+                &mut self.storage.read_bytes(RawStorageAddress(address as u16), CAT24C_PAGE_SIZE as u16)?
             );
         }
 
@@ -140,23 +140,16 @@ impl<'a> IoBase for FatInterface<'a> {
 // To simplify things, these IO methods saturate to the page size of the CAT24C driver  - I'm sure
 // the FAT library can recover from this
 
-fn usize_to_len_saturating(x: usize) -> u8 {
-    if x > 255 {
-        255
-    } else {
-        x as u8
-    }
-}
-
 impl<'a> Read for FatInterface<'a> {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         // Retrieve bytes from driver
-        let buf_len_u8 = usize_to_len_saturating(buf.len());
-        let bytes = self.storage.read_bytes(self.pointer, buf_len_u8).ok_or(())?;
+        let bytes = self.storage.read_bytes(self.pointer, buf.len() as u16).ok_or(())?;
 
         // Copy into buffer
-        buf.copy_from_slice(&bytes);
-        return Ok(buf_len_u8 as usize)
+        for i in 0..bytes.len() {
+            buf[i] = bytes[i];
+        }
+        return Ok(buf.len())
     }
 }
 

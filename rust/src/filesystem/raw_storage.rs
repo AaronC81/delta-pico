@@ -22,7 +22,7 @@ impl<'a> RawStorage<'a> {
 
     /// Reads a sequence of bytes from this storage area. Returns None if storage is inaccessible or
     /// out-of-bounds.
-    pub fn read_bytes(&self, address: RawStorageAddress, count: u8) -> Option<Vec<u8>> {
+    pub fn read_bytes(&self, address: RawStorageAddress, count: u16) -> Option<Vec<u8>> {
         self.storage.read(self.absolute_address(address)?, count)
     }
 

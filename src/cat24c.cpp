@@ -12,7 +12,7 @@ bool CAT24C::busy() {
     return !connected();
 }
 
-bool CAT24C::read(uint16_t address, uint8_t count, uint8_t *buffer) {
+bool CAT24C::read(uint16_t address, uint16_t count, uint8_t *buffer) {
     uint8_t bytes[] = { address >> 8, address & 0xFF };
     if (i2c_write_blocking(i2c, i2cAddress, bytes, 2, false) == PICO_ERROR_GENERIC) return false;
 
@@ -21,7 +21,7 @@ bool CAT24C::read(uint16_t address, uint8_t count, uint8_t *buffer) {
     return true;
 }
 
-bool CAT24C::write(uint16_t address, uint8_t count, const uint8_t *buffer) {
+bool CAT24C::write(uint16_t address, uint16_t count, const uint8_t *buffer) {
     // Adapted from Qwiic EEPROM Arduino library
 
     //Break the buffer into page sized chunks

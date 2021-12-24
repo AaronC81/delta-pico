@@ -69,7 +69,7 @@ impl<'a> ChunkTable<'a> {
         
         let chunk_address_bytes = self.storage.read(
             self.chunk_map_address() + Self::CHUNK_ADDRESS_SIZE * index.0,
-            Self::CHUNK_ADDRESS_SIZE as u8
+            Self::CHUNK_ADDRESS_SIZE as u16
         )?;
         let chunk_address = ((chunk_address_bytes[0] as u16) << 8) | chunk_address_bytes[1] as u16;
         
@@ -90,7 +90,7 @@ impl<'a> ChunkTable<'a> {
     
     /// Reads one chunk.
     pub fn read_chunk(&self, address: ChunkAddress) -> Option<Vec<u8>> {
-        self.storage.read(self.chunk_to_storage_address(address), Self::CHUNK_SIZE as u8)
+        self.storage.read(self.chunk_to_storage_address(address), Self::CHUNK_SIZE as u16)
     }
     
     /// Writes one chunk.
@@ -205,7 +205,7 @@ impl<'a> ChunkTable<'a> {
         }
         
         // Apply modifications
-        let mut bytes = self.storage.read(modifications_by_byte[0].0, modifications_by_byte.len() as u8)?;
+        let mut bytes = self.storage.read(modifications_by_byte[0].0, modifications_by_byte.len() as u16)?;
         for (i, (_, mask)) in modifications_by_byte.iter().enumerate() {
             if set_used {
                 bytes[i] |= mask;

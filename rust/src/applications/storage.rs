@@ -30,7 +30,7 @@ impl Application for StorageApplication {
 
         framework().display.print_at(0, 50, &format!("Address range {}-{}\n\n\n", self.address, self.address + SHOW_BYTES - 1));
 
-        let bytes = framework().storage.read(self.address, SHOW_BYTES as u8).unwrap();
+        let bytes = framework().storage.read(self.address, SHOW_BYTES as u16).unwrap();
         for i in 0..(SHOW_BYTES / 8) {
             for j in 0..8 {
                 framework().display.print(&format!("{:#04x} ", bytes[(i * 8 + j) as usize])[2..=4])
