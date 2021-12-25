@@ -463,6 +463,13 @@ impl UIMenu {
     pub fn draw(&self) {
         // Draw items
         let mut y = OperatingSystemInterface::TITLE_BAR_HEIGHT + 10;
+
+        // Bail early if no items
+        if self.items.is_empty() {
+            framework().display.print_at(75, y, "No items");
+            return;
+        }
+
         for (i, item) in self.items.iter().enumerate().skip(self.page_scroll_offset).take(Self::ITEMS_PER_PAGE) {
             // Work out whether we need to wrap
             // TODO: not an exact width
