@@ -167,6 +167,9 @@ void ILI9341Sprite::draw_char(char character) {
                 // This is effectively alpha compositing, but it's a really simple case of it, since
                 // our background always has maximum alpha.
 
+                // TODO: There is a hardware unit designed for doing blending interpolation!
+                // See p37, "Blend Mode", of RP2040 datasheet
+
                 uint16_t background_colour = get_pixel(cursor_x + x, cursor_y + y);
                 int8_t background_r = (background_colour & 0b1111100000000000) >> 11;
                 int8_t background_g = (background_colour & 0b0000011111100000) >> 5;
