@@ -43,6 +43,8 @@ ILI9341Sprite *screen_sprite;
 
 CAT24C storage(i2c0, CAT24C_ADDRESS);
 
+const char *hardware_revision = DELTA_PICO_REVISION_NAME;
+
 typedef struct {
   ButtonInput input;
   ButtonEvent event;
@@ -124,6 +126,8 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
     *used = 1000;
     *available = 2000;
   },
+
+  .hardware_revision = (uint8_t*)hardware_revision,
 
   .display = DisplayInterface {
     .width = TFT_WIDTH,

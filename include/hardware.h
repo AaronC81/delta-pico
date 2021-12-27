@@ -42,15 +42,19 @@
 
 #if defined(DELTA_PICO_PROTOTYPE)
 #define DELTA_PICO_KEYPAD_PROTOTYPE
+#define DELTA_PICO_REVISION_NAME "Prototype"
 
 #elif defined(DELTA_PICO_REV1)
 #define DELTA_PICO_KEYPAD_5x6
+#define DELTA_PICO_REVISION_NAME "Rev. 1"
 
 #elif defined(DELTA_PICO_REV2)
 #define DELTA_PICO_KEYPAD_5x6
+#define DELTA_PICO_REVISION_NAME "Rev. 2"
 
 #elif defined(DELTA_PICO_REV3)
 #define DELTA_PICO_KEYPAD_5x6
+#define DELTA_PICO_REVISION_NAME "Rev. 3"
 
 // Revision 3 has a Schottky diode on VSYS
 // Specifically this one, B140HW: https://www.diodes.com/assets/Datasheets/ds30670.pdf

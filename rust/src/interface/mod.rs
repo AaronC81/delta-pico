@@ -1,4 +1,7 @@
 mod display;
+use core::{str::from_utf8, slice};
+
+use alloc::string::String;
 pub use display::*;
 
 mod buttons;
@@ -34,6 +37,8 @@ pub struct ApplicationFrameworkInterface {
     pub charge_status: extern "C" fn() -> i32,
     pub heap_usage: extern "C" fn(*mut u64, *mut u64) -> (),
 
+    hardware_revision: *const u8,
+
     pub display: DisplayInterface,
     pub buttons: ButtonsInterface,
     pub storage: StorageInterface,
@@ -42,4 +47,21 @@ pub struct ApplicationFrameworkInterface {
     // Bit of a hack to have these here... ah well
     pub rbop_location_x: i64,
     pub rbop_location_y: i64,
+}
+
+impl ApplicationFrameworkInterface {
+    pub fn hardware_revision(&self) -> String {
+        // Very dodgy C -> Rust string conversion
+        unsafe {
+            let mut string_length = 0;
+            let mut ptr = self.hardware_revision;
+
+            while *ptr != 0 {
+                ptr = ptr.offset(1);
+                string_length += 1;
+            }
+
+            from_utf8(slice::from_raw_parts(self.hardware_revision, string_length)).unwrap().into()
+        }
+    }
 }

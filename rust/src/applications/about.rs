@@ -26,6 +26,9 @@ impl Application for AboutApplication {
         framework().display.print_at(5, 80,  &format!("  rev {}", env!("GIT_VERSION")));
         framework().display.print_at(5, 100, &format!("  rbop {}", rbop::VERSION));
 
+        framework().display.print_at(5, 140,  "Hardware revision:");
+        framework().display.print_at(5, 160,  &format!("  {}", framework().hardware_revision()));
+
         framework().display.print_at(70, 250,  "Created by");
         framework().display.print_at(35, 270,  "Aaron Christiansen");
         framework().display.print_at(110, 290,  ":)");
