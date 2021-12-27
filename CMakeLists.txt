@@ -32,7 +32,7 @@ target_link_libraries(delta-pico
   pico_stdlib
   
   # Hardware interfaces
-  hardware_spi hardware_i2c hardware_adc pico_time
+  hardware_spi hardware_i2c hardware_adc pico_time hardware_interp
   
   # USB
   tinyusb_device tinyusb_board

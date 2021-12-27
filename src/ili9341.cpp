@@ -1,6 +1,12 @@
 #include "ili9341.hpp"
 
 #include <string.h>
+#include "hardware/interp.h"
+
+#include "tusb_config.h"
+#include "tusb.h"
+
+#include <stdio.h>
 
 void ILI9341Sprite::allocate() {
     data = new uint16_t[width * height];
@@ -167,17 +173,28 @@ void ILI9341Sprite::draw_char(char character) {
                 // This is effectively alpha compositing, but it's a really simple case of it, since
                 // our background always has maximum alpha.
 
-                // TODO: There is a hardware unit designed for doing blending interpolation!
-                // See p37, "Blend Mode", of RP2040 datasheet
+                // Here, we're using the RP2040's hardware interpolator in blend mode! This was
+                // configured in `begin`.
 
                 uint16_t background_colour = get_pixel(cursor_x + x, cursor_y + y);
                 int8_t background_r = (background_colour & 0b1111100000000000) >> 11;
                 int8_t background_g = (background_colour & 0b0000011111100000) >> 5;
                 int8_t background_b = (background_colour & 0b0000000000011111);
 
-                uint16_t composited_r = background_r + (alpha_nibble * (font_r - background_r)) / 16;
-                uint16_t composited_g = background_g + (alpha_nibble * (font_g - background_g)) / 16;
-                uint16_t composited_b = background_b + (alpha_nibble * (font_b - background_b)) / 16;
+                interp0->base[0] = background_r;
+                interp0->base[1] = font_r;
+                interp0->accum[1] = (uint8_t)((uint16_t)alpha_nibble * 16 - 1); 
+                uint16_t composited_r = interp0->peek[1];
+            
+                interp0->base[0] = background_g;
+                interp0->base[1] = font_g;
+                interp0->accum[1] = (uint8_t)((uint16_t)alpha_nibble * 16 - 1); 
+                uint16_t composited_g = interp0->peek[1];
+
+                interp0->base[0] = background_b;
+                interp0->base[1] = font_b;
+                interp0->accum[1] = (uint8_t)((uint16_t)alpha_nibble * 16 - 1); 
+                uint16_t composited_b = interp0->peek[1];
 
                 uint16_t colour = ((uint16_t)composited_r << 11) | ((uint16_t)composited_g << 5) | ((uint16_t)composited_b);
                 draw_pixel(cursor_x + x, cursor_y + y, colour);
@@ -197,6 +214,14 @@ void ILI9341Sprite::draw_string(char *str) {
 }
 
 void ILI9341::begin() {
+    // Character anti-aliasing uses RP2040's interpolator blend mode - set this up
+    interp_config cfg = interp_default_config();
+    interp_config_set_blend(&cfg, true);
+    interp_set_config(interp0, 0, &cfg);
+
+    cfg = interp_default_config();
+    interp_set_config(interp0, 1, &cfg);
+
     // Turn on display
     gpio_init(power);
     gpio_set_dir(power, GPIO_OUT);
