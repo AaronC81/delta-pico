@@ -26,12 +26,20 @@ add_executable(delta-pico
 
 include_directories(include res font rust/target/include)
 
-# Make the stdio functions use USB rather than the serial pins
-# pico_enable_stdio_usb(delta-pico 1)
-# pico_enable_stdio_uart(delta-pico 0)
-
-# Pull in our pico_stdlib which pulls in commonly used features
-target_link_libraries(delta-pico pico_stdlib hardware_spi hardware_i2c hardware_adc pico_time tinyusb_device tinyusb_board)
+# Pull in our libraries
+target_link_libraries(delta-pico
+  # Common stuff
+  pico_stdlib
+  
+  # Hardware interfaces
+  hardware_spi hardware_i2c hardware_adc pico_time
+  
+  # USB
+  tinyusb_device tinyusb_board
+  
+  # Multicore (pico_util provides queues)
+  pico_multicore pico_util
+)
 
 # create map/bin/hex file etc.
 pico_add_extra_outputs(delta-pico)

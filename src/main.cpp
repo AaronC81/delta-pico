@@ -5,6 +5,8 @@
 #include "hardware/gpio.h"
 #include "hardware/adc.h"
 #include "hardware/irq.h"
+#include "pico/multicore.h"
+#include "pico/util/queue.h"
 
 extern "C" {
   #include "hardware.h"
@@ -39,10 +41,14 @@ ILI9341 tft(
 ILI9341Sprite *sprite;
 ILI9341Sprite *screen_sprite;
 
-PCF8574 col_pcf(i2c0, I2C_EXPANDER_ADDRESS_1);
-PCF8574 row_pcf(i2c0, I2C_EXPANDER_ADDRESS_2);
-ButtonMatrix buttons(row_pcf, col_pcf);
 CAT24C storage(i2c0, CAT24C_ADDRESS);
+
+typedef struct {
+  ButtonInput input;
+  ButtonEvent event;
+} ButtonInputEvent;
+const size_t BUTTON_QUEUE_SIZE = 32;
+queue_t button_queue;
 
 
 static void usb_interrupt_worker_irq(void) {
@@ -56,7 +62,7 @@ static int64_t usb_interrupt_timer_task(__unused alarm_id_t id, __unused void *u
 
 ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterface {
   .debug_handler = [](const uint8_t *string) {
-    if (tud_cdc_connected()) {
+    if (tusb_inited() && tud_cdc_connected()) {
       tud_cdc_write_str((const char*)string);
       tud_cdc_write_char('\r');
       tud_cdc_write_char('\n');
@@ -178,12 +184,24 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
 
   .buttons = ButtonsInterface {
     .wait_input_event = [](ButtonInput *input, ButtonEvent *event) {
-      tud_task();
-      return buttons.get_event_input(*input, *event, true);
+      ButtonInputEvent input_event;
+      queue_remove_blocking(&button_queue, &input_event);
+
+      *input = input_event.input;
+      *event = input_event.event;
+
+      return true;
     },
-    .immediate_input_event = [](ButtonInput *input, ButtonEvent *event) {
-      tud_task();
-      return buttons.get_event_input(*input, *event, false);
+    .immediate_input_event = [](ButtonInput *input, ButtonEvent *event) {      
+      ButtonInputEvent input_event;
+      if (queue_try_remove(&button_queue, &input_event)) {
+        *input = input_event.input;
+        *event = input_event.event;
+
+        return true;
+      } else {
+        return false;
+      }
     },
   },
 
@@ -220,6 +238,30 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
   }
 };
 
+void core1_main() {
+  // Initialise button matrix
+  PCF8574 col_pcf(i2c0, I2C_EXPANDER_ADDRESS_1);
+  PCF8574 row_pcf(i2c0, I2C_EXPANDER_ADDRESS_2);
+  ButtonMatrix buttons(row_pcf, col_pcf);
+  buttons.begin();
+
+  while (1) {
+    // TODO: proper debounce/no-repeat
+    ButtonInput input;
+    ButtonEvent event;
+
+    while (1) {
+      if (buttons.get_event_input(input, event, false)) {
+        ButtonInputEvent input_event = { .input = input, .event = event };
+        queue_add_blocking(&button_queue, &input_event);
+        break;
+      }
+    }
+
+    sleep_ms(150);
+  }
+}
+
 int main() {
   // Initialize IO and ADC
   // stdio_init_all();
@@ -231,9 +273,9 @@ int main() {
   gpio_set_function(I2C_SCL_PIN, GPIO_FUNC_I2C);
   gpio_pull_up(I2C_SDA_PIN);
   gpio_pull_up(I2C_SCL_PIN);
+  recursive_mutex_init(&i2c_mutex);
 
   // Begin peripherals which need beginning
-  buttons.begin();
   tft.begin();
 
   // Set up screen sprite and switch to it
@@ -242,6 +284,10 @@ int main() {
   screen_sprite->font = (uint8_t**)droid_sans_20_font;
   screen_sprite->font_colour = 0xFFFF;
   sprite = screen_sprite;
+
+  // Set up button queue and kick off core 1
+  queue_init(&button_queue, sizeof(ButtonInputEvent), BUTTON_QUEUE_SIZE);
+  multicore_launch_core1(core1_main);
 
   // Pass the Rust side our HAL struct and let it take over
   delta_pico_set_framework(&framework_interface);

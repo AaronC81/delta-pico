@@ -1,6 +1,7 @@
 #pragma once
 
 #include "delta_pico_rust.h"
+#include "pico/multicore.h"
 
 #define I2C_SDA_PIN 20
 #define I2C_SCL_PIN 21
@@ -40,3 +41,4 @@
 #define USB_INTERRUPT_INTERVAL_US 1000
 
 extern const ButtonInput button_mapping[7][7];
+extern recursive_mutex_t i2c_mutex;

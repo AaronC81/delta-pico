@@ -28,3 +28,4 @@ const ButtonInput button_mapping[7][7] = {
 
 #undef I
 
+recursive_mutex_t i2c_mutex;

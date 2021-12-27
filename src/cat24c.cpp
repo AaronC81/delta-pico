@@ -1,6 +1,8 @@
 #include "cat24c.hpp"
 
 #include <string.h>
+#include "pico/multicore.h"
+#include "hardware.h"
 
 bool CAT24C::connected() {
     uint8_t b;
@@ -13,15 +15,23 @@ bool CAT24C::busy() {
 }
 
 bool CAT24C::read(uint16_t address, uint16_t count, uint8_t *buffer) {
+    recursive_mutex_enter_blocking(&i2c_mutex);
+
     uint8_t bytes[] = { address >> 8, address & 0xFF };
-    if (i2c_write_blocking(i2c, i2cAddress, bytes, 2, false) == PICO_ERROR_GENERIC) return false;
+    if (i2c_write_blocking(i2c, i2cAddress, bytes, 2, false) == PICO_ERROR_GENERIC) {
+        recursive_mutex_exit(&i2c_mutex);
+        return false;
+    }
 
     i2c_read_blocking(i2c, i2cAddress, buffer, count, false);
 
+    recursive_mutex_exit(&i2c_mutex);
     return true;
 }
 
 bool CAT24C::write(uint16_t address, uint16_t count, const uint8_t *buffer) {
+    recursive_mutex_enter_blocking(&i2c_mutex);
+
     // Adapted from Qwiic EEPROM Arduino library
 
     //Break the buffer into page sized chunks
@@ -49,12 +59,16 @@ bool CAT24C::write(uint16_t address, uint16_t count, const uint8_t *buffer) {
         write_buffer[1] = (uint8_t)((address + recorded) & 0xFF);
         memcpy(write_buffer + 2, buffer, count);
 
-        if (i2c_write_blocking(i2c, i2cAddress, write_buffer, count + 2, false) != count + 2) return false;
+        if (i2c_write_blocking(i2c, i2cAddress, write_buffer, count + 2, false) != count + 2) {
+            recursive_mutex_exit(&i2c_mutex);
+            return false;
+        }
 
         recorded += amt_to_write;
 
         sleep_ms(PAGE_WRITE_MS); //Delay the amount of time to record a page
     }
 
+    recursive_mutex_exit(&i2c_mutex);
     return true;
 }

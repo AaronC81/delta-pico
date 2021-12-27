@@ -2,6 +2,7 @@
 #include "hardware.h"
 
 #include "pico/time.h"
+#include "pico/multicore.h"
 
 void ButtonMatrix::begin(void) {
     // Set to input
@@ -93,11 +94,15 @@ bool ButtonMatrix::get_event(uint8_t &event_row, uint8_t &event_col, ButtonEvent
 }
 
 bool ButtonMatrix::get_event_input(ButtonInput &input, ButtonEvent &event, bool wait) {
+    recursive_mutex_enter_blocking(&i2c_mutex);
+
     uint8_t r, c;
     if (ButtonMatrix::get_event(r, c, event, wait)) {
         input = button_mapping[r][c];
+        recursive_mutex_exit(&i2c_mutex);
         return true;
     } else {
+        recursive_mutex_exit(&i2c_mutex);
         return false;
     }
 }
