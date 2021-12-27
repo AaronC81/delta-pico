@@ -257,8 +257,6 @@ void core1_main() {
         break;
       }
     }
-
-    sleep_ms(150);
   }
 }
 
