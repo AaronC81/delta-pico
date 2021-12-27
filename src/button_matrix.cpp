@@ -60,6 +60,16 @@ bool ButtonMatrix::get_event(uint8_t &event_row, uint8_t &event_col, ButtonEvent
             }
         }
 
+        // Are we now pressing a different button instead?
+        if (event_row != currently_pressed_row || event_col != currently_pressed_col) {
+            // Fire a release now, and let the next iteration catch the new press
+            currently_pressed = false;
+            event = ButtonEvent::Release;
+            event_row = currently_pressed_row;
+            event_col = currently_pressed_col;
+            return true;
+        }
+
         // Nothing happened
         return false;
     }
