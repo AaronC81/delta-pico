@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.12)
 
 # Hardware revision you're building for - pick one!
 #add_definitions(-DDELTA_PICO_PROTOTYPE)
-add_definitions(-DDELTA_PICO_REV1)
+#add_definitions(-DDELTA_PICO_REV1)
+#add_definitions(-DDELTA_PICO_REV2)
+add_definitions(-DDELTA_PICO_REV3)
 
 # Pull in PICO SDK (must be before project)
 include(pico_sdk_import.cmake)

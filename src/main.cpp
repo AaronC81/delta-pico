@@ -83,6 +83,10 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
     int adc_reading = adc_read();
     float voltage = ((float)adc_reading / 1024.0) * 3.3 * 3;
 
+    #ifdef DELTA_PICO_TRAIT_BATTERY_VOLTAGE_DROP
+      voltage += DELTA_PICO_TRAIT_BATTERY_VOLTAGE_DROP;
+    #endif
+
     // Source: https://phantompilots.com/threads/how-does-lipo-voltage-relate-to-percent.13597/
     if (voltage > 4.5) {  
       return -1; // Connected over USB

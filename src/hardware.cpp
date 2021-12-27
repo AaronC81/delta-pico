@@ -2,7 +2,7 @@
 
 #define I ButtonInput
 
-#ifdef DELTA_PICO_PROTOTYPE
+#ifdef DELTA_PICO_KEYPAD_PROTOTYPE
 const ButtonInput button_mapping[7][7] = {
   { I::None,      I::MoveUp,    I::None,      I::None,      I::None,      I::None,      I::None, },
   { I::MoveLeft,  I::None,      I::MoveRight, I::None,      I::None,      I::None,      I::None, },
@@ -14,7 +14,7 @@ const ButtonInput button_mapping[7][7] = {
 };
 #endif
 
-#ifdef DELTA_PICO_REV1
+#ifdef DELTA_PICO_KEYPAD_5x6
 const ButtonInput button_mapping[7][7] = {
   { I::MoveUp, I::MoveRight, I::Menu, I::List, I::None, I::None, I::None, },
   { I::MoveLeft, I::MoveDown, I::Shift, I::Text, I::None, I::None, I::Parentheses, },

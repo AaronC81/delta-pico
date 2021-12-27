@@ -40,5 +40,29 @@
 #define USB_INTERRUPT_IRQ 31
 #define USB_INTERRUPT_INTERVAL_US 1000
 
+#if defined(DELTA_PICO_PROTOTYPE)
+#define DELTA_PICO_KEYPAD_PROTOTYPE
+
+#elif defined(DELTA_PICO_REV1)
+#define DELTA_PICO_KEYPAD_5x6
+
+#elif defined(DELTA_PICO_REV2)
+#define DELTA_PICO_KEYPAD_5x6
+
+#elif defined(DELTA_PICO_REV3)
+#define DELTA_PICO_KEYPAD_5x6
+
+// Revision 3 has a Schottky diode on VSYS
+// Specifically this one, B140HW: https://www.diodes.com/assets/Datasheets/ds30670.pdf
+// The forward voltage (and thus VSYS voltage drop from the battery) varies by current draw and
+// temperature, but is nominally about 0.35V
+// So, to get a correct battery reading, we'll need to add this voltage back on to whatever we read
+// from the VSYS ADC
+#define DELTA_PICO_TRAIT_BATTERY_VOLTAGE_DROP 0.35
+
+#else
+#error "Please define a revision"
+#endif
+
 extern const ButtonInput button_mapping[7][7];
 extern recursive_mutex_t i2c_mutex;
