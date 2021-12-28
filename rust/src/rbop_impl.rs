@@ -122,7 +122,12 @@ const MINIMUM_PAREN_HEIGHT: u64 = 16;
 
 impl Renderer for ApplicationFrameworkInterface {
     fn size(&mut self, glyph: Glyph) -> Area {
-        let text_character_size = Area { height: 8 * 2, width: 6 * 2 };
+        // Calculate an average character size
+        let (text_character_width, text_character_height) = framework().display.string_size("0");
+        let text_character_size = Area {
+            width: text_character_width as u64,
+            height: text_character_height as u64,
+        };
 
         match glyph {
             Glyph::Cursor { height } => Area { height, width: 0 },
