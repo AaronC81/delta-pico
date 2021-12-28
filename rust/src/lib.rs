@@ -92,8 +92,9 @@ pub extern "C" fn delta_pico_main() {
 
     // Temporary
     framework().storage.with_priority(|| {
-        let mut fat = os().filesystem.fat.read_all().unwrap();
-        framework().usb_mass_storage.fat12_filesystem = fat.as_mut_ptr();    
+        // We use `leak` to ensure `fat` doesn't get dropped at the end of this `with_priority` call
+        let fat = os().filesystem.fat.read_all().unwrap();
+        framework().usb_mass_storage.fat12_filesystem = fat.leak().as_mut_ptr();    
         
         (framework().usb_mass_storage.begin)();
     });
