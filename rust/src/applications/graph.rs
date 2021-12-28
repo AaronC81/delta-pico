@@ -180,7 +180,8 @@ impl GraphApplication {
             
                         framework().display.draw_line(
                             this_x as i64, self.view_window.y_to_screen(this_y),
-                            next_x as i64, self.view_window.y_to_screen(*next_y),
+                            // TODO: use next_x when draw_line supports it
+                            this_x as i64, self.view_window.y_to_screen(*next_y),
                             Colour::WHITE
                         );
                     }
