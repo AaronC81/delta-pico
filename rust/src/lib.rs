@@ -91,10 +91,12 @@ pub extern "C" fn delta_pico_main() {
     framework().display.draw();
 
     // Temporary
-    let mut fat = os().filesystem.fat.read_all().unwrap();
-    framework().usb_mass_storage.fat12_filesystem = fat.as_mut_ptr();    
-    
-    (framework().usb_mass_storage.begin)();
+    framework().storage.with_priority(|| {
+        let mut fat = os().filesystem.fat.read_all().unwrap();
+        framework().usb_mass_storage.fat12_filesystem = fat.as_mut_ptr();    
+        
+        (framework().usb_mass_storage.begin)();
+    });
 
     loop {
         os().application_to_tick().tick();

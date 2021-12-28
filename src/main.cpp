@@ -51,6 +51,7 @@ typedef struct {
 } ButtonInputEvent;
 const size_t BUTTON_QUEUE_SIZE = 32;
 queue_t button_queue;
+volatile bool button_queue_enabled = true;
 
 
 static void usb_interrupt_worker_irq(void) {
@@ -223,6 +224,9 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
     .read = [](uint16_t address, uint16_t count, uint8_t *buffer) {
       return storage.read(address, count, buffer);
     },
+
+    .acquire_priority = []() { button_queue_enabled = false; },
+    .release_priority = []() { button_queue_enabled = true; }
   },
 
   .usb_mass_storage = {
@@ -254,15 +258,13 @@ void core1_main() {
   buttons.begin();
 
   while (1) {
-    // TODO: proper debounce/no-repeat
     ButtonInput input;
     ButtonEvent event;
 
-    while (1) {
+    if (button_queue_enabled) {
       if (buttons.get_event_input(input, event, false)) {
         ButtonInputEvent input_event = { .input = input, .event = event };
         queue_add_blocking(&button_queue, &input_event);
-        break;
       }
     }
   }

@@ -10,6 +10,8 @@ pub use calculation_history::*;
 pub use settings::*;
 pub use fat_interface::*;
 
+use crate::interface::framework;
+
 pub struct Filesystem<'a> {
     pub settings: Settings<'a>,
     pub calculations: CalculationHistory<'a>,
@@ -18,10 +20,12 @@ pub struct Filesystem<'a> {
 
 impl<'a> Filesystem<'a> {
     pub fn clear(&mut self) -> Option<()> {
-        self.calculations.table.clear(false)?;
-        self.fat.reset();
-        // TODO: clear settings
+        framework().storage.with_priority(|| {
+            self.calculations.table.clear(false)?;
+            self.fat.reset();
+            // TODO: clear settings
 
-        Some(())
+            Some(())
+        })
     }
 }

@@ -6,6 +6,9 @@ pub struct StorageInterface {
     pub busy: extern "C" fn() -> bool,
     pub write: extern "C" fn(address: u16, count: u16, buffer: *const u8) -> bool,
     pub read: extern "C" fn(address: u16, count: u16, buffer: *mut u8) -> bool,
+
+    pub acquire_priority: extern "C" fn() -> (),
+    pub release_priority: extern "C" fn() -> (),
 }
 
 impl StorageInterface {
@@ -24,6 +27,21 @@ impl StorageInterface {
         } else {
             None
         }
+    }
+
+    pub fn acquire_priority(&self) {
+        (self.acquire_priority)();
+    }
+
+    pub fn release_priority(&self) {
+        (self.release_priority)();
+    }
+
+    pub fn with_priority<T, F>(&self, func: F) -> T where F : FnOnce() -> T {
+        self.acquire_priority();
+        let result = func();
+        self.release_priority();
+        result
     }
 
     pub fn clear_range(&self, start: u16, length: u16) -> Option<()> {
