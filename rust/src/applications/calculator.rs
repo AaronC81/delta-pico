@@ -2,7 +2,7 @@ use alloc::{format, vec, vec::Vec};
 use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport}};
 use rust_decimal::{Decimal, prelude::Zero};
 
-use crate::{filesystem::{Calculation, ChunkIndex}, interface::{Colour, Sprite}, operating_system::{OSInput, OperatingSystemInterface, os}, rbop_impl::RbopContext, timer::Timer};
+use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, Sprite}, operating_system::{OSInput, OperatingSystemInterface, os}, rbop_impl::RbopContext, timer::Timer};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -158,14 +158,12 @@ impl Application for CalculatorApplication {
                 let layout = framework().layout(&self.rbop_ctx.root, Some(navigator));
                 layout_timer.borrow_mut().stop();
                 eval_timer.borrow_mut().start();
-                let result = if let Ok(structured) = self.rbop_ctx.root.upgrade() {
-                    if let Ok(evaluation_result) = structured.evaluate() {
-                        Some(evaluation_result)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
+                let result =  match self.rbop_ctx.root.upgrade() {
+                    Ok(structured) => match structured.evaluate() {
+                        Ok(evaluation_result) => CalculationResult::Ok(evaluation_result),
+                        Err(err) => CalculationResult::MathsError(err),
+                    },
+                    Err(err) => CalculationResult::NodeError(err),
                 };
                 eval_timer.borrow_mut().stop();
 
@@ -424,14 +422,12 @@ impl CalculatorApplication {
 
     fn save_current(&mut self) {
         // Evaluate
-        let result = if let Ok(structured) = self.rbop_ctx.root.upgrade() {
-            if let Ok(evaluation_result) = structured.evaluate() {
-                Some(evaluation_result)
-            } else {
-                None
-            }
-        } else {
-            None
+        let result = match self.rbop_ctx.root.upgrade() {
+            Ok(structured) => match structured.evaluate() {
+                Ok(evaluation_result) => CalculationResult::Ok(evaluation_result),
+                Err(err) => CalculationResult::MathsError(err),
+            },
+            Err(err) => CalculationResult::NodeError(err),
         };
 
         // Save into array
@@ -458,9 +454,13 @@ impl CalculatorApplication {
     }
     
 
-    fn result_height(&self, result: &Option<Number>) -> u64 {
+    fn result_height(&self, result: &CalculationResult) -> u64 {
         // If there isn't a result, just imagine that there's a decimal
-        let number = result.unwrap_or(Number::Decimal(Decimal::zero()));
+        let number = if let CalculationResult::Ok(result) = result {
+            result.clone()
+        } else {
+            Number::Decimal(Decimal::zero())
+        };
 
         // Convert the result number into a structured node
         let result_node = StructuredNode::Number(number.clone());
@@ -472,7 +472,7 @@ impl CalculatorApplication {
         PADDING * 3 + result_layout.area.height
     }
 
-    fn draw_result(&self, y: i64, result: &Option<Number>) {
+    fn draw_result(&self, y: i64, result: &CalculationResult) {
         // Draw a line
         framework().display.draw_line(
             PADDING as i64, y + PADDING as i64,
@@ -480,21 +480,40 @@ impl CalculatorApplication {
             Colour::GREY
         );
 
-        // Is there a result?
-        if let Some(number) = result {
-            // Convert the result number into a structured node
-            let result_node = StructuredNode::Number(number.clone());
+        let error_string;
 
-            // Compute a layout for it, so that we know its width and can therefore right-align it
-            let result_layout = framework().layout(&result_node, None);
+        match result {
+            CalculationResult::Ok(number) => {
+                // Convert the result number into a structured node
+                let result_node = StructuredNode::Number(number.clone());
 
-            // Set up layout location
-            framework().rbop_location_x = ((framework().display.width - PADDING) - result_layout.area.width) as i64;
-            framework().rbop_location_y = y + PADDING as i64 * 2;
+                // Compute a layout for it, so that we know its width and can therefore right-align it
+                let result_layout = framework().layout(&result_node, None);
 
-            // Draw
-            framework().draw_all_by_layout(&result_layout, None);
+                // Set up layout location
+                framework().rbop_location_x = ((framework().display.width - PADDING) - result_layout.area.width) as i64;
+                framework().rbop_location_y = y + PADDING as i64 * 2;
+
+                // Draw
+                framework().draw_all_by_layout(&result_layout, None);
+
+                // Don't print an error string
+                return;
+            },
+
+            CalculationResult::MathsError(err) => error_string = format!("{}", err),
+            CalculationResult::NodeError(err) => error_string = format!("{}", err),
+
+            CalculationResult::None => return,
         }
+
+        // That `match` didn't return, print an error string
+        let (error_string_width, _) = framework().display.string_size(&error_string);
+
+        let x = (framework().display.width - PADDING) as i64 - error_string_width;
+        let y = y + PADDING as i64 * 2;
+
+        framework().display.print_at(x, y, &error_string);
     }
 
     fn reset_scroll(&mut self) {

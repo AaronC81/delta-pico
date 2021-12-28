@@ -1,5 +1,5 @@
 use alloc::{vec, vec::Vec};
-use rbop::{Number, UnstructuredNodeList, node::unstructured::{Serializable, UnstructuredNodeRoot}};
+use rbop::{Number, UnstructuredNodeList, node::unstructured::{Serializable, UnstructuredNodeRoot}, error::{NodeError, MathsError}};
 
 use crate::filesystem::chunk_table::ChunkIndex;
 
@@ -12,14 +12,22 @@ pub struct CalculationHistory<'a> {
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct Calculation {
     pub root: UnstructuredNodeRoot,
-    pub result: Option<Number>,
+    pub result: CalculationResult,
+}
+    
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub enum CalculationResult {
+    Ok(Number),
+    NodeError(NodeError),
+    MathsError(MathsError),
+    None,
 }
 
 impl Calculation {
     pub fn blank() -> Self {
         Self {
             root: UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![] } },
-            result: None,
+            result: CalculationResult::None,
         }
     }
 }
@@ -27,11 +35,20 @@ impl Calculation {
 impl Serializable for Calculation {
     fn serialize(&self) -> Vec<u8> {
         let mut bytes = self.root.serialize();
-        if let Some(result) = self.result {
-            bytes.push(1);
-            bytes.append(&mut result.serialize().to_vec());
-        } else {
-            bytes.push(0);
+        match &self.result {
+            CalculationResult::None => bytes.push(0),
+            CalculationResult::Ok(result) => {
+                bytes.push(1);
+                bytes.append(&mut result.serialize().to_vec());
+            },
+            CalculationResult::NodeError(err) => {
+                bytes.push(2);
+                bytes.append(&mut err.serialize().to_vec());
+            },
+            CalculationResult::MathsError(err) => {
+                bytes.push(3);
+                bytes.append(&mut err.serialize().to_vec());
+            },
         }
         bytes
     }
@@ -39,10 +56,10 @@ impl Serializable for Calculation {
     fn deserialize(bytes: &mut dyn Iterator<Item = u8>) -> Option<Self> {
         let root = UnstructuredNodeRoot::deserialize(bytes)?;
         let result = match bytes.next() {
-            Some(1) => {
-                Number::deserialize(bytes)
-            }
-            Some(0) => None,
+            Some(0) => CalculationResult::None,
+            Some(1) => CalculationResult::Ok(Number::deserialize(bytes)?),
+            Some(2) => CalculationResult::NodeError(NodeError::deserialize(bytes)?),
+            Some(3) => CalculationResult::MathsError(MathsError::deserialize(bytes)?),
             _ => return None
         };
 
