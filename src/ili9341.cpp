@@ -34,7 +34,7 @@ void ILI9341Sprite::fill_fast(uint8_t half_colour) {
     }
 }
 
-void ILI9341Sprite::draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t radius, bool filled, uint16_t colour) {
+void ILI9341Sprite::draw_rect(int64_t x, int64_t y, int64_t w, int64_t h, int64_t radius, bool filled, uint16_t colour) {
     // TODO: radius is ignored
 
     // This is a very frequently called function, so we want it to be as optimised as possible!
@@ -61,34 +61,34 @@ void ILI9341Sprite::draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, ui
     #undef RECT_DRAW
 }
 
-void ILI9341Sprite::draw_line(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t colour) {
+void ILI9341Sprite::draw_line(int64_t x1, int64_t y1, int64_t x2, int64_t y2, uint16_t colour) {
     // We expect the 1s to be lower than the 2s - if not, swap them
     if (x1 > x2) {
         int tmp = x2;
-        x1 = x2;
         x2 = x1;
+        x1 = tmp;
     }
     if (y1 > y2) {
         int tmp = y2;
-        y1 = y2;
         y2 = y1;
+        y1 = tmp;
     }
 
     // Only horizontal and vertical lines supported, but the OS doesn't need to draw anything else
     if (y1 == y2) {
         // Horizontal
-        for (int x = x1; x < x2; x++) {
+        for (int x = x1; x <= x2; x++) {
             draw_pixel(x, y1, colour);
         }
     } else if (x1 == x2) {
         // Vertical
-        for (int y = y1; y < y2; y++) {
+        for (int y = y1; y <= y2; y++) {
             draw_pixel(x1, y, colour);
         }
     }
 }
 
-void ILI9341Sprite::draw_sprite(uint16_t x, uint16_t y, ILI9341Sprite *other) {
+void ILI9341Sprite::draw_sprite(int64_t x, int64_t y, ILI9341Sprite *other) {
     for (uint16_t ix = 0; ix < other->width; ix++) {
         for (uint16_t iy = 0; iy < other->height; iy++) {
             // Not using draw_pixel because that would flip the endianness
@@ -100,7 +100,7 @@ void ILI9341Sprite::draw_sprite(uint16_t x, uint16_t y, ILI9341Sprite *other) {
     }
 }
 
-void ILI9341Sprite::draw_bitmap(uint16_t sx, uint16_t sy, uint16_t *bitmap) {
+void ILI9341Sprite::draw_bitmap(int64_t sx, int64_t sy, uint16_t *bitmap) {
     if (bitmap == nullptr) return;
 
     uint16_t width = bitmap[0];

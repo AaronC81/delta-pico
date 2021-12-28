@@ -18,10 +18,10 @@ public:
 
     void fill(uint16_t colour);
     void fill_fast(uint8_t half_colour);
-    void draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t radius, bool filled, uint16_t colour);
-    void draw_line(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t colour);
-    void draw_sprite(uint16_t x, uint16_t y, ILI9341Sprite *other);
-    void draw_bitmap(uint16_t x, uint16_t y, uint16_t *bitmap);
+    void draw_rect(int64_t x, int64_t y, int64_t w, int64_t h, int64_t radius, bool filled, uint16_t colour);
+    void draw_line(int64_t x1, int64_t y1, int64_t x2, int64_t y2, uint16_t colour);
+    void draw_sprite(int64_t x, int64_t y, ILI9341Sprite *other);
+    void draw_bitmap(int64_t x, int64_t y, uint16_t *bitmap);
 
     void draw_char(char character);
     void draw_string(char *str);
@@ -30,16 +30,16 @@ public:
     // `x < TFT_WIDTH && y < TFT_HEIGHT` costs us about 15ms of frame time!!
     // Can we special-case/optimise this somehow for the screen sprite?
 
-    inline void draw_pixel(uint16_t x, uint16_t y, uint16_t colour) {
-        if (x < width && y < height) {
+    inline void draw_pixel(int64_t x, int64_t y, uint16_t colour) {
+        if (x >= 0 && y >= 0 && x < width && y < height) {
             // Draw pixels with endianness flipped, since we assume this is the case when sending data
             // to the screen later
             data[y * width + x] = ILI9341_FLIP_COLOUR(colour);
         }
     }
 
-    inline uint16_t get_pixel(uint16_t x, uint16_t y) {
-        if (x < width && y < height) {
+    inline uint16_t get_pixel(int64_t x, int64_t y) {
+        if (x >= 0 && y >= 0 && x < width && y < height) {
             // Correct endianness after draw_pixel flips it
             uint16_t colour = data[y * width + x];
             return ILI9341_FLIP_COLOUR(colour);
