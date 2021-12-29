@@ -20,7 +20,7 @@ void ILI9341Sprite::free() {
 void ILI9341Sprite::fill(uint16_t colour) {
     // If the colour has the same upper and lower byte, we can use an optimised version of this
     // function instead
-    if ((colour & 0xFF00 >> 8) == (colour & 0xFF)) {
+    if (((colour & 0xFF00) >> 8) == (colour & 0xFF)) {
         fill_fast((uint8_t)(colour & 0xFF));
         return;
     }
