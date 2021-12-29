@@ -1,6 +1,6 @@
 use alloc::{string::ToString, vec};
-use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{UnstructuredNodeRoot, MoveResult}, render::{Area, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility}};
-use crate::{interface::{ApplicationFrameworkInterface, Colour, ShapeFill, framework}, operating_system::{OSInput, os}};
+use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{UnstructuredNodeRoot, MoveResult}, render::{Area, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility, SizedGlyph}};
+use crate::{interface::{ApplicationFrameworkInterface, Colour, ShapeFill, framework, FontSize}, operating_system::{OSInput, os}};
 
 use core::cmp::max;
 
@@ -122,6 +122,13 @@ const MINIMUM_PAREN_HEIGHT: u64 = 16;
 
 impl Renderer for ApplicationFrameworkInterface {
     fn size(&mut self, glyph: Glyph, size_reduction_level: u32) -> Area {
+        // If there is any size reduction level, recurse using a smaller font
+        if size_reduction_level > 0 {
+            return framework().display.with_font_size(FontSize::Small, ||
+                self.size(glyph, 0)
+            )
+        }
+
         // Calculate an average character size
         let (text_character_width, text_character_height) = framework().display.string_size("0");
         let text_character_size = Area {
@@ -159,6 +166,19 @@ impl Renderer for ApplicationFrameworkInterface {
     fn init(&mut self, _size: Area) {}
 
     fn draw(&mut self, glyph: ViewportGlyph) {
+        // If there is any size reduction level, recurse using a smaller font
+        if glyph.glyph.size_reduction_level > 0 {
+            return framework().display.with_font_size(FontSize::Small, ||
+                self.draw(ViewportGlyph {
+                    glyph: SizedGlyph {
+                        size_reduction_level: 0,
+                        ..glyph.glyph
+                    },
+                    ..glyph
+                })
+            )
+        }
+
         // Apply padding
         let mut glyph = ViewportGlyph {
             point: glyph.point.dx(self.rbop_location_x).dy(self.rbop_location_y),
