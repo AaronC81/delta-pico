@@ -57,3 +57,8 @@ target_link_libraries(delta-pico
 # Build resources and fonts
 add_custom_target(build_res ALL COMMAND python3 ../build_res.py)
 add_custom_target(build_font ALL COMMAND python3 ../build_font.py)
+
+# Call a custom function if the Pico SDK panics
+# (The default one tries to use an SDK stdio handler, but we don't have one because we need finer
+# control over USB for MSC)
+add_compile_definitions(PICO_PANIC_FUNCTION=pico_panic)

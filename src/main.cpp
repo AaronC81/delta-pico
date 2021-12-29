@@ -293,6 +293,28 @@ void core1_main() {
     }
 }
 
+extern "C" {
+    // Pico as in Pico SDK, not Delta Pico!
+    // Our CMake config means this'll get called if something goes wrong within the SDK
+    void pico_panic(const char *fmt, ...) {
+        screen_sprite->fill(0xf800);
+
+        screen_sprite->cursor_x = 0;
+        screen_sprite->cursor_y = 0;
+        screen_sprite->draw_string("== PICO SDK PANIC :((( ==\n\nSomething went VERY\nwrong!\n\nError message:\n  ");
+
+        char buffer[128];
+        va_list va;
+        va_start(va, fmt);
+        vsnprintf(buffer, 128, fmt, va);
+
+        screen_sprite->draw_string(buffer);
+        screen_sprite->draw_string("\n\nThis is a bug.\nPlease restart device.\nSorry!");
+        tft.draw_sprite(0, 0, screen_sprite);
+        while (1);
+    }
+}
+
 int main() {
     // Initialize IO and ADC
     // stdio_init_all();
