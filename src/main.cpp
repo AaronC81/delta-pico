@@ -25,6 +25,7 @@ extern "C" {
 
 extern "C" {
     #include <delta_pico_rust.h>
+    #include <droid_sans_14.h>
     #include <droid_sans_20.h>
 }
 
@@ -184,6 +185,28 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
         .get_cursor = [](int64_t *x, int64_t *y) {
             *x = sprite->cursor_x;
             *y = sprite->cursor_y;
+        },
+        .get_font_size = []() {
+            if (sprite->font == droid_sans_20_font) {
+                return FontSize::Default;
+            } else if (sprite->font == droid_sans_14_font) {
+                return FontSize::Small;
+            } else {
+                // Should never happen!
+                return (FontSize)0;
+            }
+        },
+        .set_font_size = [](FontSize size) {
+            switch (size) {
+            case FontSize::Default:
+                sprite->font = (uint8_t**)droid_sans_20_font;
+                break;
+            case FontSize::Small:
+                sprite->font = (uint8_t**)droid_sans_14_font;
+                break;
+            default:
+                break;
+            }
         },
 
         .draw = []() {

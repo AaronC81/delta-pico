@@ -25,6 +25,13 @@ pub enum ShapeFill {
 }
 
 #[repr(C)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum FontSize {
+    Default,
+    Small,
+}
+
+#[repr(C)]
 pub struct DisplayInterface {
     pub width: u64,
     pub height: u64,
@@ -44,6 +51,8 @@ pub struct DisplayInterface {
     print: extern "C" fn(s: *const u8),
     set_cursor: extern "C" fn(x: i64, y: i64),
     get_cursor: extern "C" fn(x: *mut i64, y: *mut i64),
+    get_font_size: extern "C" fn() -> FontSize,
+    set_font_size: extern "C" fn(size: FontSize),
 
     draw: extern "C" fn(),
 }
@@ -235,6 +244,26 @@ impl DisplayInterface {
 
         // Factor in width of last line into height
         (lines, char_height, y + char_height)
+    }
+
+    /// Changes the font size being used by the current sprite.
+    fn set_font_size(&self, size: FontSize) {
+        (self.set_font_size)(size);
+    }
+
+    /// Gets the font size being used by the current sprite.
+    fn get_font_size(&self) -> FontSize {
+        (self.get_font_size)()
+    }
+
+    /// Performs a set of draw operations with a different font size, and returns to the original
+    /// font size at the end.
+    pub fn with_font_size<T, F>(&self, size: FontSize, func: F) -> T where F : FnOnce() -> T {
+        let original_size = self.get_font_size();
+        self.set_font_size(size);
+        let result = func();
+        self.set_font_size(original_size);
+        result
     }
 }
 
