@@ -1,4 +1,4 @@
-use core::convert::TryInto;
+use core::{convert::TryInto, mem, slice};
 
 use alloc::{vec, vec::Vec, format};
 use fatfs::{Read, IoBase, Write, Seek};
@@ -26,11 +26,18 @@ impl<'a> FatInterface<'a> {
         let block_num = framework().usb_mass_storage.block_num;
         let block_size = framework().usb_mass_storage.block_size;
     
-        let mut fat12_fs = vec![0u8; block_num * block_size];
+        // Temporary - We don't really have enough space to allocate an entire second buffer, so
+        // instead, just use the already-allocated one
+        let mut fat12_fs = unsafe {
+            slice::from_raw_parts_mut(
+                framework().usb_mass_storage.fat12_filesystem,
+                block_num * block_size,
+            )
+        };
     
         // Add boot sector
-        let boot_sector = [
-            0xEB, 0x3C, 0x90, 0x4D, 0x53, 0x44, 0x4F, 0x53, 0x35, 0x2E, 0x30, 0x00, 0x02, 0x01, 0x01, 0x00,
+        let mut to_write = [
+        0xEB, 0x3C, 0x90, 0x4D, 0x53, 0x44, 0x4F, 0x53, 0x35, 0x2E, 0x30, 0x00, 0x02, 0x01, 0x01, 0x00,
             0x01, 0x10, 0x00, 0x10, 0x00, 0xF8, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x29, 0x34, 0x12, 0x00, 0x00, b'D' , b'e' , b'l' , b't' , b'a' ,
             b' ' , b'P' , b'i' , b'c' , b'o' , b' ' , 0x46, 0x41, 0x54, 0x31, 0x32, 0x20, 0x20, 0x20, 0x00, 0x00,
@@ -68,21 +75,28 @@ impl<'a> FatInterface<'a> {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x55, 0xAA
         ];
-        fat12_fs.splice(0..(block_size - 1), boot_sector);
+        fat12_fs[0..block_size].copy_from_slice(&to_write);
+
     
         // Add FAT12 file allocation table
-        fat12_fs.splice(block_size..(block_size * 2 - 1), [0xF8, 0xFF, 0xFF, 0xFF, 0x0F]);
+        to_write.fill(0);
+        to_write[0..5].copy_from_slice(&[0xF8, 0xFF, 0xFF, 0xFF, 0x0F]);
+        fat12_fs[block_size..(block_size * 2)].copy_from_slice(&to_write);
     
         // Add volume label and root directory
         let readme =
             "Your Delta Pico is mounted as USB flash storage. Eject the drive in your OS once done!";
-        fat12_fs.splice((block_size * 2)..(block_size * 3 - 1), [
+        to_write.fill(0);
+        to_write[0..32].copy_from_slice(&[
             b'D' , b'e' , b'l' , b't' , b'a' , b' ' , b'P' , b'i' , b'c' , b'o' , b' ' , 0x08, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x4F, 0x6D, 0x65, 0x43, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ]);
+        fat12_fs[(block_size * 2)..(block_size * 3)].copy_from_slice(&to_write);
     
         // Add README.txt file content
-        fat12_fs.splice((block_size * 3)..(block_size * 4 - 1), readme.as_bytes().iter().copied());
+        to_write.fill(0);
+        to_write[0..readme.len()].copy_from_slice(readme.as_bytes());
+        fat12_fs[(block_size * 3)..(block_size * 4)].copy_from_slice(&to_write);
     
         // Write to underlying storage in chunks of page size
         for i in 0..(fat12_fs.len() / CAT24C_PAGE_SIZE) {
