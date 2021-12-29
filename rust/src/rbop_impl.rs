@@ -121,7 +121,7 @@ impl RbopContext {
 const MINIMUM_PAREN_HEIGHT: u64 = 16;
 
 impl Renderer for ApplicationFrameworkInterface {
-    fn size(&mut self, glyph: Glyph) -> Area {
+    fn size(&mut self, glyph: Glyph, size_reduction_level: u32) -> Area {
         // Calculate an average character size
         let (text_character_width, text_character_height) = framework().display.string_size("0");
         let text_character_size = Area {
@@ -173,7 +173,7 @@ impl Renderer for ApplicationFrameworkInterface {
                     if left_clip > 0 {
                         glyph.glyph = Glyph::Fraction {
                             inner_width: inner_width - left_clip
-                        }.to_sized(self);
+                        }.to_sized(self, glyph.glyph.size_reduction_level);
                         glyph.point.x = 0;
                     }
                 }
@@ -184,7 +184,7 @@ impl Renderer for ApplicationFrameworkInterface {
                     if right_clip > 0 {
                         glyph.glyph = Glyph::Fraction {
                             inner_width: inner_width - right_clip
-                        }.to_sized(self);
+                        }.to_sized(self, glyph.glyph.size_reduction_level);
                     }
                 }                
             }

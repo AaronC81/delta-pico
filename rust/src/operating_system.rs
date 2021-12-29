@@ -1,5 +1,5 @@
 use alloc::{boxed::Box, format, string::String, vec::Vec};
-use rbop::{Number, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport}};
+use rbop::{Number, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 use core::{cmp::max, mem, slice};
 
 use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, filesystem::{CalculationHistory, ChunkTable, Filesystem, RawStorage, Settings, FatInterface}, interface::{Colour, ShapeFill, framework}, multi_tap::MultiTapState, rbop_impl::RbopContext};
@@ -291,6 +291,7 @@ impl<'a> OperatingSystemInterface<'a> {
             let layout = framework().layout(
                 &rbop_ctx.root,
                 Some(&mut rbop_ctx.nav_path.to_navigator()),
+                LayoutComputationProperties::default(),
             );
             let height = max(layout.area.height, minimum_height);
 

@@ -1,5 +1,5 @@
 use alloc::{format, vec, vec::Vec};
-use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport}};
+use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 use rust_decimal::{Decimal, prelude::Zero};
 
 use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, Sprite}, operating_system::{OSInput, OperatingSystemInterface, os}, rbop_impl::RbopContext, timer::Timer};
@@ -155,7 +155,7 @@ impl Application for CalculatorApplication {
                 // If this is the calculation currently being edited, there is a possibly edited
                 // version in the rbop context, so use that for layout and such
                 layout_timer.borrow_mut().start();
-                let layout = framework().layout(&self.rbop_ctx.root, Some(navigator));
+                let layout = framework().layout(&self.rbop_ctx.root, Some(navigator), LayoutComputationProperties::default());
                 layout_timer.borrow_mut().stop();
                 eval_timer.borrow_mut().start();
                 let result =  match self.rbop_ctx.root.upgrade() {
@@ -383,7 +383,7 @@ impl CalculatorApplication {
             let root = &self.calculations[index].root;
 
             // Compute layout
-            let layout = framework().layout(root, None);
+            let layout = framework().layout(root, None, LayoutComputationProperties::default());
 
             // Draw layout onto a new sprite
             let sprite = framework().display.new_sprite(
@@ -466,7 +466,7 @@ impl CalculatorApplication {
         let result_node = StructuredNode::Number(number.clone());
 
         // Compute a layout for it, so that we know its width and can therefore right-align it
-        let result_layout = framework().layout(&result_node, None);
+        let result_layout = framework().layout(&result_node, None, LayoutComputationProperties::default());
 
         // Return the height it will be when drawn, plus padding
         PADDING * 3 + result_layout.area.height
@@ -488,7 +488,7 @@ impl CalculatorApplication {
                 let result_node = StructuredNode::Number(number.clone());
 
                 // Compute a layout for it, so that we know its width and can therefore right-align it
-                let result_layout = framework().layout(&result_node, None);
+                let result_layout = framework().layout(&result_node, None, LayoutComputationProperties::default());
 
                 // Set up layout location
                 framework().rbop_location_x = ((framework().display.width - PADDING) - result_layout.area.width) as i64;
