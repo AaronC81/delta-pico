@@ -93,7 +93,7 @@ void ILI9341Sprite::draw_sprite(int64_t x, int64_t y, ILI9341Sprite *other) {
         for (uint16_t iy = 0; iy < other->height; iy++) {
             // Not using draw_pixel because that would flip the endianness
             // Because we're drawing from another sprite, the endianness was already flipped
-            if ((ix + x) < width && (iy + y) < height) {
+            if (x >= 0 && y >= 0 && (ix + x) < width && (iy + y) < height) {
                 data[(iy + y) * width + (ix + x)] = other->data[iy * other->width + ix];
             }
         }
