@@ -6,6 +6,9 @@ cmake_minimum_required(VERSION 3.12)
 #add_definitions(-DDELTA_PICO_REV2)
 add_definitions(-DDELTA_PICO_REV3)
 
+# Extra traits
+add_definitions(-DDELTA_PICO_TRAIT_MULTICORE)
+
 # Pull in PICO SDK (must be before project)
 include(pico_sdk_import.cmake)
 

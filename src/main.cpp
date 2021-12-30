@@ -46,6 +46,15 @@ CAT24C storage(i2c0, CAT24C_ADDRESS);
 
 const char *hardware_revision = DELTA_PICO_REVISION_NAME;
 
+#define BUTTON_MATRIX_DEFINITION \
+    PCF8574 col_pcf(i2c0, I2C_EXPANDER_ADDRESS_1); \
+    PCF8574 row_pcf(i2c0, I2C_EXPANDER_ADDRESS_2); \
+    ButtonMatrix buttons(row_pcf, col_pcf);
+
+#ifndef DELTA_PICO_TRAIT_MULTICORE
+    BUTTON_MATRIX_DEFINITION
+#endif
+
 typedef struct {
     ButtonInput input;
     ButtonEvent event;
@@ -223,24 +232,32 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
 
     .buttons = ButtonsInterface {
         .wait_input_event = [](ButtonInput *input, ButtonEvent *event) {
-            ButtonInputEvent input_event;
-            queue_remove_blocking(&button_queue, &input_event);
+            #ifdef DELTA_PICO_TRAIT_MULTICORE
+                ButtonInputEvent input_event;
+                queue_remove_blocking(&button_queue, &input_event);
 
-            *input = input_event.input;
-            *event = input_event.event;
-
-            return true;
-        },
-        .immediate_input_event = [](ButtonInput *input, ButtonEvent *event) {      
-            ButtonInputEvent input_event;
-            if (queue_try_remove(&button_queue, &input_event)) {
                 *input = input_event.input;
                 *event = input_event.event;
 
                 return true;
-            } else {
-                return false;
-            }
+            #else
+                return buttons.get_event_input(*input, *event, true);
+            #endif
+        },
+        .immediate_input_event = [](ButtonInput *input, ButtonEvent *event) {   
+            #ifdef DELTA_PICO_TRAIT_MULTICORE   
+                ButtonInputEvent input_event;
+                if (queue_try_remove(&button_queue, &input_event)) {
+                    *input = input_event.input;
+                    *event = input_event.event;
+
+                    return true;
+                } else {
+                    return false;
+                }
+            #else
+                return buttons.get_event_input(*input, *event, false);
+            #endif
         },
     },
 
@@ -280,25 +297,25 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
     }
 };
 
-void core1_main() {
-    // Initialise button matrix
-    PCF8574 col_pcf(i2c0, I2C_EXPANDER_ADDRESS_1);
-    PCF8574 row_pcf(i2c0, I2C_EXPANDER_ADDRESS_2);
-    ButtonMatrix buttons(row_pcf, col_pcf);
-    buttons.begin();
+#ifdef DELTA_PICO_TRAIT_MULTICORE
+    void core1_main() {
+        // Initialise button matrix
+        BUTTON_MATRIX_DEFINITION
+        buttons.begin();
 
-    while (1) {
-        ButtonInput input;
-        ButtonEvent event;
+        while (1) {
+            ButtonInput input;
+            ButtonEvent event;
 
-        if (button_queue_enabled) {
-            if (buttons.get_event_input(input, event, false)) {
-                ButtonInputEvent input_event = { .input = input, .event = event };
-                queue_add_blocking(&button_queue, &input_event);
+            if (button_queue_enabled) {
+                if (buttons.get_event_input(input, event, false)) {
+                    ButtonInputEvent input_event = { .input = input, .event = event };
+                    queue_add_blocking(&button_queue, &input_event);
+                }
             }
         }
     }
-}
+#endif
 
 extern "C" {
     // Pico as in Pico SDK, not Delta Pico!
@@ -337,6 +354,9 @@ int main() {
 
     // Begin peripherals which need beginning
     tft.begin();
+    #ifndef DELTA_PICO_TRAIT_MULTICORE
+        buttons.begin();
+    #endif
 
     // Set up screen sprite and switch to it
     screen_sprite = tft.create_sprite(TFT_WIDTH, TFT_HEIGHT);
@@ -346,8 +366,10 @@ int main() {
     sprite = screen_sprite;
 
     // Set up button queue and kick off core 1
-    queue_init(&button_queue, sizeof(ButtonInputEvent), BUTTON_QUEUE_SIZE);
-    multicore_launch_core1(core1_main);
+    #ifdef DELTA_PICO_TRAIT_MULTICORE
+        queue_init(&button_queue, sizeof(ButtonInputEvent), BUTTON_QUEUE_SIZE);
+        multicore_launch_core1(core1_main);
+    #endif
 
     // Pass the Rust side our HAL struct and let it take over
     delta_pico_set_framework(&framework_interface);
