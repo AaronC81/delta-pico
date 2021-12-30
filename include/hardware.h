@@ -62,7 +62,8 @@
 // temperature, but is nominally about 0.35V
 // So, to get a correct battery reading, we'll need to add this voltage back on to whatever we read
 // from the VSYS ADC
-#define DELTA_PICO_TRAIT_BATTERY_VOLTAGE_DROP 0.35
+// (Value is in millivolts)
+#define DELTA_PICO_TRAIT_BATTERY_VOLTAGE_DROP 350
 
 #else
 #error "Please define a revision"

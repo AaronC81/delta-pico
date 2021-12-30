@@ -83,36 +83,43 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
         // Read from Pico's VSYS ADC
         // Then divide by resolution, times by Pico logical voltage, times by 3
         // (Voltage is divided by 3 - see Pico Datasheet section 4.4) 
+        // (1 / 1024) * 3.3 * 3 which is roughly 103
+
+        // Using floats here caused a F*@#ING HARDFAULT which I spent TWO DAYS debugging. Why!? I have
+        // no idea!
+        // Specifically, a generated call to __wrap___aeabi_f2d would hardfault, presumably when casting
+        // `adc_reading` to a float.
+        // To avoid a repeat of that disturbing experience, let's use integers instead.
         adc_select_input(3);
-        int adc_reading = adc_read();
-        float voltage = ((float)adc_reading / 1024.0) * 3.3 * 3;
+        int adc_reading = adc_read() * 1000;
+        int voltage_mv = adc_reading / 103;
 
         #ifdef DELTA_PICO_TRAIT_BATTERY_VOLTAGE_DROP
-            voltage += DELTA_PICO_TRAIT_BATTERY_VOLTAGE_DROP;
+            voltage_mv += DELTA_PICO_TRAIT_BATTERY_VOLTAGE_DROP;
         #endif
 
         // Source: https://phantompilots.com/threads/how-does-lipo-voltage-relate-to-percent.13597/
-        if (voltage > 4.5) {  
+        if (voltage_mv > 4500) {  
             return -1; // Connected over USB
-        } else if (voltage > 4.13) {
+        } else if (voltage_mv > 4130) {
             return 100;
-        } else if (voltage > 4.06) {
+        } else if (voltage_mv > 4060) {
             return 90;
-        } else if (voltage > 3.99) {
+        } else if (voltage_mv > 3990) {
             return 80;
-        } else if (voltage > 3.92) {
+        } else if (voltage_mv > 3920) {
             return 70;
-        } else if (voltage > 3.85) {
+        } else if (voltage_mv > 3850) {
             return 60;
-        } else if (voltage > 3.78) {
+        } else if (voltage_mv > 3780) {
             return 50;
-        } else if (voltage > 3.71) {
+        } else if (voltage_mv > 3710) {
             return 40;
-        } else if (voltage > 3.64) {
+        } else if (voltage_mv > 3640) {
             return 30;
-        } else if (voltage > 3.57) {
+        } else if (voltage_mv > 3570) {
             return 20;
-        } else if (voltage > 3.5) {
+        } else if (voltage_mv > 3500) {
             return 10;
         } else {
             return 0;
