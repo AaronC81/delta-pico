@@ -35,18 +35,34 @@ for file in os.listdir(res_dir):
             f.write("#pragma once\n\n")
             f.write("#include <stdint.h>\n\n")
 
-            # Declare a constant to represent a transparency value and run-length marker
-            f.write(f"extern const uint16_t {root_name}_transparency;\n\n")
-            f.write(f"extern const uint16_t {root_name}_run_length;\n\n")
-            f.write(f"const uint16_t {root_name}[] = {{")
+            # Start off bitmap array
+            f.write(f"__attribute__((section(\".rodata#\"))) const uint16_t {root_name}[] = {{")
 
             # Build a set of all colours in the image, so we can find a colour we aren't using
             # An unused colour will become a transparency colour
             # (This assumes that it won't use _every_ 16-bit colour!)
             used_colours = set()
+
+            # We'll also keep track of file locations which need to be seeked to, to overwrite the
+            # TRANSP and RUNLEN placeholders.
+            # Using constants or preprocessor macros instead would be nice, but:
+            #   - Using an `extern const` and defining the `const` later does not work when the
+            #     bitmap data gets put in flash
+            #   - We have no way of "forward-defining" a preprocessor macro, so would need to make
+            #     two passes
+            # The placeholders themselves are meaningless, chosen as 6-letter identifiers so they'll
+            # be completely overwritten by a 4-digit hex number with 0x prefix. These shouldn't show
+            # up anywhere in the final generated code.
+            transp_seek_locs = []
+            runlen_seek_locs = []
             
             # Print dimensions
-            f.write(f"{image.width}, {image.height}, {root_name}_transparency, {root_name}_run_length\n")
+            f.write(f"{image.width}, {image.height}, ")
+            transp_seek_locs.append(f.tell())
+            f.write("TRANSP, ")
+            runlen_seek_locs.append(f.tell())
+            f.write("RUNLEN\n")
+
             need_comma = False
             for x in range(image.width):
                 y = 0
@@ -67,15 +83,26 @@ for file in os.listdir(res_dir):
                     if colour_16bit is not None:
                         used_colours.add(colour_16bit)
                         colour_array = hex(colour_16bit)
+                        transparent = False
                     else:
-                        colour_array = f"{root_name}_transparency"
+                        colour_array = f"TRANSP"
+                        transparent = True
 
                     f.write(f"// ({x}, {y}) {colour_array} count {count} \n")
                     # If there are more than four pixels of the same colour, use run-length
                     if count > 4:
-                        f.write(f", {root_name}_run_length, {count}, {colour_array}")
+                        f.write(", ")
+                        runlen_seek_locs.append(f.tell())
+                        f.write(f"RUNLEN, {count}, ")
+                        if transparent:
+                            transp_seek_locs.append(f.tell())
+                        f.write(colour_array)
                     else:
-                        f.write(f", {colour_array}" * count)
+                        for _ in range(count):
+                            f.write(", ")
+                            if transparent:
+                                transp_seek_locs.append(f.tell())
+                            f.write(colour_array)
                     f.write("\n\n")
 
                 f.write("\n\n\n")
@@ -83,21 +110,32 @@ for file in os.listdir(res_dir):
             f.write("};\n\n")
 
             # Find transparency colour and run-length
+            transparency_colour = None
             for i in range(2**16):
                 if i not in used_colours:
-                    f.write(f"const uint16_t {root_name}_transparency = {hex(i)};")
+                    transparency_colour = f"0x{i:04x}"
                     used_colours.add(i)
                     break
             else:
                 print(f"WARNING: No transparency colour found for {file}, compilation will fail")
 
+            run_length_colour = None
             for i in range(2**16):
                 if i not in used_colours:
-                    f.write(f"const uint16_t {root_name}_run_length = {hex(i)};")
+                    run_length_colour = f"0x{i:04x}"
                     used_colours.add(i)
                     break
             else:
                 print(f"WARNING: No run-length colour found for {file}, compilation will fail")
+
+            # Replace marked locations with these colours
+            for transp_loc in transp_seek_locs:
+                f.seek(transp_loc)
+                f.write(transparency_colour)
+
+            for runlen_loc in runlen_seek_locs:
+                f.seek(runlen_loc)
+                f.write(run_length_colour)            
 
 # Generate a function for looking up bitmaps by name
 if len(bitmaps) > 0:
