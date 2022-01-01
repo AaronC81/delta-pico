@@ -420,6 +420,7 @@ pub enum OSInput {
     MoveUp,
     MoveDown,
     Delete,
+    Clear,
 
     Digit(u8),
 

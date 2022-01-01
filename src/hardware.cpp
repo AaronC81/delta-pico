@@ -18,7 +18,7 @@ const ButtonInput button_mapping[7][7] = {
 const ButtonInput button_mapping[7][7] = {
   { I::MoveUp, I::MoveRight, I::Menu, I::List, I::None, I::None, I::None, },
   { I::MoveLeft, I::MoveDown, I::Shift, I::Text, I::None, I::None, I::Parentheses, },
-  { I::Digit7, I::Digit8, I::Digit9, I::Delete, I::None, I::None, I::None, },
+  { I::Digit7, I::Digit8, I::Digit9, I::Delete, I::None, I::None, I::Clear, },
   { I::Digit4, I::Digit5, I::Digit6, I::Multiply, I::None, I::None, I::Fraction, },
   { I::None, I::None, I::None, I::None, I::None, I::None, I::None, },
   { I::Digit0, I::Point, I::Power, I::None, I::None, I::None, I::Exe, },

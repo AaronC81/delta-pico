@@ -51,6 +51,10 @@ impl RbopContext {
                     self.root.delete(&mut self.nav_path, renderer, self.viewport.as_mut());
                     None
                 }
+                OSInput::Clear => {
+                    self.root.clear(&mut self.nav_path, renderer, self.viewport.as_mut());
+                    None
+                }
         
                 OSInput::Digit(d) => Some(UnstructuredNode::Token(Token::Digit(d))),
         

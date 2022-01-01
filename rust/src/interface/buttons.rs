@@ -51,6 +51,7 @@ impl ButtonsInterface {
                     ButtonInput::MoveUp => OSInput::MoveUp,
                     ButtonInput::MoveDown => OSInput::MoveDown,
                     ButtonInput::Delete => OSInput::Delete,
+                    ButtonInput::Clear => OSInput::Clear,
 
                     ButtonInput::Digit0 => OSInput::Digit(0),
                     ButtonInput::Digit1 => OSInput::Digit(1),
@@ -113,6 +114,7 @@ pub enum ButtonInput {
     MoveUp,
     MoveDown,
     Delete,
+    Clear,
 
     Digit0,
     Digit1,
