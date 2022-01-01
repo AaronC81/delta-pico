@@ -127,11 +127,9 @@ impl Application for CalculatorApplication {
         let mut next_calculation_highest_y = self.starting_y;
         
         // Draw history
-        // TODO: possibly expensive clone
         let calculation_count = self.calculations.len();
-        let items = self.calculations.iter().cloned().enumerate().rev().collect::<Vec<_>>();
         let mut rest_are_clipped = false;
-        for (i, Calculation { result, .. }) in items {
+        for i in (0..self.calculations.len()).rev() {
             // If the last thing we drew was partially off the top of the screen, then this is fully
             // off the screen, so skip it and mark it as pruned
             if rest_are_clipped {
@@ -171,7 +169,7 @@ impl Application for CalculatorApplication {
 
                 result
             } else {
-                result
+                self.calculations[i].result.clone()
             };
 
             // Work out Y position to draw everything from. Since we draw from bottom to top, we
