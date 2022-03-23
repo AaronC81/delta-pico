@@ -1,6 +1,6 @@
 use alloc::{vec, format};
 
-use crate::{interface::{Colour, ShapeFill}, operating_system::{OSInput, UIMenu, UIMenuItem, os}, timer::Timer};
+use crate::{interface::{Colour, ShapeFill, virtual_buttons}, operating_system::{OSInput, UIMenu, UIMenuItem, os}, timer::Timer};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -37,6 +37,11 @@ impl Application for SettingsApplication {
                 UIMenuItem {
                     title: "Graphics benchmark".into(),
                     icon: "settings_graphics_benchmark".into(),
+                    toggle: None,
+                },
+                UIMenuItem {
+                    title: "Run test suite".into(),
+                    icon: "settings_test".into(),
                     toggle: None,
                 }
             ]),
@@ -75,6 +80,7 @@ impl SettingsApplication {
                 self.toggle_setting(2, &mut os().filesystem.settings.values.fire_button_press_only)
             },
             3 => self.graphics_benchmark(),
+            4 => self.run_test_suite(),
             _ => unreachable!()
         }
     }
@@ -159,5 +165,24 @@ impl SettingsApplication {
                 break;
             }
         }
+    }
+
+    fn run_test_suite(&self) {
+        os().launch_application(
+            os().application_list.applications
+                .iter()
+                .enumerate()
+                .find(|(_, (app, _))| app.name == "Calculator")
+                .unwrap()
+                .0
+        );
+
+        virtual_buttons::queue_virtual_button_presses(&[
+            OSInput::Clear,
+            OSInput::Digit(1),
+            OSInput::Add,
+            OSInput::Digit(3),
+        ]);
+        virtual_buttons::tick_all_virtual_buttons();
     }
 }

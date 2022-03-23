@@ -13,6 +13,37 @@ pub struct ButtonsInterface {
     pub immediate_input_event: extern "C" fn(input: *mut ButtonInput, event: *mut ButtonEvent) -> bool,
 }
 
+pub mod virtual_buttons {
+    use alloc::{vec, vec::Vec};
+
+    use crate::operating_system::{OSInput, os};
+
+    // ButtonsInterface needs to support FFI, so not sure there's anywhere better to put this :(
+    static mut VIRTUAL_BUTTON_PRESSES: Vec<OSInput> = vec![];
+
+    pub fn get_virtual_button_presses() -> &'static Vec<OSInput> {
+        unsafe {
+            &VIRTUAL_BUTTON_PRESSES
+        }
+    }
+
+    pub fn get_virtual_button_presses_mut() -> &'static mut Vec<OSInput> {
+        unsafe {
+            &mut VIRTUAL_BUTTON_PRESSES
+        }
+    }
+
+    pub fn queue_virtual_button_presses(presses: &[OSInput]) {
+        get_virtual_button_presses_mut().extend_from_slice(presses);
+    }
+
+    pub fn tick_all_virtual_buttons() {
+        while !get_virtual_button_presses().is_empty() {
+            os().active_application.as_mut().unwrap().tick();
+        }
+    }
+}
+
 impl ButtonsInterface {
     pub fn wait_press(&self) -> Option<OSInput> {
         self.press_func_wrapper(self.wait_input_event)
@@ -24,6 +55,11 @@ impl ButtonsInterface {
 
     fn press_func_wrapper(&self, func: extern "C" fn(input: *mut ButtonInput, event: *mut ButtonEvent) -> bool) -> Option<OSInput> {
         loop {
+            // If there's a virtual press available, pop and use that
+            if !virtual_buttons::get_virtual_button_presses().is_empty() {
+                return Some(virtual_buttons::get_virtual_button_presses_mut().remove(0));
+            }
+
             // Garbage default values
             let mut input: ButtonInput = ButtonInput::None;
             let mut event: ButtonEvent = ButtonEvent::Release;
