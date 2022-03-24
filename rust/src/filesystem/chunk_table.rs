@@ -237,8 +237,8 @@ impl<'a> ChunkTable<'a> {
     ///
     /// Passing `hard` as `true` will zero the entire table, including the heap.
     pub fn clear(&mut self, hard: bool) -> Option<()> {
-        self.storage.clear_range(self.chunk_map_address(), self.chunk_map_address())?;
-        self.storage.clear_range(self.chunk_state_address(), self.chunk_state_address())?;
+        self.storage.clear_range(self.chunk_map_address(), self.chunk_map_length())?;
+        self.storage.clear_range(self.chunk_state_address(), self.chunk_state_length())?;
 
         if hard {
             self.storage.clear_range(self.chunk_heap_address(), self.chunk_heap_length())?;
