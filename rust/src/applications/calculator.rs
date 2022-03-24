@@ -1,4 +1,4 @@
-use alloc::{format, vec, vec::Vec};
+use alloc::{format, vec, vec::Vec, string::{String, ToString}};
 use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 use rust_decimal::{Decimal, prelude::Zero};
 
@@ -350,6 +350,13 @@ impl Application for CalculatorApplication {
 
     fn destroy(&mut self) {
         self.clear_sprite_cache();
+    }
+
+    fn test_info(&self) -> Vec<String> {
+        vec![
+            format!("{:?}", self.calculations[self.current_calculation_idx].result),
+            self.calculations.len().to_string(),
+        ]
     }
 }
 

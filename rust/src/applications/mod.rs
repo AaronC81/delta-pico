@@ -33,6 +33,10 @@ pub trait Application {
     }
 
     fn destroy(&mut self) {}
+
+    fn test_info(&self) -> Vec<String> {
+        vec![]
+    }
 }
 
 pub struct ApplicationList {
