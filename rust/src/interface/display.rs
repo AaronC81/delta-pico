@@ -40,6 +40,7 @@ pub struct DisplayInterface {
 
     new_sprite: extern "C" fn(width: i16, height: i16) -> *mut u8,
     free_sprite: extern "C" fn(*mut u8),
+    get_sprite_data_pointer: extern "C" fn(*mut u8) -> *mut u8,
     switch_to_sprite: extern "C" fn(*mut u8),
     switch_to_screen: extern "C" fn(),
 
@@ -65,12 +66,14 @@ impl DisplayInterface {
     pub fn new_sprite(&self, width: u16, height: u16) -> Sprite {
         let ptr = (self.new_sprite)(width as i16, height as i16);
         ALLOCATOR.count_external_alloc(ptr);
+        ALLOCATOR.count_external_alloc((self.get_sprite_data_pointer)(ptr));
         Sprite(ptr)
     }
 
     /// Frees an allocated sprite. After this, the sprite cannot be used.
     pub fn free_sprite(&self, sprite: Sprite) {
         ALLOCATOR.count_external_free(sprite.0);
+        ALLOCATOR.count_external_free((self.get_sprite_data_pointer)(sprite.0));
         (self.free_sprite)(sprite.0)
     }
 

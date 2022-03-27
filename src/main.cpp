@@ -153,6 +153,9 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
         .free_sprite = [](uint8_t* s){
             ((ILI9341Sprite*)s)->free();
         },
+        .get_sprite_data_pointer = [](uint8_t *s){
+            return (uint8_t*)(((ILI9341Sprite*)s)->data);
+        },
         .switch_to_sprite = [](uint8_t* s){
             sprite = (ILI9341Sprite*)s;
         },

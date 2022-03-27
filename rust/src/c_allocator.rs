@@ -1,6 +1,7 @@
 use core::alloc::{GlobalAlloc, Layout};
 
 pub static mut MEMORY_USAGE: usize = 0;
+pub static mut EXTERNAL_MEMORY_USAGE: usize = 0;
 
 pub struct CAllocator;
 
@@ -24,13 +25,13 @@ unsafe impl GlobalAlloc for CAllocator {
 impl CAllocator {
     pub fn count_external_alloc(&self, ptr: *mut u8) {
         unsafe {
-            MEMORY_USAGE += malloc_usable_size(ptr);
+            EXTERNAL_MEMORY_USAGE += malloc_usable_size(ptr);
         }
     }
 
     pub fn count_external_free(&self, ptr: *mut u8) {
         unsafe {
-            MEMORY_USAGE -= malloc_usable_size(ptr);
+            EXTERNAL_MEMORY_USAGE -= malloc_usable_size(ptr);
         }
     }
 }
