@@ -2,6 +2,8 @@ use core::fmt::Debug;
 
 use alloc::{string::{String, ToString}, vec, vec::Vec};
 
+use crate::ALLOCATOR;
+
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct Sprite(*mut u8);
 
@@ -61,11 +63,14 @@ impl DisplayInterface {
     /// Creates a new sprite with a given size and returns it. The sprite must be freed manually
     /// using `free_sprite`.
     pub fn new_sprite(&self, width: u16, height: u16) -> Sprite {
-        Sprite((self.new_sprite)(width as i16, height as i16))
+        let ptr = (self.new_sprite)(width as i16, height as i16);
+        ALLOCATOR.count_external_alloc(ptr);
+        Sprite(ptr)
     }
 
     /// Frees an allocated sprite. After this, the sprite cannot be used.
     pub fn free_sprite(&self, sprite: Sprite) {
+        ALLOCATOR.count_external_free(sprite.0);
         (self.free_sprite)(sprite.0)
     }
 

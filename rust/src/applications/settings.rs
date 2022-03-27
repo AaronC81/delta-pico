@@ -1,6 +1,8 @@
-use alloc::{vec::Vec, vec, format, string::String};
+use core::alloc::{GlobalAlloc, Layout};
 
-use crate::{interface::{Colour, ShapeFill, virtual_buttons}, operating_system::{OSInput, UIMenu, UIMenuItem, os}, timer::Timer};
+use alloc::{vec::Vec, vec, format, string::String, boxed::Box};
+
+use crate::{interface::{Colour, ShapeFill, virtual_buttons}, operating_system::{OSInput, UIMenu, UIMenuItem, os}, timer::Timer, ALLOCATOR};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -43,6 +45,11 @@ impl Application for SettingsApplication {
                     title: "Run test suite".into(),
                     icon: "settings_test".into(),
                     toggle: None,
+                },
+                UIMenuItem {
+                    title: "Memory leak test".into(),
+                    icon: "settings_memory_leak".into(),
+                    toggle: None,
                 }
             ]),
         }
@@ -81,6 +88,7 @@ impl SettingsApplication {
             },
             3 => self.graphics_benchmark(),
             4 => self.run_test_suite(),
+            5 => self.leak_memory_until_panic(),
             _ => unreachable!()
         }
     }
@@ -241,5 +249,18 @@ impl SettingsApplication {
 
     fn active_test_info(&self) -> Vec<String> {
         os().active_application.as_ref().unwrap().test_info()
+    }
+
+    fn leak_memory_until_panic(&self) -> ! {
+        let mut i = 0;
+        loop {
+            framework().display.fill_screen(Colour::BLACK);
+            os().ui_draw_title("Leaking...");
+            unsafe { ALLOCATOR.alloc(Layout::new::<[u64; 16]>()) };
+            framework().display.print_at(40, 40, &format!("{}", i));
+            framework().display.draw();
+
+            i += 1;
+        }
     }
 }

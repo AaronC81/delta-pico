@@ -23,7 +23,7 @@ use operating_system::os;
 use crate::{interface::Colour, operating_system::{OSInput, OperatingSystemInterface}};
 
 #[global_allocator]
-static ALLOCATOR: CAllocator = CAllocator;
+pub static ALLOCATOR: CAllocator = CAllocator;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {

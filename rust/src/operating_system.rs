@@ -2,7 +2,7 @@ use alloc::{boxed::Box, format, string::String, vec::Vec};
 use rbop::{Number, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 use core::{cmp::max, mem, slice};
 
-use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, filesystem::{CalculationHistory, ChunkTable, Filesystem, RawStorage, Settings, FatInterface}, interface::{Colour, ShapeFill, framework}, multi_tap::MultiTapState, rbop_impl::RbopContext};
+use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, filesystem::{CalculationHistory, ChunkTable, Filesystem, RawStorage, Settings, FatInterface}, interface::{Colour, ShapeFill, framework}, multi_tap::MultiTapState, rbop_impl::RbopContext, ALLOCATOR, c_allocator::MEMORY_USAGE};
 
 static mut OPERATING_SYSTEM_INTERFACE: Option<OperatingSystemInterface> = None;
 pub fn os() -> &'static mut OperatingSystemInterface<'static> {
@@ -176,14 +176,7 @@ impl<'a> OperatingSystemInterface<'a> {
 
         // Draw title, according to settings
         let frame_time = format!("{} ms", millis_elapsed);
-
-        let mut used_memory: u64 = 0;
-        let mut available_memory: u64 = 0;
-        (framework().heap_usage)(&mut used_memory, &mut available_memory);
-        used_memory /= 1000;
-        available_memory /= 1000;
-
-        let heap_usage = format!("{}/{}kB", used_memory, available_memory);
+        let heap_usage = format!("{}b", unsafe { MEMORY_USAGE });
 
         let settings = &os().filesystem.settings.values;
         let title_text = match (settings.show_frame_time, settings.show_heap_usage) {

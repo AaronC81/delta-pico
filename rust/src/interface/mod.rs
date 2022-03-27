@@ -35,7 +35,6 @@ pub struct ApplicationFrameworkInterface {
     pub micros: extern "C" fn() -> u32,
 
     pub charge_status: extern "C" fn() -> i32,
-    pub heap_usage: extern "C" fn(*mut u64, *mut u64) -> (),
 
     hardware_revision: *const u8,
 

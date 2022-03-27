@@ -134,16 +134,6 @@ ApplicationFrameworkInterface framework_interface = ApplicationFrameworkInterfac
             return 0;
         }
     },
-    .heap_usage = [](uint64_t* used, uint64_t* available) {
-        // TODO
-        // mbed_stats_heap_t heap_stats;
-        // mbed_stats_heap_get(&heap_stats);
-
-        // *used = heap_stats.current_size;
-        // *available = heap_stats.reserved_size;
-        *used = 1000;
-        *available = 2000;
-    },
 
     .hardware_revision = (uint8_t*)hardware_revision,
 
