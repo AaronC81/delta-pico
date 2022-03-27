@@ -1,3 +1,4 @@
+use core::ptr::null_mut;
 use alloc::{format, vec, vec::Vec, string::{String, ToString}};
 use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 use rust_decimal::{Decimal, prelude::Zero};
@@ -217,7 +218,7 @@ impl Application for CalculatorApplication {
             }
 
             // If the greatest Y is off the bottom of the screen (again, maybe still partially
-            // visible), and this is the calculation we're currently editing...
+            // visible) and this is the calculation we're currently editing...
             if next_calculation_highest_y > framework().display.height as i64
                 && self.current_calculation_idx == i
             {
@@ -233,8 +234,27 @@ impl Application for CalculatorApplication {
             // The next calculation, drawn above this one, should have its highest Y be the same as
             // the lowest Y of this equation, minus one so they don't overlap
             next_calculation_highest_y = this_calculation_lowest_y - 1;
-
+            
             height_timer.borrow_mut().stop();
+
+            // If the lowest Y is off the bottom of the screen, then this is fully clipped and can
+            // be skipped
+            if this_calculation_lowest_y > framework().display.height as i64 {
+                // HACK: We can't just mark as clipped, because that doesn't encode an area, but we
+                // do actually need one for correct Y values of future items
+                // Instead, just silently deallocate the sprite and cross our fingers we never try
+                // to draw it
+                // This saves a ton of memory since we don't need to cache sprites clipped off the
+                // bottom, but I now fear that Ferris is going to find me
+                if let SpriteCacheEntry::Entry { sprite, .. } = &mut self.sprite_cache[i] {
+                    if !sprite.0.is_null() {
+                        framework().display.free_sprite(cached_sprite);
+                        sprite.0 = null_mut();
+                    }
+                }
+                continue;
+            }
+
             draw_node_timer.borrow_mut().start();
             
             // Set up rbop location

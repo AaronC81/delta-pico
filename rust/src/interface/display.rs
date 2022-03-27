@@ -5,7 +5,7 @@ use alloc::{string::{String, ToString}, vec, vec::Vec};
 use crate::ALLOCATOR;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
-pub struct Sprite(*mut u8);
+pub struct Sprite(pub *mut u8);
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct Colour(pub u16);
@@ -72,9 +72,13 @@ impl DisplayInterface {
 
     /// Frees an allocated sprite. After this, the sprite cannot be used.
     pub fn free_sprite(&self, sprite: Sprite) {
-        ALLOCATOR.count_external_free(sprite.0);
-        ALLOCATOR.count_external_free((self.get_sprite_data_pointer)(sprite.0));
-        (self.free_sprite)(sprite.0)
+        // Hack in calculator sets deleted sprite cache entry pointers to null, so this prevents a
+        // double-free
+        if !sprite.0.is_null() {
+            ALLOCATOR.count_external_free(sprite.0);
+            ALLOCATOR.count_external_free((self.get_sprite_data_pointer)(sprite.0));
+            (self.free_sprite)(sprite.0)
+        }
     }
 
     /// Makes future drawing calls apply to the given sprite, until the screen is targeted again
