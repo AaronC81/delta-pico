@@ -1,5 +1,6 @@
 .pio
 .vscode/launch.json
+.vscode/.cortex-debug.*
 test/bin
 rust/target
 res/*.h
