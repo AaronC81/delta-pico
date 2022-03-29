@@ -1,9 +1,9 @@
-use core::ptr::null_mut;
+use core::{ptr::null_mut, cmp::max};
 use alloc::{format, vec, vec::Vec, string::{String, ToString}};
 use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 use rust_decimal::{Decimal, prelude::Zero};
 
-use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, Sprite}, operating_system::{OSInput, OperatingSystemInterface, os}, rbop_impl::RbopContext, timer::Timer};
+use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, Sprite}, operating_system::{OSInput, OperatingSystemInterface, os}, rbop_impl::RbopContext, timer::Timer, debug};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -516,7 +516,7 @@ impl CalculatorApplication {
                 let result_layout = framework().layout(&result_node, None, LayoutComputationProperties::default());
 
                 // Set up layout location
-                framework().rbop_location_x = ((framework().display.width - PADDING) - result_layout.area.width) as i64;
+                framework().rbop_location_x = max((framework().display.width - PADDING) as i64 - result_layout.area.width as i64, PADDING as i64);
                 framework().rbop_location_y = y + PADDING as i64 * 2;
 
                 // Draw
