@@ -121,12 +121,10 @@ impl ButtonsInterface {
                 }
 
                 return result
+            } else if os().filesystem.settings.values.fire_button_press_only {
+                // Let this loop
             } else {
-                if os().filesystem.settings.values.fire_button_press_only {
-                    // Let this loop
-                } else {
-                    return None
-                }
+                return None
             }
         }
     }

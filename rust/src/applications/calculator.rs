@@ -3,7 +3,7 @@ use alloc::{format, vec, vec::Vec, string::{String, ToString}};
 use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 use rust_decimal::{Decimal, prelude::Zero};
 
-use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, Sprite}, operating_system::{OSInput, OperatingSystemInterface, os}, rbop_impl::RbopContext, timer::Timer, debug};
+use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, Sprite}, operating_system::{OSInput, OperatingSystemInterface, os}, rbop_impl::RbopContext, timer::Timer};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -73,11 +73,7 @@ impl Application for CalculatorApplication {
         // Add empty calculation onto the end if it is not already empty, or if there are no
         // calculations at all
         let needs_empty_adding = if let Some(Calculation { root, .. }) = calculations.last() {
-            if root.root.items.is_empty() {
-                false
-            } else {
-                true
-            }
+            !root.root.items.is_empty()
         } else {
             true
         };
@@ -482,13 +478,13 @@ impl CalculatorApplication {
     fn result_height(&self, result: &CalculationResult) -> u64 {
         // If there isn't a result, just imagine that there's a decimal
         let number = if let CalculationResult::Ok(result) = result {
-            result.clone()
+            *result
         } else {
             Number::Decimal(Decimal::zero())
         };
 
         // Convert the result number into a structured node
-        let result_node = StructuredNode::Number(number.clone());
+        let result_node = StructuredNode::Number(number);
 
         // Compute a layout for it, so that we know its width and can therefore right-align it
         let result_layout = framework().layout(&result_node, None, LayoutComputationProperties::default());
@@ -505,12 +501,10 @@ impl CalculatorApplication {
             Colour::GREY
         );
 
-        let error_string;
-
-        match result {
+        let error_string = match result {
             CalculationResult::Ok(number) => {
                 // Convert the result number into a structured node
-                let result_node = StructuredNode::Number(number.clone());
+                let result_node = StructuredNode::Number(*number);
 
                 // Compute a layout for it, so that we know its width and can therefore right-align it
                 let result_layout = framework().layout(&result_node, None, LayoutComputationProperties::default());
@@ -526,11 +520,11 @@ impl CalculatorApplication {
                 return;
             },
 
-            CalculationResult::MathsError(err) => error_string = format!("{}", err),
-            CalculationResult::NodeError(err) => error_string = format!("{}", err),
+            CalculationResult::MathsError(err) => format!("{}", err),
+            CalculationResult::NodeError(err) => format!("{}", err),
 
             CalculationResult::None => return,
-        }
+        };
 
         // That `match` didn't return, print an error string
         let (error_string_width, _) = framework().display.string_size(&error_string);

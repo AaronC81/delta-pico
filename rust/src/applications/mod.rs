@@ -12,7 +12,7 @@ impl ApplicationInfo {
         //   - Prefix with an underscore if the name begins with a digit
         // They are also suffixed with _icon
 
-        let mut icon_name = self.name.to_lowercase().replace(" ", "_");
+        let mut icon_name = self.name.to_lowercase().replace(' ', "_");
         if icon_name.chars().next().unwrap().is_digit(10) {
             icon_name.insert(0, '_');
         }

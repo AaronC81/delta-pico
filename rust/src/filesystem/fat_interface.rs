@@ -1,6 +1,6 @@
-use core::{convert::TryInto, mem, slice};
+use core::{convert::TryInto, slice};
 
-use alloc::{vec, vec::Vec, format};
+use alloc::vec::Vec;
 use fatfs::{Read, IoBase, Write, Seek};
 
 use crate::interface::framework;
@@ -28,7 +28,7 @@ impl<'a> FatInterface<'a> {
     
         // Temporary - We don't really have enough space to allocate an entire second buffer, so
         // instead, just use the already-allocated one
-        let mut fat12_fs = unsafe {
+        let fat12_fs = unsafe {
             slice::from_raw_parts_mut(
                 framework().usb_mass_storage.fat12_filesystem,
                 block_num * block_size,
@@ -161,12 +161,10 @@ impl<'a> Read for FatInterface<'a> {
         let bytes = self.storage.read_bytes(self.pointer, buf.len() as u16).ok_or(())?;
 
         // Copy into buffer
-        for i in 0..bytes.len() {
-            buf[i] = bytes[i];
-        }
+        buf[..bytes.len()].copy_from_slice(&bytes[..]);
 
         self.pointer.0 += buf.len() as u16;
-        return Ok(buf.len())
+        Ok(buf.len())
     }
 }
 

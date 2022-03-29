@@ -35,7 +35,7 @@ impl<'a> RawStorage<'a> {
     /// Writes a sequence of bytes to this storage area. Returns None if storage is inaccessible or
     /// out-of-bounds.
     pub fn write_bytes(&self, address: RawStorageAddress, bytes: &[u8]) -> Option<()> {
-        self.storage.write(self.absolute_address(address)?, &bytes)
+        self.storage.write(self.absolute_address(address)?, bytes)
     }
 
     /// Returns the absolute address of a `RawStorageAddress`, or None if it is invalid.

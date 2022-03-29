@@ -57,7 +57,7 @@ impl Application for NumbersGame {
 
         os().ui_draw_title("Numbers Game");
 
-        let padding = 10 as i64;
+        let padding = 10_i64;
         let tile_size = (framework().display.width as i64 - 5 * padding) as i64 / 4;
 
         let mut y = 50;

@@ -141,7 +141,7 @@ impl DisplayInterface {
     /// Prints a string horizontally centred inside a box with a given position and width, by
     /// calculating the width of the string and moving the cursor accordingly.
     pub fn print_centred(&self, x: i64, y: i64, w: i64, s: &str) {
-        let (text_width, _) = self.string_size(&s);
+        let (text_width, _) = self.string_size(s);
 
         let x_offset = (w - text_width) / 2;
         self.print_at(x + x_offset, y, s);
@@ -198,7 +198,7 @@ impl DisplayInterface {
 
         for word in string.split_whitespace() {
             // Work out size of this word
-            let (this_char_x, this_char_y) = self.string_size(&word.to_string());
+            let (this_char_x, this_char_y) = self.string_size(word);
 
             // Rare special case - what if this word will never fit on a single line?
             // I've only seen this in panic messages so far

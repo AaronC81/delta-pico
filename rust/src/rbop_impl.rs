@@ -218,7 +218,7 @@ impl Renderer for ApplicationFrameworkInterface {
         let point = glyph.point;
 
         match glyph.glyph.glyph {
-            Glyph::Digit { number } => self.display.draw_char(point.x, point.y, (number + '0' as u8) as char),
+            Glyph::Digit { number } => self.display.draw_char(point.x, point.y, (number + b'0') as char),
             Glyph::Point => self.display.draw_char(point.x, point.y, '.'),
             Glyph::Variable { name } => self.display.draw_char(point.x, point.y, name),
             Glyph::Add => self.display.draw_char(point.x, point.y, '+'),

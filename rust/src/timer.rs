@@ -42,7 +42,7 @@ impl Timer {
         self.current_start = None;
     }
 
-    pub fn new_subtimer<'a>(&'a mut self, name: &str) -> Rc<RefCell<Self>> {
+    pub fn new_subtimer(&mut self, name: &str) -> Rc<RefCell<Self>> {
         self.subtimers.push(Rc::new(RefCell::new(Self::new(name))));
         self.subtimers.last().unwrap().clone()
     }

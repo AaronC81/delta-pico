@@ -1,6 +1,4 @@
-use alloc::{format, vec};
 use fatfs::{FileSystem, FsOptions, NullTimeProvider, LossyOemCpConverter, Seek, SeekFrom};
-use rust_decimal::prelude::ToPrimitive;
 
 use crate::{interface::Colour, operating_system::{OSInput, os, UIMenu, UIMenuItem}, filesystem::FatInterface};
 use super::{Application, ApplicationInfo};

@@ -161,7 +161,7 @@ impl<'a> ChunkTable<'a> {
                 }
                 
                 // Move mask along
-                mask = mask >> 1;
+                mask >>= 1;
             }
         }
         

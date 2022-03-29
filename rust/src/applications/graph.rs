@@ -1,4 +1,4 @@
-use alloc::{vec, vec::{Vec}};
+use alloc::vec::Vec;
 use rbop::{Number, StructuredNode, node::unstructured::{Upgradable}, render::{Area, Renderer, Viewport}};
 use rust_decimal::prelude::{One, ToPrimitive, Zero};
 
@@ -71,7 +71,7 @@ impl ViewWindow {
 
         // Squash into an integer, flip around the bottom of the screen, and
         // pan so that (0, 0) is in the middle of the screen
-        (framework().display.height as i64 + -1 * y.to_decimal().to_i64().unwrap())
+        (framework().display.height as i64 + -y.to_decimal().to_i64().unwrap())
             - framework().display.height as i64 / 2
     }
 }
@@ -194,14 +194,14 @@ impl GraphApplication {
     }
 
     fn open_menu(&mut self) {
-        let idx = os().ui_open_menu(&vec![
+        let idx = os().ui_open_menu(&[
             "View window".into(),
         ], true);
         self.draw();
 
         match idx {
             Some(0) => {
-                let idx = os().ui_open_menu(&vec![
+                let idx = os().ui_open_menu(&[
                     "X scale".into(),
                     "Y scale".into(),
                 ], true);

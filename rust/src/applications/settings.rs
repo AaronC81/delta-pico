@@ -1,8 +1,8 @@
 use core::alloc::{GlobalAlloc, Layout};
 
-use alloc::{vec::Vec, vec, format, string::String, boxed::Box};
+use alloc::{vec, format};
 
-use crate::{interface::{Colour, ShapeFill, virtual_buttons}, operating_system::{OSInput, UIMenu, UIMenuItem, os}, timer::Timer, ALLOCATOR, tests};
+use crate::{interface::{Colour, ShapeFill}, operating_system::{OSInput, UIMenu, UIMenuItem, os}, timer::Timer, ALLOCATOR, tests};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 

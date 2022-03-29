@@ -6,7 +6,7 @@ extern crate alloc;
 mod c_allocator;
 
 use core::{panic::PanicInfo};
-use alloc::{format, string::String, vec::Vec};
+use alloc::{format, string::String};
 use c_allocator::CAllocator;
 
 mod interface;
@@ -63,7 +63,7 @@ fn panic(info: &PanicInfo) -> ! {
 }
 
 fn debug(info: String) {
-    let mut message_bytes = info.as_bytes().iter().cloned().collect::<Vec<_>>();
+    let mut message_bytes = info.as_bytes().to_vec();
     message_bytes.push(0);
 
     (framework().debug_handler)(message_bytes.as_ptr());
