@@ -16,6 +16,7 @@ mod applications;
 mod filesystem;
 mod timer;
 mod multi_tap;
+mod tests;
 
 use interface::framework;
 use operating_system::os;

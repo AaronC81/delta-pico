@@ -2,7 +2,7 @@ use core::alloc::{GlobalAlloc, Layout};
 
 use alloc::{vec::Vec, vec, format, string::String, boxed::Box};
 
-use crate::{interface::{Colour, ShapeFill, virtual_buttons}, operating_system::{OSInput, UIMenu, UIMenuItem, os}, timer::Timer, ALLOCATOR};
+use crate::{interface::{Colour, ShapeFill, virtual_buttons}, operating_system::{OSInput, UIMenu, UIMenuItem, os}, timer::Timer, ALLOCATOR, tests};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -176,79 +176,8 @@ impl SettingsApplication {
     }
 
     fn run_test_suite(&self) {
-        // Launch calculator
-        os().launch_application(
-            os().application_list.applications
-                .iter()
-                .enumerate()
-                .find(|(_, (app, _))| app.name == "Calculator")
-                .unwrap()
-                .0
-        );
-
-        // Clear all
-        virtual_buttons::queue_virtual_button_presses(&[
-            OSInput::List,
-            OSInput::MoveDown,
-            OSInput::Exe,
-        ]);
-        virtual_buttons::tick_all_virtual_buttons();
-        assert_eq!(self.active_test_info()[1], "1"); // Includes the new blank calculation 
-
-        // Simple calculation
-        virtual_buttons::queue_virtual_button_presses(&[
-            OSInput::Clear,
-            OSInput::Digit(1),
-            OSInput::Add,
-            OSInput::Digit(3),
-
-            OSInput::Exe,
-            OSInput::MoveUp,
-        ]);
-        virtual_buttons::tick_all_virtual_buttons();
-        assert_eq!(self.active_test_info()[0], "Ok(Rational(4, 1))");
-        assert_eq!(self.active_test_info()[1], "2");
-
-        // Fractions
-        virtual_buttons::queue_virtual_button_presses(&[
-            OSInput::MoveDown,
-            OSInput::Digit(1),
-            OSInput::Add,
-            OSInput::Fraction,
-            OSInput::Digit(2),
-            OSInput::MoveDown,
-            OSInput::Digit(3),
-
-            OSInput::Exe,
-            OSInput::MoveUp,
-        ]);
-        virtual_buttons::tick_all_virtual_buttons();
-        assert_eq!(self.active_test_info()[0], "Ok(Rational(5, 3))");
-        assert_eq!(self.active_test_info()[1], "3");
-
-        // Decimals
-        virtual_buttons::queue_virtual_button_presses(&[
-            OSInput::MoveDown,
-            OSInput::Digit(3),
-            OSInput::Point,
-            OSInput::Digit(1),
-            OSInput::Digit(4),
-            OSInput::Multiply,
-            OSInput::Digit(2),
-
-            OSInput::Exe,
-            OSInput::MoveUp,
-        ]);
-        virtual_buttons::tick_all_virtual_buttons();
-        assert_eq!(self.active_test_info()[0], "Ok(Decimal(6.28))");
-        assert_eq!(self.active_test_info()[1], "4");
-
-        // Yay!
+        tests::run_all_tests();
         os().ui_text_dialog("Tests passed!");
-    }
-
-    fn active_test_info(&self) -> Vec<String> {
-        os().active_application.as_ref().unwrap().test_info()
     }
 
     fn leak_memory_until_panic(&self) -> ! {
