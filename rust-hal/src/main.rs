@@ -4,7 +4,7 @@
 #![no_std]
 #![no_main]
 
-use cortex_m::prelude::_embedded_hal_blocking_spi_Write;
+use cortex_m::prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_spi_FullDuplex};
 use cortex_m_rt::entry;
 use defmt::*;
 use defmt_rtt as _;
@@ -181,13 +181,14 @@ fn main() -> ! {
     // RAMWR
     Command(0x2C).send(&mut spi, &mut dc_pin);
 
+    // Write bytes
+    dc_pin.set_high().unwrap();
     for _ in 0..320 {
         for _ in 0..240 {
-            Data(0x00).send(&mut spi, &mut dc_pin);
-            Data(0x00).send(&mut spi, &mut dc_pin);
+            nb::block!(spi.send(0)).unwrap();
+            nb::block!(spi.send(0)).unwrap();
         }
     }
-
 
     loop {
         led_pin.set_low().unwrap();
