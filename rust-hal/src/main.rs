@@ -3,7 +3,7 @@
 //! This will blink an LED attached to GP25, which is the pin the Pico uses for the on-board LED.
 #![no_std]
 #![no_main]
-#![feature(default_alloc_error_handler)]
+#![feature(alloc_error_handler)]
 
 extern crate alloc;
 
@@ -11,14 +11,13 @@ mod ili9341;
 mod graphics;
 mod util;
 
+use core::{alloc::Layout, panic::PanicInfo};
+
 use alloc_cortex_m::CortexMHeap;
-use cortex_m::prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_spi_FullDuplex};
+use cortex_m::{prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_spi_FullDuplex}, delay::Delay};
 use cortex_m_rt::entry;
-use defmt::*;
-use defmt_rtt as _;
 use embedded_hal::{digital::v2::OutputPin, spi::MODE_0};
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
-use panic_probe as _;
 
 // Provide an alias for our BSP so we can switch targets quickly.
 // Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
@@ -30,7 +29,7 @@ use bsp::hal::{
     pac,
     sio::Sio,
     watchdog::Watchdog,
-    spi::{Spi, Enabled, SpiDevice}, gpio::{FunctionSpi, Pin, PinId, Output, PushPull},
+    spi::{Spi, Enabled, SpiDevice}, gpio::{FunctionSpi, Pin, PinId, Output, PushPull, bank0::Gpio25},
 };
 
 use crate::graphics::{DrawingSurface, Colour, Sprite};
@@ -38,9 +37,21 @@ use crate::graphics::{DrawingSurface, Colour, Sprite};
 #[global_allocator]
 static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
 
+static mut LED_PIN: Option<Pin<Gpio25, Output<PushPull>>> = None;
+static mut DELAY: Option<Delay> = None;
+
 #[entry]
 fn main() -> ! {
-    info!("Program start");
+    // Set up allocator
+    {
+        use core::mem::MaybeUninit;
+        const HEAP_SIZE: usize = 200_000;
+        static mut HEAP: [MaybeUninit<u8>; HEAP_SIZE] = [MaybeUninit::uninit(); HEAP_SIZE];
+        unsafe {
+            ALLOCATOR.init((&mut HEAP).as_ptr() as usize, HEAP_SIZE)
+        }
+    }
+
     let mut pac = pac::Peripherals::take().unwrap();
     let core = pac::CorePeripherals::take().unwrap();
     let mut watchdog = Watchdog::new(pac.WATCHDOG);
@@ -60,7 +71,9 @@ fn main() -> ! {
     .ok()
     .unwrap();
 
-    let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().integer());
+    unsafe {
+        DELAY = Some(cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().integer()));
+    }
 
     let pins = bsp::Pins::new(
         pac.IO_BANK0,
@@ -69,8 +82,10 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    let mut led_pin = pins.led.into_push_pull_output();
-    led_pin.set_high().unwrap();
+    unsafe {
+        LED_PIN = Some(pins.led.into_push_pull_output());
+        LED_PIN.as_mut().unwrap().set_high().unwrap();
+    }
 
     // Chip-select display
     let mut cs_pin = pins.gpio4.into_push_pull_output();
@@ -91,9 +106,9 @@ fn main() -> ! {
     // Hardware reset
     let mut rst_pin = pins.gpio6.into_push_pull_output();
     rst_pin.set_low().unwrap();
-    delay.delay_ms(50);
+    unsafe { DELAY.as_mut().unwrap() }.delay_ms(50);
     rst_pin.set_high().unwrap();
-    delay.delay_ms(50);
+    unsafe { DELAY.as_mut().unwrap() }.delay_ms(50);
 
     // DC pin
     let mut dc_pin = pins.gpio5.into_push_pull_output();
@@ -104,16 +119,47 @@ fn main() -> ! {
         &mut spi,
         &mut dc_pin,
         &mut rst_pin,
-        &mut delay,
+        unsafe { DELAY.as_mut().unwrap() },
     ).init().unwrap();
     ili.fill(Colour::BLACK).unwrap();
 
+    // Create screen sprite
+    let mut sprite = Sprite::new(240, 320);
+    sprite.fill_surface(Colour(0xF000)).unwrap();
+    ili.draw_screen_sprite(&sprite).unwrap();
+
     loop {
-        led_pin.set_low().unwrap();
-        delay.delay_ms(500);
-        led_pin.set_high().unwrap();
-        delay.delay_ms(500);
+        blink(1000);
     }
 }
 
-// End of file
+#[alloc_error_handler]
+fn oom(_: Layout) -> ! {
+    loop {
+        blink(100);
+    }
+}
+
+#[panic_handler]
+fn panic(_: &PanicInfo) -> ! {
+    loop {
+        blink(100);
+        blink(100);
+        blink(100);
+        blink(500);
+        blink(500);
+        blink(500);
+        blink(100);
+        blink(100);
+        blink(100);
+
+        unsafe { DELAY.as_mut().unwrap() }.delay_ms(300);        
+    }
+}
+
+fn blink(time: u32) {
+    unsafe { LED_PIN.as_mut().unwrap() }.set_high().unwrap();
+    unsafe { DELAY.as_mut().unwrap() }.delay_ms(time);
+    unsafe { LED_PIN.as_mut().unwrap() }.set_low().unwrap();
+    unsafe { DELAY.as_mut().unwrap() }.delay_ms(time);
+}
