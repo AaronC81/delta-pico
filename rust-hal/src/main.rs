@@ -4,6 +4,8 @@
 #![no_std]
 #![no_main]
 
+mod ili9341;
+
 use cortex_m::prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_spi_FullDuplex};
 use cortex_m_rt::entry;
 use defmt::*;
@@ -107,88 +109,15 @@ fn main() -> ! {
     // DC pin
     let mut dc_pin = pins.gpio5.into_push_pull_output();
 
-    use DisplayTransaction::*;
-
-    let setup = [
-        Command(0x0f),
-        Data(0x03), Data(0x80), Data(0x02),
-        Command(0xcf),
-        Data(0x00), Data(0xc1), Data(0x30),
-        Command(0xed),
-        Data(0x64), Data(0x03), Data(0x12), Data(0x81),
-        Command(0xe8),
-        Data(0x85), Data(0x00), Data(0x78),
-        Command(0xcb),
-        Data(0x39), Data(0x2c), Data(0x00), Data(0x34), Data(0x02),
-        Command(0xf7),
-        Data(0x20),
-        Command(0xea),
-        Data(0x00), Data(0x00),
-        Command(0xc0),
-        Data(0x23),
-        Command(0xc1),
-        Data(0x10),
-        Command(0xc5),
-        Data(0x3e), Data(0x28),
-        Command(0xc7),
-        Data(0x86),
-        
-        Command(0x36),
-        Data(0x48),
-    
-        Command(0x3a),
-        Data(0x55),
-        Command(0xb1),
-        Data(0x00), Data(0x18),
-        Command(0xb6),
-        Data(0x08), Data(0x82), Data(0x27),
-        Command(0xf2),
-        Data(0x00),
-        Command(0x26),
-        Data(0x01),
-        
-        Command(0xe0),
-        Data(0xf), Data(0x31), Data(0x2b), Data(0xc), Data(0xe), Data(0x8), Data(0x4e), Data(0xf1), Data(0x37), Data(0x7), Data(0x10), Data(0x3), Data(0xe), Data(0x9), Data(0x0),
-    
-        Command(0xe1),
-        Data(0x0), Data(0xe), Data(0x14), Data(0x3), Data(0x11), Data(0x7), Data(0x31), Data(0xc1), Data(0x48), Data(0x8), Data(0xf), Data(0xc), Data(0x31), Data(0x36), Data(0xf),
-    ];
-    for item in setup {
-        item.send(&mut spi, &mut dc_pin);
-    }
-
-    // Unsleep and display on
-    Command(0x11).send(&mut spi, &mut dc_pin);
-    delay.delay_ms(150);
-    Command(0x29).send(&mut spi, &mut dc_pin);
-    delay.delay_ms(150);
-
-    // Clear screen
-    // CASET
-    Command(0x2A).send(&mut spi, &mut dc_pin);
-    Data(0).send(&mut spi, &mut dc_pin); // x1 high
-    Data(0).send(&mut spi, &mut dc_pin); // x1 low
-    Data(0).send(&mut spi, &mut dc_pin); // x2 high
-    Data(240).send(&mut spi, &mut dc_pin); // x2 low
-
-    // PASET
-    Command(0x2B).send(&mut spi, &mut dc_pin);
-    Data(0).send(&mut spi, &mut dc_pin); // y1 high
-    Data(0).send(&mut spi, &mut dc_pin); // y1 low
-    Data(0x01).send(&mut spi, &mut dc_pin); // y2 high
-    Data(0x40).send(&mut spi, &mut dc_pin); // y2 low
-
-    // RAMWR
-    Command(0x2C).send(&mut spi, &mut dc_pin);
-
-    // Write bytes
-    dc_pin.set_high().unwrap();
-    for _ in 0..320 {
-        for _ in 0..240 {
-            nb::block!(spi.send(0)).unwrap();
-            nb::block!(spi.send(0)).unwrap();
-        }
-    }
+    // Construct ILI9341 instance
+    let mut ili = ili9341::Ili9341::new(
+        240, 320,
+        &mut spi,
+        &mut dc_pin,
+        &mut rst_pin,
+        &mut delay,
+    ).init().unwrap();
+    ili.fill_screen().unwrap();
 
     loop {
         led_pin.set_low().unwrap();
