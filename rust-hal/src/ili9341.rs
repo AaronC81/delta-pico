@@ -43,7 +43,7 @@ impl<'a, S: State, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<
     fn change_state<NewS: State>(self) -> Ili9341<'a, NewS, SpiD, DcPin, RstPin, Delay> {
         Ili9341::<'a, NewS, _, _, _, _> {
             width: self.width,
-            height: self.width,
+            height: self.height,
             spi: self.spi,
             dc: self.dc,
             rst: self.rst,
