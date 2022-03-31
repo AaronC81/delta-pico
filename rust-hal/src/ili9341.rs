@@ -74,49 +74,26 @@ impl<'a, S: State, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<
     }
 
     fn send_init_commands(&mut self) -> Result<(), Ili9341Error> {
-        self.send_command(0x0f)?;
-        self.send_data(0x03)?; self.send_data(0x80)?; self.send_data(0x02)?;
-        self.send_command(0xcf)?;
-        self.send_data(0x00)?; self.send_data(0xc1)?; self.send_data(0x30)?;
-        self.send_command(0xed)?;
-        self.send_data(0x64)?; self.send_data(0x03)?; self.send_data(0x12)?; self.send_data(0x81)?;
-        self.send_command(0xe8)?;
-        self.send_data(0x85)?; self.send_data(0x00)?; self.send_data(0x78)?;
-        self.send_command(0xcb)?;
-        self.send_data(0x39)?; self.send_data(0x2c)?; self.send_data(0x00)?; self.send_data(0x34)?; self.send_data(0x02)?;
-        self.send_command(0xf7)?;
-        self.send_data(0x20)?;
-        self.send_command(0xea)?;
-        self.send_data(0x00)?; self.send_data(0x00)?;
-        self.send_command(0xc0)?;
-        self.send_data(0x23)?;
-        self.send_command(0xc1)?;
-        self.send_data(0x10)?;
-        self.send_command(0xc5)?;
-        self.send_data(0x3e)?; self.send_data(0x28)?;
-        self.send_command(0xc7)?;
-        self.send_data(0x86)?;
+        self.send_packet(0x0F, &[0x03, 0x80, 0x02])?;
+        self.send_packet(0xCF, &[0x00, 0xC1, 0x30])?;
+        self.send_packet(0xed, &[0x64, 0x03, 0x12, 0x81])?;
+        self.send_packet(0xe8, &[0x85, 0x00, 0x78])?;
+        self.send_packet(0xcb, &[0x39, 0x2c, 0x00, 0x34, 0x02])?;
+        self.send_packet(0xf7, &[0x20])?;
+        self.send_packet(0xea, &[0x00, 0x00])?;
+        self.send_packet(0xc0, &[0x23])?;
+        self.send_packet(0xc1, &[0x10])?;
+        self.send_packet(0xc5, &[0x3e, 0x28])?;
+        self.send_packet(0xc7, &[0x86])?;
+        self.send_packet(0x36, &[0x48])?;
+        self.send_packet(0x3a, &[0x55])?;
+        self.send_packet(0xb1, &[0x00, 0x18])?;
+        self.send_packet(0xb6, &[0x08, 0x82, 0x27])?;
+        self.send_packet(0xf2, &[0x00])?;
+        self.send_packet(0x26, &[0x01])?;
+        self.send_packet(0xe0, &[0xf, 0x31, 0x2b, 0xc, 0xe, 0x8, 0x4e, 0xf1, 0x37, 0x7, 0x10, 0x3, 0xe, 0x9, 0x0])?;
+        self.send_packet(0xe1, &[0x0, 0xe, 0x14, 0x3, 0x11, 0x7, 0x31, 0xc1, 0x48, 0x8, 0xf, 0xc, 0x31, 0x36, 0xf])?;
         
-        self.send_command(0x36)?;
-        self.send_data(0x48)?;
-    
-        self.send_command(0x3a)?;
-        self.send_data(0x55)?;
-        self.send_command(0xb1)?;
-        self.send_data(0x00)?; self.send_data(0x18)?;
-        self.send_command(0xb6)?;
-        self.send_data(0x08)?; self.send_data(0x82)?; self.send_data(0x27)?;
-        self.send_command(0xf2)?;
-        self.send_data(0x00)?;
-        self.send_command(0x26)?;
-        self.send_data(0x01)?;
-        
-        self.send_command(0xe0)?;
-        self.send_data(0xf)?; self.send_data(0x31)?; self.send_data(0x2b)?; self.send_data(0xc)?; self.send_data(0xe)?; self.send_data(0x8)?; self.send_data(0x4e)?; self.send_data(0xf1)?; self.send_data(0x37)?; self.send_data(0x7)?; self.send_data(0x10)?; self.send_data(0x3)?; self.send_data(0xe)?; self.send_data(0x9)?; self.send_data(0x0)?;
-    
-        self.send_command(0xe1)?;
-        self.send_data(0x0)?; self.send_data(0xe)?; self.send_data(0x14)?; self.send_data(0x3)?; self.send_data(0x11)?; self.send_data(0x7)?; self.send_data(0x31)?; self.send_data(0xc1)?; self.send_data(0x48)?; self.send_data(0x8)?; self.send_data(0xf)?; self.send_data(0xc)?; self.send_data(0x31)?; self.send_data(0x36)?; self.send_data(0xf)?;
-
         Ok(())
     }
 
@@ -129,6 +106,14 @@ impl<'a, S: State, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<
     pub fn send_data(&mut self, byte: u8) -> Result<(), Ili9341Error> {
         self.dc.set_high().map_err(|_| Ili9341Error::GpioError)?;
         block!(self.spi.send(byte)).map_err(|_| Ili9341Error::SpiError)?;
+        Ok(())
+    }
+
+    pub fn send_packet(&mut self, command: u8, data: &[u8]) -> Result<(), Ili9341Error> {
+        self.send_command(command)?;
+        for byte in data {
+            self.send_data(*byte)?;
+        }
         Ok(())
     }
 }
@@ -166,18 +151,10 @@ impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili93
 impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<'a, Enabled, SpiD, DcPin, RstPin, Delay> {
     pub fn fill_screen(&mut self) -> Result<(), Ili9341Error> {
         // CASET
-        self.send_command(0x2A)?;
-        self.send_data(0)?;
-        self.send_data(0)?;
-        self.send_data(0)?;
-        self.send_data(240)?;
+        self.send_packet(0x2A, &[0, 0, 0, 240])?;
 
         // PASET
-        self.send_command(0x2B)?;
-        self.send_data(0)?;
-        self.send_data(0)?;
-        self.send_data(0x01)?;
-        self.send_data(0x40)?;
+        self.send_packet(0x2B, &[0, 0, 0x01, 0x40])?;
 
         // RAMWR
         self.send_command(0x2C)?;
