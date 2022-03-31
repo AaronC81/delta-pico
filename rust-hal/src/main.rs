@@ -121,9 +121,7 @@ fn main() -> ! {
         &mut rst_pin,
         &mut delay,
     ).init().unwrap();
-    ili.fill_surface(Colour::BLACK).unwrap();
-
-    ili.draw_filled_rect(20, 20, 100, 100, Colour(0xFF00)).unwrap();
+    ili.fill(Colour::BLACK).unwrap();
 
     loop {
         led_pin.set_low().unwrap();

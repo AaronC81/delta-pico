@@ -43,6 +43,16 @@ pub struct Ili9341<
     state: PhantomData<S>,
 }
 
+pub struct Ili9341FastDataWriter<
+    'inner, 'outer,
+    SpiD: SpiDevice,
+    DcPin: PinId,
+    RstPin: PinId,
+    Delay: DelayMs<u8>,
+> {
+    ili9341: &'outer mut Ili9341<'inner, Enabled, SpiD, DcPin, RstPin, Delay>,
+}
+
 impl<'a, S: State, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<'a, S, SpiD, DcPin, RstPin, Delay> {
     fn change_state<NewS: State>(self) -> Ili9341<'a, NewS, SpiD, DcPin, RstPin, Delay> {
         Ili9341::<'a, NewS, _, _, _, _> {
@@ -103,14 +113,12 @@ impl<'a, S: State, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<
 
     pub fn send_command(&mut self, byte: u8) -> Result<(), Ili9341Error> {
         self.dc.set_low().map_err(|_| Ili9341Error::GpioError)?;
-        block!(self.spi.send(byte)).map_err(|_| Ili9341Error::SpiError)?;
-        Ok(())
+        block!(self.spi.send(byte)).map_err(|_| Ili9341Error::SpiError)
     }
 
     pub fn send_data(&mut self, byte: u8) -> Result<(), Ili9341Error> {
         self.dc.set_high().map_err(|_| Ili9341Error::GpioError)?;
-        block!(self.spi.send(byte)).map_err(|_| Ili9341Error::SpiError)?;
-        Ok(())
+        block!(self.spi.send(byte)).map_err(|_| Ili9341Error::SpiError)
     }
 
     pub fn send_packet(&mut self, command: u8, data: &[u8]) -> Result<(), Ili9341Error> {
@@ -158,6 +166,9 @@ impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili93
     /// 
     /// All bounds are inclusive - for example, to fill a 240x320 display, the bounds would be
     /// (0, 239, 0, 319).
+    /// 
+    /// TODO: This seems to be broken beyond drawing to the entire screen - but that's all we need,
+    /// so should be fine for now
     pub fn set_pixel_drawing_area(&mut self, x1: u16, x2: u16, y1: u16, y2: u16) -> Result<u32, Ili9341Error> {
         if x2 < x1 { return Err(Ili9341Error::BoundsError) }
         if y2 < y1 { return Err(Ili9341Error::BoundsError) }
@@ -181,49 +192,43 @@ impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili93
         // RAMWR
         self.send_command(0x2C)?;        
 
-        Ok((x2 - x1) as u32 * (y2 - y1) as u32)
+        Ok((x2 - x1 + 1) as u32 * (y2 - y1 + 1) as u32)
+    }
+
+    /// Starts a data write to the display, and returns a writer which can be used to perform
+    /// writes.
+    /// 
+    /// This toggles the DC pin to "data", and then doesn't toggle it again for future writes, which
+    /// results in a slight but noticeable speedup for large write operations compared to calling
+    /// `send_data` repeatedly.
+    /// 
+    /// By the power of the borrow checker, the writer will prevent any methods from being called
+    /// on `self` while it is alive. This stops any other methods messing up the DC pin and breaking
+    /// the data stream.
+    pub fn fast_data_write<'outer>(&'outer mut self) -> Result<Ili9341FastDataWriter<'a, 'outer, SpiD, DcPin, RstPin, Delay>, Ili9341Error> {
+        self.dc.set_high().map_err(|_| Ili9341Error::GpioError)?;
+        Ok(Ili9341FastDataWriter { ili9341: self })
+    }
+
+    /// Immediately fills the screen with the given colour.
+    pub fn fill(&mut self, colour: Colour) -> Result<(), Ili9341Error> {
+        // Set drawing area to cover screen
+        let pixels = self.set_pixel_drawing_area(0, self.width - 1, 0, self.height - 1)?;
+
+        // Write bytes
+        let (high, low) = colour.as_bytes();
+        let mut writer = self.fast_data_write()?;
+        for _ in 0..pixels {
+            writer.send(high)?;
+            writer.send(low)?;
+        }
+
+        Ok(())
     }
 }
 
-impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DrawingSurface for Ili9341<'a, Enabled, SpiD, DcPin, RstPin, Delay> {
-    type Error = Ili9341Error;
-
-    fn fill_surface(&mut self, colour: Colour) -> Result<(), Self::Error> {
-        // Set drawing area to cover screen
-        self.set_pixel_drawing_area(0, self.width - 1, 0, self.height - 1)?;
-
-        // Write bytes
-        let (high, low) = colour.as_bytes();
-        self.dc.set_high().unwrap();
-        for _ in 0..self.width {
-            for _ in 0..self.height {
-                nb::block!(self.spi.send(high)).unwrap();
-                nb::block!(self.spi.send(low)).unwrap();
-            }
-        }
-
-        Ok(())
-    }
-
-    fn draw_filled_rect(&mut self, x: i32, y: i32, w: u32, h: u32, colour: Colour) -> Result<(), Self::Error> {
-        // TODO: this 64-bit arithmetic is safe, but is it really slow?
-        self.set_pixel_drawing_area(
-            x.saturating_into(), 
-            (x as i64 + w as i64).saturating_into(), 
-            y.saturating_into(), 
-            (y as i64 + h as i64).saturating_into(),
-        )?;
-
-        // Write bytes
-        let (high, low) = colour.as_bytes();
-        self.dc.set_high().unwrap();
-        for _ in 0..self.width {
-            for _ in 0..self.height {
-                nb::block!(self.spi.send(high)).unwrap();
-                nb::block!(self.spi.send(low)).unwrap();
-            }
-        }
-
-        Ok(())
+impl<'inner, 'outer, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341FastDataWriter<'inner, 'outer, SpiD, DcPin, RstPin, Delay> {
+    pub fn send(&mut self, byte: u8) -> Result<(), Ili9341Error> {
+        nb::block!(self.ili9341.spi.send(byte)).map_err(|_| Ili9341Error::SpiError)
     }
 }
