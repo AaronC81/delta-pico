@@ -126,6 +126,7 @@ fn main() -> ! {
     // Create screen sprite
     let mut sprite = Sprite::new(240, 320);
     sprite.fill_surface(Colour(0xF000)).unwrap();
+    sprite.draw_filled_rect(10, 10, 30, 30, Colour(0x000F)).unwrap();
     ili.draw_screen_sprite(&sprite).unwrap();
 
     loop {
