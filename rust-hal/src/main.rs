@@ -8,6 +8,7 @@
 extern crate alloc;
 
 mod ili9341;
+mod pcf8574;
 mod graphics;
 mod util;
 
@@ -29,8 +30,9 @@ use bsp::hal::{
     pac,
     sio::Sio,
     watchdog::Watchdog,
-    spi::{Spi, Enabled, SpiDevice}, gpio::{FunctionSpi, Pin, PinId, Output, PushPull, bank0::Gpio25},
+    spi::{Spi, Enabled, SpiDevice}, gpio::{FunctionSpi, Pin, PinId, Output, PushPull, bank0::Gpio25, FunctionI2C}, I2C,
 };
+use shared_bus::BusManagerSimple;
 
 use crate::graphics::{DrawingSurface, Colour, Sprite};
 
@@ -128,6 +130,53 @@ fn main() -> ! {
     sprite.fill_surface(Colour(0xF000)).unwrap();
     sprite.draw_filled_rect(10, 10, 30, 30, Colour(0x000F)).unwrap();
     ili.draw_screen_sprite(&sprite).unwrap();
+
+    // Construct PCF8574 instances
+    let mut sda_pin = pins.gpio20.into_mode::<FunctionI2C>();
+    let mut scl_pin = pins.gpio21.into_mode::<FunctionI2C>();
+    let mut i2c = I2C::i2c0(
+        pac.I2C0,
+        sda_pin,
+        scl_pin,
+        400.kHz(),
+        &mut pac.RESETS,
+        clocks.peripheral_clock,
+    );
+    let shared_i2c = BusManagerSimple::new(i2c);
+    let mut col_pcf = pcf8574::Pcf8574::new(0x38, shared_i2c.acquire_i2c());
+    let mut row_pcf = pcf8574::Pcf8574::new(0x3E, shared_i2c.acquire_i2c());
+
+    // Init button matrix
+    col_pcf.write(0xFF).unwrap();
+    'main: loop {
+        for row in 0u8..7 {
+            // Set all bits except this row
+            let row_value = !(1 << row);
+            row_pcf.write(row_value).unwrap();
+
+            // Check if any buttons in this row were pressed
+            let mut byte = col_pcf.read().unwrap();
+            byte = !byte;
+            if byte > 0 {
+                // Yes! Log2 to find out which col it is
+                let mut pressed_col = 0;
+                loop {
+                    byte >>= 1;
+                    if byte == 0 { break; }
+                    pressed_col += 1
+                };
+
+                // Return the row too
+                let pressed_row = row;
+
+                // Map row and column to actual numbers, rather than PCF8574 wiring
+                // TODO
+
+                // Indicate to the caller that a button was pressed
+                break 'main;
+            }
+        }
+    }
 
     loop {
         blink(1000);
