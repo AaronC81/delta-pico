@@ -3,11 +3,15 @@
 //! This will blink an LED attached to GP25, which is the pin the Pico uses for the on-board LED.
 #![no_std]
 #![no_main]
+#![feature(default_alloc_error_handler)]
+
+extern crate alloc;
 
 mod ili9341;
 mod graphics;
 mod util;
 
+use alloc_cortex_m::CortexMHeap;
 use cortex_m::prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_spi_FullDuplex};
 use cortex_m_rt::entry;
 use defmt::*;
@@ -29,29 +33,10 @@ use bsp::hal::{
     spi::{Spi, Enabled, SpiDevice}, gpio::{FunctionSpi, Pin, PinId, Output, PushPull},
 };
 
-use crate::graphics::{DrawingSurface, Colour};
+use crate::graphics::{DrawingSurface, Colour, Sprite};
 
-enum DisplayTransaction {
-    Command(u8),
-    Data(u8),
-}
-
-impl DisplayTransaction {
-    pub fn send(&self, spi: &mut Spi<Enabled, impl SpiDevice, 8>, dc_pin: &mut Pin<impl PinId, Output<PushPull>>) {
-        let byte = match self {
-            Self::Command(b) => {
-                dc_pin.set_low().unwrap();
-                b
-            }
-            Self::Data(b) => {
-                dc_pin.set_high().unwrap();
-                b
-            }
-        };
-
-        spi.write(&[*byte]).unwrap();
-    }
-}
+#[global_allocator]
+static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
 
 #[entry]
 fn main() -> ! {

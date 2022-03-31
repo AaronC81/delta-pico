@@ -9,6 +9,7 @@ resolver = "2"
 [dependencies]
 cortex-m = "0.7.3"
 cortex-m-rt = "0.7.0"
+alloc-cortex-m = "0.4.2"
 embedded-hal = { version = "0.2.5", features = ["unproven"] }
 embedded-time = "0.12.0"
 nb = "1.0"

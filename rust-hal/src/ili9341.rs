@@ -4,7 +4,7 @@ use embedded_hal::{digital::v2::OutputPin, blocking::delay::DelayMs};
 use rp_pico::hal::{Spi, spi::SpiDevice, spi, gpio::{Pin, PinId, Output, PushPull}};
 use nb::{self, block};
 
-use crate::graphics::{DrawingSurface, Colour};
+use crate::graphics::{DrawingSurface, Colour, Sprite};
 use crate::util::saturating_into::SaturatingInto;
 
 pub struct Enabled;
@@ -32,8 +32,8 @@ pub struct Ili9341<
     RstPin: PinId,
     Delay: DelayMs<u8>,
 > {
-    width: u16,
-    height: u16,
+    pub width: u16,
+    pub height: u16,
 
     spi: &'a mut Spi<spi::Enabled, SpiD, 8>,
     dc: &'a mut Pin<DcPin, Output<PushPull>>,
@@ -221,6 +221,26 @@ impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili93
         for _ in 0..pixels {
             writer.send(high)?;
             writer.send(low)?;
+        }
+
+        Ok(())
+    }
+
+    /// Draws a sprite to fill the entire screen.
+    /// 
+    /// Panics if the size of the sprite does not equal the size of the screen.
+    pub fn draw_screen_sprite(&mut self, sprite: &Sprite) -> Result<(), Ili9341Error> {
+        if self.width != sprite.width || self.height != sprite.height {
+            panic!("not a valid screen sprite");
+        }
+
+        self.set_pixel_drawing_area(0, self.width - 1, 0, self.height - 1)?;
+        let mut writer = self.fast_data_write()?;
+        for pixel in &sprite.data {
+            let (high, low) = pixel.as_bytes();
+            // Need to swap bytes for display
+            writer.send(low)?;
+            writer.send(high)?;
         }
 
         Ok(())
