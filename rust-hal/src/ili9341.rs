@@ -4,6 +4,9 @@ use embedded_hal::{digital::v2::OutputPin, blocking::delay::DelayMs};
 use rp_pico::hal::{Spi, spi::SpiDevice, spi, gpio::{Pin, PinId, Output, PushPull}};
 use nb::{self, block};
 
+use crate::graphics::{DrawingSurface, Colour};
+use crate::util::saturating_into::SaturatingInto;
+
 pub struct Enabled;
 pub struct Disabled;
 pub trait State {}
@@ -14,6 +17,7 @@ impl State for Disabled {}
 pub enum Ili9341Error {
     GpioError,
     SpiError,
+    BoundsError,
 }
 
 // TODO: would ne cool to implement fast_write using borrow checker
@@ -28,8 +32,8 @@ pub struct Ili9341<
     RstPin: PinId,
     Delay: DelayMs<u8>,
 > {
-    width: u32,
-    height: u32,
+    width: u16,
+    height: u16,
 
     spi: &'a mut Spi<spi::Enabled, SpiD, 8>,
     dc: &'a mut Pin<DcPin, Output<PushPull>>,
@@ -120,8 +124,8 @@ impl<'a, S: State, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<
 
 impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<'a, Disabled, SpiD, DcPin, RstPin, Delay> {
     pub fn new(
-        width: u32,
-        height: u32,
+        width: u16,
+        height: u16,
         spi: &'a mut Spi<spi::Enabled, SpiD, 8>,
         dc: &'a mut Pin<DcPin, Output<PushPull>>,
         rst: &'a mut Pin<RstPin, Output<PushPull>>,
@@ -149,26 +153,77 @@ impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili93
 }
 
 impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<'a, Enabled, SpiD, DcPin, RstPin, Delay> {
-    pub fn fill_screen(&mut self) -> Result<(), Ili9341Error> {
+    /// Sets future pixel drawing operations to apply to the given bounding box. On success, returns
+    /// the number of pixels (not bytes) which need to be drawn to fill this bounding box.
+    /// 
+    /// All bounds are inclusive - for example, to fill a 240x320 display, the bounds would be
+    /// (0, 239, 0, 319).
+    pub fn set_pixel_drawing_area(&mut self, x1: u16, x2: u16, y1: u16, y2: u16) -> Result<u32, Ili9341Error> {
+        if x2 < x1 { return Err(Ili9341Error::BoundsError) }
+        if y2 < y1 { return Err(Ili9341Error::BoundsError) }
+
         // CASET
-        self.send_packet(0x2A, &[0, 0, 0, 240])?;
+        self.send_packet(0x2A, &[
+            ((x1 & 0xFF00) >> 8) as u8,
+            (x1 & 0xFF) as u8,
+            ((x2 & 0xFF00) >> 8) as u8,
+            (x2 & 0xFF) as u8,
+        ])?;
 
         // PASET
-        self.send_packet(0x2B, &[0, 0, 0x01, 0x40])?;
+        self.send_packet(0x2B, &[
+            ((y1 & 0xFF00) >> 8) as u8,
+            (y1 & 0xFF) as u8,
+            ((y2 & 0xFF00) >> 8) as u8,
+            (y2 & 0xFF) as u8,
+        ])?;
 
         // RAMWR
-        self.send_command(0x2C)?;
+        self.send_command(0x2C)?;        
+
+        Ok((x2 - x1) as u32 * (y2 - y1) as u32)
+    }
+}
+
+impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DrawingSurface for Ili9341<'a, Enabled, SpiD, DcPin, RstPin, Delay> {
+    type Error = Ili9341Error;
+
+    fn fill_surface(&mut self, colour: Colour) -> Result<(), Self::Error> {
+        // Set drawing area to cover screen
+        self.set_pixel_drawing_area(0, self.width - 1, 0, self.height - 1)?;
 
         // Write bytes
+        let (high, low) = colour.as_bytes();
         self.dc.set_high().unwrap();
         for _ in 0..self.width {
             for _ in 0..self.height {
-                nb::block!(self.spi.send(0)).unwrap();
-                nb::block!(self.spi.send(0)).unwrap();
+                nb::block!(self.spi.send(high)).unwrap();
+                nb::block!(self.spi.send(low)).unwrap();
+            }
+        }
+
+        Ok(())
+    }
+
+    fn draw_filled_rect(&mut self, x: i32, y: i32, w: u32, h: u32, colour: Colour) -> Result<(), Self::Error> {
+        // TODO: this 64-bit arithmetic is safe, but is it really slow?
+        self.set_pixel_drawing_area(
+            x.saturating_into(), 
+            (x as i64 + w as i64).saturating_into(), 
+            y.saturating_into(), 
+            (y as i64 + h as i64).saturating_into(),
+        )?;
+
+        // Write bytes
+        let (high, low) = colour.as_bytes();
+        self.dc.set_high().unwrap();
+        for _ in 0..self.width {
+            for _ in 0..self.height {
+                nb::block!(self.spi.send(high)).unwrap();
+                nb::block!(self.spi.send(low)).unwrap();
             }
         }
 
         Ok(())
     }
 }
-

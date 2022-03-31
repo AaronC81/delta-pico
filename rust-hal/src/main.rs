@@ -5,6 +5,8 @@
 #![no_main]
 
 mod ili9341;
+mod graphics;
+mod util;
 
 use cortex_m::prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_spi_FullDuplex};
 use cortex_m_rt::entry;
@@ -26,6 +28,8 @@ use bsp::hal::{
     watchdog::Watchdog,
     spi::{Spi, Enabled, SpiDevice}, gpio::{FunctionSpi, Pin, PinId, Output, PushPull},
 };
+
+use crate::graphics::{DrawingSurface, Colour};
 
 enum DisplayTransaction {
     Command(u8),
@@ -117,7 +121,9 @@ fn main() -> ! {
         &mut rst_pin,
         &mut delay,
     ).init().unwrap();
-    ili.fill_screen().unwrap();
+    ili.fill_surface(Colour::BLACK).unwrap();
+
+    ili.draw_filled_rect(20, 20, 100, 100, Colour(0xFF00)).unwrap();
 
     loop {
         led_pin.set_low().unwrap();
