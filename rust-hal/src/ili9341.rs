@@ -20,10 +20,6 @@ pub enum Ili9341Error {
     BoundsError,
 }
 
-// TODO: would ne cool to implement fast_write using borrow checker
-// enforce that we can't call other write_* methods while a "fast writer" exists
-// maybe somehow move SPI to a struct whose borrow needs to end before this can be used again?
-
 pub struct Ili9341<
     'a,
     S: State,
