@@ -9,6 +9,7 @@ extern crate alloc;
 
 mod ili9341;
 mod pcf8574;
+mod button_matrix;
 mod graphics;
 mod util;
 
@@ -146,35 +147,12 @@ fn main() -> ! {
     let mut col_pcf = pcf8574::Pcf8574::new(0x38, shared_i2c.acquire_i2c());
     let mut row_pcf = pcf8574::Pcf8574::new(0x3E, shared_i2c.acquire_i2c());
 
-    // Init button matrix
-    col_pcf.write(0xFF).unwrap();
-    'main: loop {
-        for row in 0u8..7 {
-            // Set all bits except this row
-            let row_value = !(1 << row);
-            row_pcf.write(row_value).unwrap();
-
-            // Check if any buttons in this row were pressed
-            let mut byte = col_pcf.read().unwrap();
-            byte = !byte;
-            if byte > 0 {
-                // Yes! Log2 to find out which col it is
-                let mut pressed_col = 0;
-                loop {
-                    byte >>= 1;
-                    if byte == 0 { break; }
-                    pressed_col += 1
-                };
-
-                // Return the row too
-                let pressed_row = row;
-
-                // Map row and column to actual numbers, rather than PCF8574 wiring
-                // TODO
-
-                // Indicate to the caller that a button was pressed
-                break 'main;
-            }
+    // Init button matrix and wait for key
+    let mut buttons = button_matrix::ButtonMatrix::new(row_pcf, col_pcf);
+    loop {
+        let btn = buttons.get_raw_button().unwrap();
+        if let Some((_, _)) = btn {
+            break;
         }
     }
 
