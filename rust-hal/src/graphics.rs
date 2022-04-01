@@ -49,6 +49,14 @@ impl Sprite {
     pub fn pixel(&mut self, x: u16, y: u16) -> &mut Colour {
         &mut self.data[y as usize * self.width as usize + x as usize]
     }
+
+    pub fn try_pixel(&mut self, x: u16, y: u16) -> Option<&mut Colour> {
+        if y as usize * self.width as usize + x as usize > self.data.len() {
+            None
+        } else {
+            Some(self.pixel(x, y))
+        }
+    }
 }
 
 impl DrawingSurface for Sprite {

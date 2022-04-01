@@ -12,6 +12,7 @@ mod pcf8574;
 mod button_matrix;
 mod graphics;
 mod util;
+mod droid_sans_20;
 
 use core::{alloc::Layout, panic::PanicInfo};
 
@@ -20,6 +21,7 @@ use button_matrix::ButtonEvent;
 use cortex_m::{prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_spi_FullDuplex, _embedded_hal_blocking_delay_DelayMs}, delay::Delay};
 use cortex_m_rt::entry;
 use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework}, delta_pico_main};
+use droid_sans_20::droid_sans_20_lookup;
 use embedded_hal::{digital::v2::OutputPin, spi::MODE_0, blocking::delay::DelayMs, can::Frame};
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
 
@@ -164,7 +166,10 @@ fn main() -> ! {
     let framework = FrameworkImpl {
         display: DisplayImpl {
             ili,
-            screen_sprite: sprite
+            screen_sprite: sprite,
+
+            cursor_x: 0,
+            cursor_y: 0,
         }
     };
     delta_pico_main(framework);
@@ -177,6 +182,9 @@ fn main() -> ! {
 struct DisplayImpl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> {
     ili: Ili9341<ili9341::Enabled, SpiD, DcPin, RstPin, Delay>,
     screen_sprite: Sprite,
+
+    cursor_x: i16,
+    cursor_y: i16,
 }
 
 impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayInterface for DisplayImpl<SpiD, DcPin, RstPin, Delay> {
@@ -194,7 +202,47 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
         self.screen_sprite.fill_surface(Colour(c.0)).unwrap();
     }
 
-    fn draw_char(&mut self, x: i64, y: i64, character: u8) { } 
+    fn draw_char(&mut self, x: i64, y: i64, character: u8) {
+        self.set_cursor(x, y);
+
+        let character_bitmap = droid_sans_20_lookup(character);
+        if character_bitmap.is_none() { return; }
+        let character_bitmap = character_bitmap.unwrap();
+
+        // TODO: anti-aliasing or any transparency
+        // TODO: font colour
+        // TODO: \n
+
+        // Each character is 4bpp;, so we maintain a flip-flopping boolean of whether to read the
+        // upper or lower byte
+        let mut lower_byte = false;
+        let mut index = 2usize;
+
+        let width = character_bitmap[0];
+        let height = character_bitmap[1];
+
+        for ox in 0..width {
+            for oy in 0..height {
+                let alpha_nibble = if lower_byte {
+                    lower_byte = false;
+                    let x = character_bitmap[index] & 0xF;
+                    index += 1;
+                    x
+                } else {
+                    lower_byte = true;
+                    (character_bitmap[index] & 0xF0) >> 4
+                };
+
+                if alpha_nibble > 0x8 {
+                    if let Some(px) = self.screen_sprite.try_pixel((x + ox as i64).saturating_into(), (y + oy as i64).saturating_into()) {
+                        *px = Colour(0xFFFF);
+                    }
+                }
+            }
+        }
+
+        self.cursor_x += Into::<i16>::into(character_bitmap[0]) - 1;
+    } 
     fn draw_line(&mut self, x1: i64, y1: i64, x2: i64, y2: i64, c: delta_pico_rust::interface::Colour) { }
     fn draw_rect(&mut self, x1: i64, y1: i64, w: i64, h: i64, c: delta_pico_rust::interface::Colour, fill: delta_pico_rust::interface::ShapeFill, radius: u16) {
         self.screen_sprite.draw_filled_rect(
@@ -207,10 +255,20 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
     }
     fn draw_sprite(&mut self, x: i64, y: i64, sprite: &Self::Sprite) { }
     fn draw_bitmap(&mut self, x: i64, y: i64, name: &str) { }
-    fn print(&mut self, s: &str) { }
+    fn print(&mut self, s: &str) {
+        for c in s.as_bytes() {
+            let (x, y) = self.get_cursor();
+            self.draw_char(x, y, *c);
+        }
+    }
 
-    fn set_cursor(&mut self, x: i64, y: i64) { }
-    fn get_cursor(&self) -> (i64, i64) { (0, 0) }
+    fn set_cursor(&mut self, x: i64, y: i64) {
+        self.cursor_x = x.saturating_into();
+        self.cursor_y = y.saturating_into();
+    }
+    fn get_cursor(&self) -> (i64, i64) {
+        (self.cursor_x.into(), self.cursor_y.into())
+    }
 
     fn set_font_size(&mut self, size: delta_pico_rust::interface::FontSize) { }
     fn get_font_size(&self) -> delta_pico_rust::interface::FontSize { delta_pico_rust::interface::FontSize::Default }
@@ -231,7 +289,7 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Applicati
     fn display_mut(&mut self) -> &mut Self::DisplayI { &mut self.display }
 
     fn hardware_revision(&self) -> alloc::string::String {
-        "Delta Pico Testing".into()
+        "Rev. 3 (Rust Framework)".into()
     }
 }
 
