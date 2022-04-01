@@ -1,12 +1,13 @@
 use alloc::format;
 
-use crate::{interface::Colour, operating_system::os};
+use crate::{interface::{Colour, ApplicationFramework}, operating_system::OperatingSystem};
 use super::{Application, ApplicationInfo};
-use crate::interface::framework;
 
-pub struct AboutApplication {}
+pub struct AboutApplication<'a, F: ApplicationFramework> {
+    os: &'a mut OperatingSystem<'a, F>,
+}
 
-impl Application for AboutApplication {
+impl<'a, F: ApplicationFramework> Application for AboutApplication<'a, F> {
     fn info() -> ApplicationInfo {
         ApplicationInfo {
             name: "About".into(),
@@ -14,27 +15,27 @@ impl Application for AboutApplication {
         }
     }
 
-    fn new() -> Self where Self: Sized { Self {} }
+    fn new(os: &mut OperatingSystem<'a, F>) -> Self { Self { os } }
 
     fn tick(&mut self) {
-        framework().display.fill_screen(Colour::BLACK);
+        self.os.framework.display().fill_screen(Colour::BLACK);
 
-        os().ui_draw_title("About Delta Pico");
+        self.os.ui_draw_title("About Delta Pico");
 
-        framework().display.print_at(5, 40,  "Software version:");
-        framework().display.print_at(5, 60,  &format!("  {}", env!("CARGO_PKG_VERSION")));
-        framework().display.print_at(5, 80,  &format!("  rev {}", env!("GIT_VERSION")));
-        framework().display.print_at(5, 100, &format!("  rbop {}", rbop::VERSION));
+        self.os.framework.display().print_at(5, 40,  "Software version:");
+        self.os.framework.display().print_at(5, 60,  &format!("  {}", env!("CARGO_PKG_VERSION")));
+        self.os.framework.display().print_at(5, 80,  &format!("  rev {}", env!("GIT_VERSION")));
+        self.os.framework.display().print_at(5, 100, &format!("  rbop {}", rbop::VERSION));
 
-        framework().display.print_at(5, 140,  "Hardware revision:");
-        framework().display.print_at(5, 160,  &format!("  {}", framework().hardware_revision()));
+        self.os.framework.display().print_at(5, 140,  "Hardware revision:");
+        self.os.framework.display().print_at(5, 160,  &format!("  {}", self.os.framework.hardware_revision()));
 
-        framework().display.print_at(70, 250,  "Created by");
-        framework().display.print_at(35, 270,  "Aaron Christiansen");
-        framework().display.print_at(110, 290,  ":)");
+        self.os.framework.display().print_at(70, 250,  "Created by");
+        self.os.framework.display().print_at(35, 270,  "Aaron Christiansen");
+        self.os.framework.display().print_at(110, 290,  ":)");
 
-        framework().display.draw();
+        self.os.framework.display().draw();
 
-        framework().buttons.wait_press();
+        // framework().buttons.wait_press();
     }
 }

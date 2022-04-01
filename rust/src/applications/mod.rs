@@ -1,5 +1,7 @@
 use alloc::{boxed::Box, string::String, vec, vec::Vec};
 
+use crate::{operating_system::OperatingSystem, interface::ApplicationFramework};
+
 pub struct ApplicationInfo {
     pub name: String,
     pub visible: bool,
@@ -23,12 +25,14 @@ impl ApplicationInfo {
 }
 
 pub trait Application {
+    type Framework : ApplicationFramework;
+
     fn info() -> ApplicationInfo where Self: Sized;
 
-    fn new() -> Self where Self: Sized;
+    fn new(os: &mut OperatingSystem<Self::Framework>) -> Self where Self: Sized;
     fn tick(&mut self);
 
-    fn new_dyn() -> Box<dyn Application> where Self: Sized, Self: 'static {
+    fn new_dyn() -> Box<dyn Application<Framework = Self::Framework>> where Self: Sized, Self: 'static {
         Box::new(Self::new())
     }
 
@@ -39,29 +43,29 @@ pub trait Application {
     }
 }
 
-pub struct ApplicationList {
-    pub applications: Vec<(ApplicationInfo, fn() -> Box<dyn Application>)>,
+pub struct ApplicationList<F: ApplicationFramework> {
+    pub applications: Vec<(ApplicationInfo, fn() -> Box<dyn Application<Framework = F>>)>,
 }
 
-impl ApplicationList {
+impl<F: ApplicationFramework> ApplicationList<F> {
     pub fn new() -> Self {
         Self {
             applications: vec![],
         }
     }
 
-    pub fn add<T>(&mut self) where T: Application, T: 'static {
+    pub fn add<T>(&mut self) where T: Application {
         let info = T::info();
         self.applications.push((info, T::new_dyn))
     }
 }
 
 pub mod menu;
-pub mod calculator;
+// pub mod calculator;
 pub mod about;
-pub mod graph;
-pub mod bootloader;
-pub mod storage;
-pub mod numbers_game;
-pub mod settings;
-pub mod files;
+// pub mod graph;
+// pub mod bootloader;
+// pub mod storage;
+// pub mod numbers_game;
+// pub mod settings;
+// pub mod files;
