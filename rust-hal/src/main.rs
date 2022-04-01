@@ -16,6 +16,7 @@ mod util;
 use core::{alloc::Layout, panic::PanicInfo};
 
 use alloc_cortex_m::CortexMHeap;
+use button_matrix::ButtonEvent;
 use cortex_m::{prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_spi_FullDuplex}, delay::Delay};
 use cortex_m_rt::entry;
 use embedded_hal::{digital::v2::OutputPin, spi::MODE_0};
@@ -144,20 +145,34 @@ fn main() -> ! {
         clocks.peripheral_clock,
     );
     let shared_i2c = BusManagerSimple::new(i2c);
-    let mut col_pcf = pcf8574::Pcf8574::new(0x38, shared_i2c.acquire_i2c());
-    let mut row_pcf = pcf8574::Pcf8574::new(0x3E, shared_i2c.acquire_i2c());
+    let col_pcf = pcf8574::Pcf8574::new(0x38, shared_i2c.acquire_i2c());
+    let row_pcf = pcf8574::Pcf8574::new(0x3E, shared_i2c.acquire_i2c());
 
     // Init button matrix and wait for key
-    let mut buttons = button_matrix::ButtonMatrix::new(row_pcf, col_pcf);
+    let mut buttons = button_matrix::ButtonMatrix::new(
+        row_pcf,
+        col_pcf, 
+        // TODO: This is not "clever" or "I know better" usage of `unsafe`, this is literally just
+        // plain UB - both this and `ili` hold a mutable reference to `delay` simultaneously
+        // But, like... how are you supposed to share it!?
+        unsafe { DELAY.as_mut().unwrap() }
+    );
     loop {
-        let btn = buttons.get_raw_button().unwrap();
-        if let Some((_, _)) = btn {
-            break;
+        match buttons.get_event(true).unwrap() {
+            Some(ButtonEvent::Press(_, _)) => {
+                sprite.fill_surface(Colour(0xFFFF)).unwrap();
+                ili.draw_screen_sprite(&sprite).unwrap();
+            },
+            Some(ButtonEvent::Release(_, _)) => {
+                sprite.fill_surface(Colour(0x0000)).unwrap();
+                ili.draw_screen_sprite(&sprite).unwrap();
+            },
+            None => {
+                // Don't think this should ever happen with `wait`
+                sprite.fill_surface(Colour(0x8000)).unwrap();
+                ili.draw_screen_sprite(&sprite).unwrap();
+            },
         }
-    }
-
-    loop {
-        blink(1000);
     }
 }
 
