@@ -5,6 +5,7 @@ test/bin
 rust/target
 res/*.h
 font/*.h
+font/*.rs
 cad/*/gerbers
 cad/*/*cache*
 cad/*/*-bak

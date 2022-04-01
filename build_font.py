@@ -33,5 +33,5 @@ for font in fonts_to_build:
     # Generate and save source
     glyphs_source = generate_font_source(name, glyphs_dir)
 
-    with open(os.path.join(root_dir, "font", f"{name}.h"), "w") as f:
+    with open(os.path.join(root_dir, "font", f"{name}.rs"), "w") as f:
         f.write(glyphs_source)
