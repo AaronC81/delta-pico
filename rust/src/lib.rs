@@ -23,7 +23,7 @@ use interface::{ApplicationFramework, DisplayInterface};
 
 use crate::{interface::Colour, operating_system::{OSInput, OperatingSystem}};
 
-pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: F) {
+pub extern "C" fn delta_pico_main<F: ApplicationFramework>(framework: F) {
     let mut os = OperatingSystem::new(framework);
 
     os.framework.display_mut().fill_screen(Colour(0xFFFF));
@@ -57,6 +57,7 @@ pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: 
     // });
 
     let mut about_app = AboutApplication::new(&mut os);
+    loop { about_app.tick(); }
 
     loop {
         // about_app.tick();

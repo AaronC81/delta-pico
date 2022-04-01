@@ -3,7 +3,7 @@ use alloc::format;
 use crate::{interface::{Colour, ApplicationFramework, DisplayInterface}, operating_system::OperatingSystem};
 use super::{Application, ApplicationInfo};
 
-pub struct AboutApplication<F: ApplicationFramework + 'static> {
+pub struct AboutApplication<F: ApplicationFramework> {
     os: *mut OperatingSystem<F>,
 }
 
@@ -39,6 +39,8 @@ impl<'a, 'b, F: ApplicationFramework> Application for AboutApplication<F> {
         disp.print_at(110, 290,  ":)");
 
         disp.draw();
+
+        loop {}
 
         // framework().buttons.wait_press();
     }

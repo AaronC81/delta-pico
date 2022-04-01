@@ -17,11 +17,13 @@ use core::{alloc::Layout, panic::PanicInfo};
 
 use alloc_cortex_m::CortexMHeap;
 use button_matrix::ButtonEvent;
-use cortex_m::{prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_spi_FullDuplex}, delay::Delay};
+use cortex_m::{prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_spi_FullDuplex, _embedded_hal_blocking_delay_DelayMs}, delay::Delay};
 use cortex_m_rt::entry;
-use embedded_hal::{digital::v2::OutputPin, spi::MODE_0};
+use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework}, delta_pico_main};
+use embedded_hal::{digital::v2::OutputPin, spi::MODE_0, blocking::delay::DelayMs, can::Frame};
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
 
+use ili9341::Ili9341;
 // Provide an alias for our BSP so we can switch targets quickly.
 // Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
 use rp_pico as bsp;
@@ -35,6 +37,7 @@ use bsp::hal::{
     spi::{Spi, Enabled, SpiDevice}, gpio::{FunctionSpi, Pin, PinId, Output, PushPull, bank0::Gpio25, FunctionI2C}, I2C,
 };
 use shared_bus::BusManagerSimple;
+use util::saturating_into::SaturatingInto;
 
 use crate::graphics::{DrawingSurface, Colour, Sprite};
 
@@ -157,22 +160,78 @@ fn main() -> ! {
         // But, like... how are you supposed to share it!?
         unsafe { DELAY.as_mut().unwrap() }
     );
-    loop {
-        match buttons.get_event(true).unwrap() {
-            Some(ButtonEvent::Press(_, _)) => {
-                sprite.fill_surface(Colour(0xFFFF)).unwrap();
-                ili.draw_screen_sprite(&sprite).unwrap();
-            },
-            Some(ButtonEvent::Release(_, _)) => {
-                sprite.fill_surface(Colour(0x0000)).unwrap();
-                ili.draw_screen_sprite(&sprite).unwrap();
-            },
-            None => {
-                // Don't think this should ever happen with `wait`
-                sprite.fill_surface(Colour(0x8000)).unwrap();
-                ili.draw_screen_sprite(&sprite).unwrap();
-            },
+
+    let framework = FrameworkImpl {
+        display: DisplayImpl {
+            ili,
+            screen_sprite: sprite
         }
+    };
+    delta_pico_main(framework);
+
+    loop {
+        panic!("ended")
+    }
+}
+
+struct DisplayImpl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> {
+    ili: Ili9341<ili9341::Enabled, SpiD, DcPin, RstPin, Delay>,
+    screen_sprite: Sprite,
+}
+
+impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayInterface for DisplayImpl<SpiD, DcPin, RstPin, Delay> {
+    type Sprite = ();
+
+    fn width(&self) -> u64 { 240 }
+    fn height(&self) -> u64 { 320 }
+
+    fn new_sprite(&mut self, width: i16, height: i16) -> Self::Sprite { todo!() }
+    fn switch_to_sprite(&mut self, sprite: &mut Self::Sprite) { todo!() }
+
+    fn switch_to_screen(&mut self) {}
+
+    fn fill_screen(&mut self, c: delta_pico_rust::interface::Colour) {
+        self.screen_sprite.fill_surface(Colour(c.0)).unwrap();
+    }
+
+    fn draw_char(&mut self, x: i64, y: i64, character: u8) { } 
+    fn draw_line(&mut self, x1: i64, y1: i64, x2: i64, y2: i64, c: delta_pico_rust::interface::Colour) { }
+    fn draw_rect(&mut self, x1: i64, y1: i64, w: i64, h: i64, c: delta_pico_rust::interface::Colour, fill: delta_pico_rust::interface::ShapeFill, radius: u16) {
+        self.screen_sprite.draw_filled_rect(
+            x1.saturating_into(),
+            y1.saturating_into(),
+            w.saturating_into(),
+            h.saturating_into(),
+            Colour(c.0),
+        ).unwrap();
+    }
+    fn draw_sprite(&mut self, x: i64, y: i64, sprite: &Self::Sprite) { }
+    fn draw_bitmap(&mut self, x: i64, y: i64, name: &str) { }
+    fn print(&mut self, s: &str) { }
+
+    fn set_cursor(&mut self, x: i64, y: i64) { }
+    fn get_cursor(&self) -> (i64, i64) { (0, 0) }
+
+    fn set_font_size(&mut self, size: delta_pico_rust::interface::FontSize) { }
+    fn get_font_size(&self) -> delta_pico_rust::interface::FontSize { delta_pico_rust::interface::FontSize::Default }
+
+    fn draw(&mut self) {
+        self.ili.draw_screen_sprite(&self.screen_sprite).unwrap();
+    }
+}
+
+struct FrameworkImpl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> {
+    display: DisplayImpl<SpiD, DcPin, RstPin, Delay>,
+}
+
+impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> ApplicationFramework for FrameworkImpl<SpiD, DcPin, RstPin, Delay> {
+    type DisplayI = DisplayImpl<SpiD, DcPin, RstPin, Delay>;
+
+    fn display(&self) -> &Self::DisplayI { &self.display }
+    fn display_mut(&mut self) -> &mut Self::DisplayI { &mut self.display }
+
+    fn hardware_revision(&self) -> alloc::string::String {
+        "Delta Pico Testing".into()
     }
 }
 

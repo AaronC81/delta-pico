@@ -41,6 +41,14 @@ impl SaturatingInto<i32> for i64 {
     }
 }
 
+impl SaturatingInto<i16> for i64 {
+    fn saturating_into(self) -> i16 {
+        if self > i16::MAX.into() { return i16::MAX }
+        if self < i16::MIN.into() { return i16::MIN }
+        self as i16
+    }
+}
+
 impl SaturatingInto<i16> for i32 {
     fn saturating_into(self) -> i16 {
         if self > i16::MAX.into() { return i16::MAX }

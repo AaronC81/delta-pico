@@ -11,7 +11,7 @@ use crate::{
     // c_allocator::{MEMORY_USAGE, EXTERNAL_MEMORY_USAGE, MAX_MEMORY_USAGE, MAX_EXTERNAL_MEMORY_USAGE}
 };
 
-pub struct OperatingSystem<F: ApplicationFramework + 'static> {
+pub struct OperatingSystem<F: ApplicationFramework> {
     pub framework: F,
 
     // TODO: I don't think the operating system can hold application lists any more, since that 
@@ -67,14 +67,14 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
 
     /// Returns a reference to the application which should be ticked. This is typically the running
     /// application, unless showing the menu, in which case it is the menu application itself.
-    pub fn application_to_tick(&mut self) -> Rc<RefCell<dyn Application<Framework = F>>> {
-        if self.showing_menu {
-            self.menu.clone().expect("menu not configured yet")
-        } else {
-            // TODO: use menu here if None
-            self.active_application.clone().unwrap()
-        }
-    }
+    // pub fn application_to_tick(&mut self) -> Rc<RefCell<dyn Application<Framework = F>>> {
+    //     if self.showing_menu {
+    //         self.menu.clone().expect("menu not configured yet")
+    //     } else {
+    //         // TODO: use menu here if None
+    //         self.active_application.clone().unwrap()
+    //     }
+    // }
 
     /// Toggles whether the global menu is currently being shown.
     pub fn toggle_menu(&mut self) {

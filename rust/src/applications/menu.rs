@@ -3,7 +3,7 @@ use alloc::{vec, vec::Vec};
 use crate::{interface::{Colour, ApplicationFramework, DisplayInterface}, operating_system::{OSInput, UIMenu, UIMenuItem, OperatingSystem}};
 use super::{Application, ApplicationInfo};
 
-pub struct MenuApplication<F: ApplicationFramework + 'static> {
+pub struct MenuApplication<F: ApplicationFramework> {
     os: *mut OperatingSystem<F>,
     menu: UIMenu,
 }
