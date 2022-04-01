@@ -2,7 +2,7 @@ use core::alloc::{GlobalAlloc, Layout};
 
 use alloc::{vec, format};
 
-use crate::{interface::{Colour, ShapeFill}, operating_system::{OSInput, UIMenu, UIMenuItem, os}, timer::Timer, ALLOCATOR, tests};
+use crate::{interface::{Colour, ShapeFill}, operating_system::{OSInput, UIMenu, UIMenuItem, os}, timer::Timer, tests};
 use super::{Application, ApplicationInfo};
 use crate::interface::framework;
 
@@ -181,15 +181,6 @@ impl SettingsApplication {
     }
 
     fn leak_memory_until_panic(&self) -> ! {
-        let mut i = 0;
-        loop {
-            framework().display.fill_screen(Colour::BLACK);
-            os().ui_draw_title("Leaking...");
-            unsafe { ALLOCATOR.alloc(Layout::new::<[u64; 16]>()) };
-            framework().display.print_at(40, 40, &format!("{}", i));
-            framework().display.draw();
-
-            i += 1;
-        }
+        todo!(); // TODO
     }
 }

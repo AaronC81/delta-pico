@@ -2,8 +2,6 @@ use core::fmt::Debug;
 
 use alloc::{string::{String, ToString}, vec, vec::Vec};
 
-use crate::ALLOCATOR;
-
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct Sprite(pub *mut u8);
 
@@ -65,8 +63,8 @@ impl DisplayInterface {
     /// using `free_sprite`.
     pub fn new_sprite(&self, width: u16, height: u16) -> Sprite {
         let ptr = (self.new_sprite)(width as i16, height as i16);
-        ALLOCATOR.count_external_alloc(ptr);
-        ALLOCATOR.count_external_alloc((self.get_sprite_data_pointer)(ptr));
+        // ALLOCATOR.count_external_alloc(ptr);
+        // ALLOCATOR.count_external_alloc((self.get_sprite_data_pointer)(ptr));
         Sprite(ptr)
     }
 
@@ -75,8 +73,8 @@ impl DisplayInterface {
         // Hack in calculator sets deleted sprite cache entry pointers to null, so this prevents a
         // double-free
         if !sprite.0.is_null() {
-            ALLOCATOR.count_external_free(sprite.0);
-            ALLOCATOR.count_external_free((self.get_sprite_data_pointer)(sprite.0));
+            // ALLOCATOR.count_external_free(sprite.0);
+            // ALLOCATOR.count_external_free((self.get_sprite_data_pointer)(sprite.0));
             (self.free_sprite)(sprite.0)
         }
     }
