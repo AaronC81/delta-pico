@@ -1,6 +1,6 @@
-use alloc::{boxed::Box, format, string::String, vec::Vec};
+use alloc::{boxed::Box, format, string::String, vec::Vec, rc::Rc};
 use rbop::{Number, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
-use core::{cmp::max, mem, slice};
+use core::{cmp::max, mem, slice, marker::PhantomData, cell::{RefCell, RefMut}, borrow::{Borrow, BorrowMut}};
 
 use crate::{
     applications::{Application, ApplicationList, menu::MenuApplication},
@@ -11,14 +11,17 @@ use crate::{
     // c_allocator::{MEMORY_USAGE, EXTERNAL_MEMORY_USAGE, MAX_MEMORY_USAGE, MAX_EXTERNAL_MEMORY_USAGE}
 };
 
-pub struct OperatingSystem<'a, F: ApplicationFramework> {
+pub struct OperatingSystem<F: ApplicationFramework + 'static> {
     pub framework: F,
 
-    pub application_list: ApplicationList<'a, F>,
-    pub menu: Option<MenuApplication<'a, F>>,
+    // TODO: I don't think the operating system can hold application lists any more, since that 
+    // would lead to recursive references (unless we use an Rc) - so where *do* we put them?
+
+    pub application_list: ApplicationList<F>,
+    pub menu: Option<Rc<RefCell<MenuApplication<F>>>>,
     pub showing_menu: bool,
 
-    pub active_application: Option<Box<dyn Application<'a, Framework = F>>>,
+    pub active_application: Option<Rc<RefCell<dyn Application<Framework = F>>>>,
     pub active_application_index: Option<usize>,
 
     // pub filesystem: Filesystem<'a>,
@@ -28,7 +31,7 @@ pub struct OperatingSystem<'a, F: ApplicationFramework> {
     // pub multi_tap: MultiTapState,
 }
 
-impl<'a, F: ApplicationFramework> OperatingSystem<'a, F> {
+impl<F: ApplicationFramework> OperatingSystem<F> {
     pub const TITLE_BAR_HEIGHT: i64 = 30;
     
     pub fn new(framework: F) -> Self {
@@ -47,19 +50,8 @@ impl<'a, F: ApplicationFramework> OperatingSystem<'a, F> {
     pub fn launch_application(&mut self, index: usize) {
         self.showing_menu = false;
 
-        // Why do we need to do this, rather than letting applications just implement `Drop` if they
-        // deal with raw pointers to memory?
-        // Well, some applications (namely Calculator) can consume a pretty large amount of memory.
-        // If you launch such an application, go to menu, and launch it again, the `Drop` is only
-        // called _after_ we've constructed a new application.
-        // There might not be enough memory to construct something new, so we OOM!
-        // Our `destroy` method gives applications an opportunity to clean up before constructing a 
-        // new one.
-        // I also couldn't get the borrow checker to be satisfied with me passing `drop` a mutable
-        // reference.
-        if let Some(app) = self.active_application.as_mut() {
-            app.destroy();
-        }
+        // TODO: destroy now unused
+
         self.active_application_index = Some(index);
         self.active_application = Some(self.application_list.applications[index].1());
     }
@@ -75,14 +67,12 @@ impl<'a, F: ApplicationFramework> OperatingSystem<'a, F> {
 
     /// Returns a reference to the application which should be ticked. This is typically the running
     /// application, unless showing the menu, in which case it is the menu application itself.
-    pub fn application_to_tick(&'a mut self) -> &mut dyn Application<'a, Framework = F> {
+    pub fn application_to_tick(&mut self) -> Rc<RefCell<dyn Application<Framework = F>>> {
         if self.showing_menu {
-            self.menu.as_mut().expect("menu not configured yet")
+            self.menu.clone().expect("menu not configured yet")
         } else {
             // TODO: use menu here if None
-            self.active_application.as_mut()
-                .map(|x| x.as_mut())
-                .unwrap()
+            self.active_application.clone().unwrap()
         }
     }
 

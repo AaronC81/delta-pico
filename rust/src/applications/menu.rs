@@ -3,12 +3,12 @@ use alloc::{vec, vec::Vec};
 use crate::{interface::{Colour, ApplicationFramework, DisplayInterface}, operating_system::{OSInput, UIMenu, UIMenuItem, OperatingSystem}};
 use super::{Application, ApplicationInfo};
 
-pub struct MenuApplication<'a, F: ApplicationFramework> {
-    os: &'a mut OperatingSystem<'a, F>,
+pub struct MenuApplication<F: ApplicationFramework + 'static> {
+    os: *mut OperatingSystem<F>,
     menu: UIMenu,
 }
 
-impl<'a, 'b, F: ApplicationFramework> Application<'a> for MenuApplication<'a, F> {
+impl<F: ApplicationFramework> Application for MenuApplication<F> {
     type Framework = F;
 
     fn info() -> ApplicationInfo {
@@ -18,7 +18,7 @@ impl<'a, 'b, F: ApplicationFramework> Application<'a> for MenuApplication<'a, F>
         }
     }
 
-    fn new(os: &'a mut OperatingSystem<'a, F>) -> Self where Self: Sized {
+    fn new(os: *mut OperatingSystem<F>) -> Self where Self: Sized {
         Self {
             os,
             menu: UIMenu::new(vec![]),
@@ -26,11 +26,11 @@ impl<'a, 'b, F: ApplicationFramework> Application<'a> for MenuApplication<'a, F>
     }
 
     fn tick(&mut self) {
-        self.os.framework.display_mut().fill_screen(Colour::BLACK);
-        self.os.ui_draw_title("Menu");
+        self.os_mut().framework.display_mut().fill_screen(Colour::BLACK);
+        self.os_mut().ui_draw_title("Menu");
 
         // Doesn't work to assign during `new` for some reason, so do this instead
-        self.menu.items = self.os.application_list.applications
+        self.menu.items = self.os().application_list.applications
             .iter()
             .map(|(app, _)| UIMenuItem {
                 title: app.name.clone(),
@@ -39,7 +39,7 @@ impl<'a, 'b, F: ApplicationFramework> Application<'a> for MenuApplication<'a, F>
             })
             .collect::<Vec<_>>();
         self.menu.draw();
-        self.os.framework.display_mut().draw();
+        self.os_mut().framework.display_mut().draw();
 
         // if let Some(btn) = framework().buttons.wait_press() {
         //     match btn {
@@ -50,4 +50,9 @@ impl<'a, 'b, F: ApplicationFramework> Application<'a> for MenuApplication<'a, F>
         //     }
         // }
     }
+}
+
+impl<F: ApplicationFramework> MenuApplication<F> {
+    fn os(&self) -> &OperatingSystem<F> { unsafe { &*self.os } }
+    fn os_mut(&self) -> &mut OperatingSystem<F> { unsafe { &mut *self.os } }
 }

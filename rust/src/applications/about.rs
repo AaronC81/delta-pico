@@ -3,11 +3,11 @@ use alloc::format;
 use crate::{interface::{Colour, ApplicationFramework, DisplayInterface}, operating_system::OperatingSystem};
 use super::{Application, ApplicationInfo};
 
-pub struct AboutApplication<'a, F: ApplicationFramework> {
-    os: &'a mut OperatingSystem<'a, F>,
+pub struct AboutApplication<F: ApplicationFramework + 'static> {
+    os: *mut OperatingSystem<F>,
 }
 
-impl<'a, F: ApplicationFramework> Application<'a> for AboutApplication<'a, F> {
+impl<'a, 'b, F: ApplicationFramework> Application for AboutApplication<F> {
     type Framework = F;
 
     fn info() -> ApplicationInfo {
@@ -17,18 +17,18 @@ impl<'a, F: ApplicationFramework> Application<'a> for AboutApplication<'a, F> {
         }
     }
 
-    fn new(os: &'a mut OperatingSystem<'a, F>) -> Self { Self { os } }
+    fn new(os: *mut OperatingSystem<F>) -> Self { Self { os } }
 
     fn tick(&mut self) {
-        self.os.framework.display_mut().fill_screen(Colour::BLACK);
+        self.os_mut().framework.display_mut().fill_screen(Colour::BLACK);
 
-        self.os.ui_draw_title("About Delta Pico");
-        let hw_revision = self.os.framework.hardware_revision();
-        let disp = self.os.framework.display_mut();
+        self.os_mut().ui_draw_title("About Delta Pico");
+        let hw_revision = self.os().framework.hardware_revision();
+        let disp = self.os_mut().framework.display_mut();
 
         disp.print_at(5, 40,  "Software version:");
         disp.print_at(5, 60,  &format!("  {}", env!("CARGO_PKG_VERSION")));
-        disp.print_at(5, 80,  &format!("  rev {}", env!("GIT_VERSION")));
+        // disp.print_at(5, 80,  &format!("  rev {}", env!("GIT_VERSION")));
         disp.print_at(5, 100, &format!("  rbop {}", rbop::VERSION));
 
         disp.print_at(5, 140,  "Hardware revision:");
@@ -42,4 +42,9 @@ impl<'a, F: ApplicationFramework> Application<'a> for AboutApplication<'a, F> {
 
         // framework().buttons.wait_press();
     }
+}
+
+impl<F: ApplicationFramework> AboutApplication<F> {
+    fn os(&self) -> &OperatingSystem<F> { unsafe { &*self.os } }
+    fn os_mut(&self) -> &mut OperatingSystem<F> { unsafe { &mut *self.os } }
 }

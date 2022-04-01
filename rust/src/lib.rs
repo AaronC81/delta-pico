@@ -5,8 +5,8 @@ extern crate alloc;
 
 mod c_allocator;
 
-use core::{panic::PanicInfo};
-use alloc::{format, string::String};
+use core::{panic::PanicInfo, cell::RefCell};
+use alloc::{format, string::String, rc::Rc};
 use applications::{about::{AboutApplication, self}, Application};
 use c_allocator::CAllocator;
 
@@ -23,8 +23,7 @@ use interface::{ApplicationFramework, DisplayInterface};
 
 use crate::{interface::Colour, operating_system::{OSInput, OperatingSystem}};
 
-#[no_mangle]
-pub extern "C" fn delta_pico_main<F: ApplicationFramework>(framework: F) {
+pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: F) {
     let mut os = OperatingSystem::new(framework);
 
     os.framework.display_mut().fill_screen(Colour(0xFFFF));
@@ -57,12 +56,10 @@ pub extern "C" fn delta_pico_main<F: ApplicationFramework>(framework: F) {
     //     (framework().usb_mass_storage.begin)();
     // });
 
-    {
-        let mut about_app = AboutApplication::new(&mut os);
+    let mut about_app = AboutApplication::new(&mut os);
 
-        loop {
-            about_app.tick();
-            // os.application_to_tick().tick();
-        }
+    loop {
+        // about_app.tick();
+        // os.application_to_tick().tick();
     }
 }
