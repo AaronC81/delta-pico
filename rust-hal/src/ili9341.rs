@@ -108,11 +108,15 @@ impl<'a, S: State, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<
     }
 
     pub fn send_command(&mut self, byte: u8) -> Result<(), Ili9341Error> {
+        self.delay.delay_ms(1);
+
         self.dc.set_low().map_err(|_| Ili9341Error::GpioError)?;
         block!(self.spi.send(byte)).map_err(|_| Ili9341Error::SpiError)
     }
 
     pub fn send_data(&mut self, byte: u8) -> Result<(), Ili9341Error> {
+        self.delay.delay_ms(1);
+
         self.dc.set_high().map_err(|_| Ili9341Error::GpioError)?;
         block!(self.spi.send(byte)).map_err(|_| Ili9341Error::SpiError)
     }
@@ -202,6 +206,8 @@ impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili93
     /// on `self` while it is alive. This stops any other methods messing up the DC pin and breaking
     /// the data stream.
     pub fn fast_data_write<'outer>(&'outer mut self) -> Result<Ili9341FastDataWriter<'a, 'outer, SpiD, DcPin, RstPin, Delay>, Ili9341Error> {
+        self.delay.delay_ms(1);
+
         self.dc.set_high().map_err(|_| Ili9341Error::GpioError)?;
         Ok(Ili9341FastDataWriter { ili9341: self })
     }
