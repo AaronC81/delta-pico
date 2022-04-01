@@ -21,7 +21,6 @@ pub enum Ili9341Error {
 }
 
 pub struct Ili9341<
-    'a,
     S: State,
     SpiD: SpiDevice,
     DcPin: PinId,
@@ -31,27 +30,27 @@ pub struct Ili9341<
     pub width: u16,
     pub height: u16,
 
-    spi: &'a mut Spi<spi::Enabled, SpiD, 8>,
-    dc: &'a mut Pin<DcPin, Output<PushPull>>,
-    rst: &'a mut Pin<RstPin, Output<PushPull>>,
-    delay: &'a mut Delay,
+    spi: Spi<spi::Enabled, SpiD, 8>,
+    dc: Pin<DcPin, Output<PushPull>>,
+    rst: Pin<RstPin, Output<PushPull>>,
+    delay: Delay,
 
     state: PhantomData<S>,
 }
 
 pub struct Ili9341FastDataWriter<
-    'inner, 'outer,
+    'a,
     SpiD: SpiDevice,
     DcPin: PinId,
     RstPin: PinId,
     Delay: DelayMs<u8>,
 > {
-    ili9341: &'outer mut Ili9341<'inner, Enabled, SpiD, DcPin, RstPin, Delay>,
+    ili9341: &'a mut Ili9341<Enabled, SpiD, DcPin, RstPin, Delay>,
 }
 
-impl<'a, S: State, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<'a, S, SpiD, DcPin, RstPin, Delay> {
-    fn change_state<NewS: State>(self) -> Ili9341<'a, NewS, SpiD, DcPin, RstPin, Delay> {
-        Ili9341::<'a, NewS, _, _, _, _> {
+impl<S: State, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<S, SpiD, DcPin, RstPin, Delay> {
+    fn change_state<NewS: State>(self) -> Ili9341<NewS, SpiD, DcPin, RstPin, Delay> {
+        Ili9341::<NewS, _, _, _, _> {
             width: self.width,
             height: self.height,
             spi: self.spi,
@@ -62,7 +61,7 @@ impl<'a, S: State, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<
         }
     }
 
-    pub fn hardware_reset(self) -> Result<Ili9341<'a, Disabled, SpiD, DcPin, RstPin, Delay>, Ili9341Error> {
+    pub fn hardware_reset(mut self) -> Result<Ili9341<Disabled, SpiD, DcPin, RstPin, Delay>, Ili9341Error> {
         self.rst.set_low().map_err(|_| Ili9341Error::GpioError)?;
         self.delay.delay_ms(50);
         self.rst.set_high().map_err(|_| Ili9341Error::GpioError)?;
@@ -71,7 +70,7 @@ impl<'a, S: State, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<
         Ok(self.change_state::<Disabled>())
     }
 
-    pub fn software_reset(mut self) -> Result<Ili9341<'a, Disabled, SpiD, DcPin, RstPin, Delay>, Ili9341Error> {
+    pub fn software_reset(mut self) -> Result<Ili9341<Disabled, SpiD, DcPin, RstPin, Delay>, Ili9341Error> {
         // Unsleep
         self.send_command(0x11)?;
         self.delay.delay_ms(150);
@@ -130,15 +129,15 @@ impl<'a, S: State, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<
     }
 }
 
-impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<'a, Disabled, SpiD, DcPin, RstPin, Delay> {
+impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<Disabled, SpiD, DcPin, RstPin, Delay> {
     pub fn new(
         width: u16,
         height: u16,
-        spi: &'a mut Spi<spi::Enabled, SpiD, 8>,
-        dc: &'a mut Pin<DcPin, Output<PushPull>>,
-        rst: &'a mut Pin<RstPin, Output<PushPull>>,
-        delay: &'a mut Delay,
-    ) -> Ili9341<'a, Disabled, SpiD, DcPin, RstPin, Delay> {
+        spi: Spi<spi::Enabled, SpiD, 8>,
+        dc: Pin<DcPin, Output<PushPull>>,
+        rst: Pin<RstPin, Output<PushPull>>,
+        delay: Delay,
+    ) -> Ili9341<Disabled, SpiD, DcPin, RstPin, Delay> {
         Ili9341 {
             width,
             height,
@@ -150,7 +149,7 @@ impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili93
         }
     }
 
-    pub fn init(self) -> Result<Ili9341<'a, Enabled, SpiD, DcPin, RstPin, Delay>, Ili9341Error> {
+    pub fn init(self) -> Result<Ili9341<Enabled, SpiD, DcPin, RstPin, Delay>, Ili9341Error> {
         // Reconstruct as enabled
         let mut result = self.hardware_reset()?;
         result.send_init_commands()?;
@@ -160,7 +159,7 @@ impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili93
     }
 }
 
-impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<'a, Enabled, SpiD, DcPin, RstPin, Delay> {
+impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<Enabled, SpiD, DcPin, RstPin, Delay> {
     /// Sets future pixel drawing operations to apply to the given bounding box. On success, returns
     /// the number of pixels (not bytes) which need to be drawn to fill this bounding box.
     /// 
@@ -205,7 +204,7 @@ impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili93
     /// By the power of the borrow checker, the writer will prevent any methods from being called
     /// on `self` while it is alive. This stops any other methods messing up the DC pin and breaking
     /// the data stream.
-    pub fn fast_data_write<'outer>(&'outer mut self) -> Result<Ili9341FastDataWriter<'a, 'outer, SpiD, DcPin, RstPin, Delay>, Ili9341Error> {
+    pub fn fast_data_write<'a>(&'a mut self) -> Result<Ili9341FastDataWriter<'a, SpiD, DcPin, RstPin, Delay>, Ili9341Error> {
         self.delay.delay_ms(1);
 
         self.dc.set_high().map_err(|_| Ili9341Error::GpioError)?;
@@ -249,7 +248,7 @@ impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili93
     }
 }
 
-impl<'inner, 'outer, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341FastDataWriter<'inner, 'outer, SpiD, DcPin, RstPin, Delay> {
+impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341FastDataWriter<'a, SpiD, DcPin, RstPin, Delay> {
     pub fn send(&mut self, byte: u8) -> Result<(), Ili9341Error> {
         nb::block!(self.ili9341.spi.send(byte)).map_err(|_| Ili9341Error::SpiError)
     }

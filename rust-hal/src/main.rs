@@ -120,10 +120,10 @@ fn main() -> ! {
     // Construct ILI9341 instance
     let mut ili = ili9341::Ili9341::new(
         240, 320,
-        &mut spi,
-        &mut dc_pin,
-        &mut rst_pin,
-        unsafe { DELAY.as_mut().unwrap() },
+        spi,
+        dc_pin,
+        rst_pin,
+        unsafe { core::ptr::read(DELAY.as_ref().unwrap()) },
     ).init().unwrap();
     ili.fill(Colour::BLACK).unwrap();
 
