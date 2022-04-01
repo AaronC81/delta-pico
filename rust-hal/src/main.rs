@@ -20,7 +20,7 @@ use alloc_cortex_m::CortexMHeap;
 use button_matrix::ButtonEvent;
 use cortex_m::{prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_spi_FullDuplex, _embedded_hal_blocking_delay_DelayMs}, delay::Delay};
 use cortex_m_rt::entry;
-use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework}, delta_pico_main};
+use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, Colour}, delta_pico_main};
 use droid_sans_20::droid_sans_20_lookup;
 use embedded_hal::{digital::v2::OutputPin, spi::MODE_0, blocking::delay::DelayMs, can::Frame};
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
@@ -41,7 +41,7 @@ use bsp::hal::{
 use shared_bus::BusManagerSimple;
 use util::saturating_into::SaturatingInto;
 
-use crate::graphics::{DrawingSurface, Colour, Sprite};
+use crate::graphics::{DrawingSurface, RawColour, Sprite};
 
 #[global_allocator]
 static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
@@ -130,12 +130,12 @@ fn main() -> ! {
         rst_pin,
         unsafe { core::ptr::read(DELAY.as_ref().unwrap()) },
     ).init().unwrap();
-    ili.fill(Colour::BLACK).unwrap();
+    ili.fill(RawColour::BLACK).unwrap();
 
     // Create screen sprite
     let mut sprite = Sprite::new(240, 320);
-    sprite.fill_surface(Colour(0xF000)).unwrap();
-    sprite.draw_filled_rect(10, 10, 30, 30, Colour(0x000F)).unwrap();
+    sprite.fill_surface(RawColour(0xF000)).unwrap();
+    sprite.draw_filled_rect(10, 10, 30, 30, RawColour(0x000F)).unwrap();
     ili.draw_screen_sprite(&sprite).unwrap();
 
     // Construct PCF8574 instances
@@ -198,8 +198,8 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
 
     fn switch_to_screen(&mut self) {}
 
-    fn fill_screen(&mut self, c: delta_pico_rust::interface::Colour) {
-        self.screen_sprite.fill_surface(Colour(c.0)).unwrap();
+    fn fill_screen(&mut self, c: Colour) {
+        self.screen_sprite.fill_surface(c.into()).unwrap();
     }
 
     fn draw_char(&mut self, x: i64, y: i64, character: u8) {
@@ -235,7 +235,7 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
 
                 if alpha_nibble > 0x8 {
                     if let Some(px) = self.screen_sprite.try_pixel((x + ox as i64).saturating_into(), (y + oy as i64).saturating_into()) {
-                        *px = Colour(0xFFFF);
+                        *px = RawColour(0xFFFF);
                     }
                 }
             }
@@ -243,14 +243,14 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
 
         self.cursor_x += Into::<i16>::into(character_bitmap[0]) - 1;
     } 
-    fn draw_line(&mut self, x1: i64, y1: i64, x2: i64, y2: i64, c: delta_pico_rust::interface::Colour) { }
-    fn draw_rect(&mut self, x1: i64, y1: i64, w: i64, h: i64, c: delta_pico_rust::interface::Colour, fill: delta_pico_rust::interface::ShapeFill, radius: u16) {
+    fn draw_line(&mut self, x1: i64, y1: i64, x2: i64, y2: i64, c: Colour) { }
+    fn draw_rect(&mut self, x1: i64, y1: i64, w: i64, h: i64, c: Colour, fill: delta_pico_rust::interface::ShapeFill, radius: u16) {
         self.screen_sprite.draw_filled_rect(
             x1.saturating_into(),
             y1.saturating_into(),
             w.saturating_into(),
             h.saturating_into(),
-            Colour(c.0),
+            c.into(),
         ).unwrap();
     }
     fn draw_sprite(&mut self, x: i64, y: i64, sprite: &Self::Sprite) { }

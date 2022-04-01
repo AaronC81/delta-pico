@@ -1,13 +1,14 @@
 use core::convert::Infallible;
 
 use alloc::{vec, vec::Vec};
+use delta_pico_rust::interface::Colour;
 
 use crate::util::saturating_into::SaturatingInto;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct Colour(pub u16);
+pub struct RawColour(pub u16);
 
-impl Colour {
+impl RawColour {
     pub fn high_byte(&self) -> u8 {
         ((self.0 & 0xFF00) >> 8) as u8
     }
@@ -20,21 +21,27 @@ impl Colour {
         (self.high_byte(), self.low_byte())
     }
 
-    pub const BLACK: Colour = Colour(0);
+    pub const BLACK: RawColour = RawColour(0);
+}
+
+impl From<Colour> for RawColour {
+    fn from(c: Colour) -> Self {
+        RawColour(((c.0 & 0xFF00) >> 8) | ((c.0 & 0xFF) << 8))
+    }
 }
 
 pub trait DrawingSurface {
     type Error;
 
-    fn fill_surface(&mut self, colour: Colour) -> Result<(), Self::Error>;
-    fn draw_filled_rect(&mut self, x: i16, y: i16, w: u16, h: u16, colour: Colour) -> Result<(), Self::Error>;
+    fn fill_surface(&mut self, colour: RawColour) -> Result<(), Self::Error>;
+    fn draw_filled_rect(&mut self, x: i16, y: i16, w: u16, h: u16, colour: RawColour) -> Result<(), Self::Error>;
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Sprite {
     pub width: u16,
     pub height: u16,
-    pub data: Vec<Colour>,
+    pub data: Vec<RawColour>,
 }
 
 impl Sprite {
@@ -42,15 +49,15 @@ impl Sprite {
         Sprite {
             width,
             height,
-            data: vec![Colour::BLACK; width as usize * height as usize],
+            data: vec![RawColour::BLACK; width as usize * height as usize],
         }
     }
 
-    pub fn pixel(&mut self, x: u16, y: u16) -> &mut Colour {
+    pub fn pixel(&mut self, x: u16, y: u16) -> &mut RawColour {
         &mut self.data[y as usize * self.width as usize + x as usize]
     }
 
-    pub fn try_pixel(&mut self, x: u16, y: u16) -> Option<&mut Colour> {
+    pub fn try_pixel(&mut self, x: u16, y: u16) -> Option<&mut RawColour> {
         if y as usize * self.width as usize + x as usize > self.data.len() {
             None
         } else {
@@ -62,12 +69,12 @@ impl Sprite {
 impl DrawingSurface for Sprite {
     type Error = Infallible;
 
-    fn fill_surface(&mut self, colour: Colour) -> Result<(), Self::Error> {
+    fn fill_surface(&mut self, colour: RawColour) -> Result<(), Self::Error> {
         self.data.fill(colour);
         Ok(())
     }
 
-    fn draw_filled_rect(&mut self, x: i16, y: i16, mut w: u16, h: u16, colour: Colour) -> Result<(), Self::Error> {
+    fn draw_filled_rect(&mut self, x: i16, y: i16, mut w: u16, h: u16, colour: RawColour) -> Result<(), Self::Error> {
         // If the rectangle spills over the left, adjust width and X origin so we still start
         // in-bounds (which also allows `x` to become unsigned)
         let x = if x < 0 {

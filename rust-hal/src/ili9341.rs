@@ -4,7 +4,7 @@ use embedded_hal::{digital::v2::OutputPin, blocking::delay::DelayMs};
 use rp_pico::hal::{Spi, spi::SpiDevice, spi, gpio::{Pin, PinId, Output, PushPull}};
 use nb::{self, block};
 
-use crate::graphics::{DrawingSurface, Colour, Sprite};
+use crate::graphics::{DrawingSurface, Sprite, RawColour};
 use crate::util::saturating_into::SaturatingInto;
 
 pub struct Enabled;
@@ -212,7 +212,7 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<E
     }
 
     /// Immediately fills the screen with the given colour.
-    pub fn fill(&mut self, colour: Colour) -> Result<(), Ili9341Error> {
+    pub fn fill(&mut self, colour: RawColour) -> Result<(), Ili9341Error> {
         // Set drawing area to cover screen
         let pixels = self.set_pixel_drawing_area(0, self.width - 1, 0, self.height - 1)?;
 
