@@ -16,6 +16,7 @@ pub use display::*;
 pub trait ApplicationFramework {
     type DisplayI : DisplayInterface;
 
-    fn display(&mut self) -> &mut Self::DisplayI;
+    fn display(&self) -> &Self::DisplayI;
+    fn display_mut(&mut self) -> &mut Self::DisplayI;
     fn hardware_revision(&self) -> String;
 }

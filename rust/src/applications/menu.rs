@@ -8,7 +8,7 @@ pub struct MenuApplication<'a, F: ApplicationFramework> {
     menu: UIMenu,
 }
 
-impl<'a, F: ApplicationFramework> Application for MenuApplication<'a, F> {
+impl<'a, 'b, F: ApplicationFramework> Application<'a> for MenuApplication<'a, F> {
     type Framework = F;
 
     fn info() -> ApplicationInfo {
@@ -18,7 +18,7 @@ impl<'a, F: ApplicationFramework> Application for MenuApplication<'a, F> {
         }
     }
 
-    fn new(os: &mut OperatingSystem<F>) -> Self where Self: Sized {
+    fn new(os: &'a mut OperatingSystem<'a, F>) -> Self where Self: Sized {
         Self {
             os,
             menu: UIMenu::new(vec![]),
@@ -26,7 +26,7 @@ impl<'a, F: ApplicationFramework> Application for MenuApplication<'a, F> {
     }
 
     fn tick(&mut self) {
-        self.os.framework.display().fill_screen(Colour::BLACK);
+        self.os.framework.display_mut().fill_screen(Colour::BLACK);
         self.os.ui_draw_title("Menu");
 
         // Doesn't work to assign during `new` for some reason, so do this instead
@@ -39,7 +39,7 @@ impl<'a, F: ApplicationFramework> Application for MenuApplication<'a, F> {
             })
             .collect::<Vec<_>>();
         self.menu.draw();
-        self.os.framework.display().draw();
+        self.os.framework.display_mut().draw();
 
         // if let Some(btn) = framework().buttons.wait_press() {
         //     match btn {

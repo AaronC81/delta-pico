@@ -14,11 +14,11 @@ use crate::{
 pub struct OperatingSystem<'a, F: ApplicationFramework> {
     pub framework: F,
 
-    pub application_list: ApplicationList<F>,
+    pub application_list: ApplicationList<'a, F>,
     pub menu: Option<MenuApplication<'a, F>>,
     pub showing_menu: bool,
 
-    pub active_application: Option<Box<dyn Application<Framework = F>>>,
+    pub active_application: Option<Box<dyn Application<'a, Framework = F>>>,
     pub active_application_index: Option<usize>,
 
     // pub filesystem: Filesystem<'a>,
@@ -75,9 +75,9 @@ impl<'a, F: ApplicationFramework> OperatingSystem<'a, F> {
 
     /// Returns a reference to the application which should be ticked. This is typically the running
     /// application, unless showing the menu, in which case it is the menu application itself.
-    pub fn application_to_tick(&mut self) -> &mut dyn Application<Framework = F> {
+    pub fn application_to_tick(&'a mut self) -> &mut dyn Application<'a, Framework = F> {
         if self.showing_menu {
-            &mut self.menu.expect("menu not configured yet")
+            self.menu.as_mut().expect("menu not configured yet")
         } else {
             // TODO: use menu here if None
             self.active_application.as_mut()
@@ -123,10 +123,11 @@ impl<'a, F: ApplicationFramework> OperatingSystem<'a, F> {
     /// until it is either ejected or the user presses DEL.
     /// Temporary, can be removed when driver interacts directly with storage.
     pub fn save_usb_mass_storage(&mut self) {
-        self.framework.display().fill_screen(Colour::BLACK);
+        self.framework.display_mut().fill_screen(Colour::BLACK);
         self.ui_draw_title("USB Mass Storage");
-        self.framework.display().print_centred(0, 100, self.framework.display().width() as i64, "Saving...");
-        self.framework.display().draw();
+        let width = self.framework.display().width();
+        self.framework.display_mut().print_centred(0, 100, width as i64, "Saving...");
+        self.framework.display_mut().draw();
 
         // TODO
         // unsafe {
@@ -143,8 +144,9 @@ impl<'a, F: ApplicationFramework> OperatingSystem<'a, F> {
         // let millis_elapsed = now_millis - self.last_title_millis;
         // self.last_title_millis = now_millis;
 
-        self.framework.display().draw_rect(
-            0, 0, self.framework.display().width() as i64, Self::TITLE_BAR_HEIGHT,
+        let width = self.framework.display().width();
+        self.framework.display_mut().draw_rect(
+            0, 0, width as i64, Self::TITLE_BAR_HEIGHT,
             Colour::ORANGE, ShapeFill::Filled, 0
         );
 
@@ -166,7 +168,7 @@ impl<'a, F: ApplicationFramework> OperatingSystem<'a, F> {
         //     (false, false) => s.into(),
         // };
 
-        self.framework.display().print_at(5, 7, s);
+        self.framework.display_mut().print_at(5, 7, s);
 
         // Draw charge indicator
         // let charge_status = (framework().charge_status)();

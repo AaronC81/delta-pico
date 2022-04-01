@@ -7,6 +7,7 @@ mod c_allocator;
 
 use core::{panic::PanicInfo};
 use alloc::{format, string::String};
+use applications::{about::{AboutApplication, self}, Application};
 use c_allocator::CAllocator;
 
 pub mod interface;
@@ -26,14 +27,14 @@ use crate::{interface::Colour, operating_system::{OSInput, OperatingSystem}};
 pub extern "C" fn delta_pico_main<F: ApplicationFramework>(framework: F) {
     let mut os = OperatingSystem::new(framework);
 
-    os.framework.display().fill_screen(Colour(0xFFFF));
-    os.framework.display().draw();
+    os.framework.display_mut().fill_screen(Colour(0xFFFF));
+    os.framework.display_mut().draw();
 
     // os().application_list.add::<applications::calculator::CalculatorApplication>();
     // os().application_list.add::<applications::graph::GraphApplication>();
     // os().application_list.add::<applications::numbers_game::NumbersGame>();
     // os().application_list.add::<applications::files::FilesApplication>();
-    os.application_list.add::<applications::about::AboutApplication<F>>();
+    // os.application_list.add::<applications::about::AboutApplication<F>>();
     // os().application_list.add::<applications::settings::SettingsApplication>();
     // os().application_list.add::<applications::storage::StorageApplication>();
     // os.application_list.add::<applications::bootloader::BootloaderApplication>();
@@ -43,9 +44,9 @@ pub extern "C" fn delta_pico_main<F: ApplicationFramework>(framework: F) {
     // }
 
     // Show a splash screen while we load storage
-    os.framework.display().fill_screen(Colour::BLACK);
-    os.framework.display().draw_bitmap(60, 80, "splash");
-    os.framework.display().draw();
+    os.framework.display_mut().fill_screen(Colour::BLACK);
+    os.framework.display_mut().draw_bitmap(60, 80, "splash");
+    os.framework.display_mut().draw();
 
     // Temporary
     // framework().storage.with_priority(|| {
@@ -56,7 +57,12 @@ pub extern "C" fn delta_pico_main<F: ApplicationFramework>(framework: F) {
     //     (framework().usb_mass_storage.begin)();
     // });
 
-    loop {
-        os.application_to_tick().tick();
+    {
+        let mut about_app = AboutApplication::new(&mut os);
+
+        loop {
+            about_app.tick();
+            // os.application_to_tick().tick();
+        }
     }
 }
