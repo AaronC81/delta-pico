@@ -1,6 +1,6 @@
 use alloc::{vec, vec::Vec};
 
-use crate::{interface::{Colour, ApplicationFramework, DisplayInterface}, operating_system::{OSInput, UIMenu, UIMenuItem, OperatingSystem}};
+use crate::{interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput}, operating_system::{OSInput, UIMenu, UIMenuItem, OperatingSystem}};
 use super::{Application, ApplicationInfo};
 
 pub struct MenuApplication<F: ApplicationFramework + 'static> {
@@ -41,16 +41,14 @@ impl<F: ApplicationFramework> Application for MenuApplication<F> {
         self.menu.draw();
         self.os_mut().framework.display_mut().draw();
 
-        loop {}
-
-        // if let Some(btn) = framework().buttons.wait_press() {
-        //     match btn {
-        //         OSInput::MoveUp => self.menu.move_up(),
-        //         OSInput::MoveDown => self.menu.move_down(),
-        //         OSInput::Exe => os().launch_application(self.menu.selected_index),
-        //         _ => (),
-        //     }
-        // }
+        if let OSInput::Button(btn) = self.os_mut().input() {
+            match btn {
+                ButtonInput::MoveUp => self.menu.move_up(),
+                ButtonInput::MoveDown => self.menu.move_down(),
+                ButtonInput::Exe => self.os_mut().launch_application(self.menu.selected_index),
+                _ => (),
+            }
+        }
     }
 }
 

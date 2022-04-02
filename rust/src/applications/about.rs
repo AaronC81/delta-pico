@@ -1,6 +1,6 @@
 use alloc::format;
 
-use crate::{interface::{Colour, ApplicationFramework, DisplayInterface}, operating_system::OperatingSystem};
+use crate::{interface::{Colour, ApplicationFramework, DisplayInterface, ButtonsInterface}, operating_system::OperatingSystem};
 use super::{Application, ApplicationInfo};
 
 pub struct AboutApplication<F: ApplicationFramework + 'static> {
@@ -40,9 +40,7 @@ impl<'a, 'b, F: ApplicationFramework> Application for AboutApplication<F> {
 
         disp.draw();
 
-        loop {}
-
-        // framework().buttons.wait_press();
+        self.os_mut().input();
     }
 }
 

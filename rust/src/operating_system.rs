@@ -5,7 +5,7 @@ use core::{cmp::max, mem, slice, marker::PhantomData, cell::{RefCell, RefMut}, b
 use crate::{
     applications::{Application, ApplicationList, menu::MenuApplication},
     // filesystem::{CalculationHistory, ChunkTable, Filesystem, RawStorage, Settings, FatInterface},
-    interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface},
+    interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent}, multi_tap::MultiTapState,
     // multi_tap::MultiTapState,
     // rbop_impl::RbopContext,
     // c_allocator::{MEMORY_USAGE, EXTERNAL_MEMORY_USAGE, MAX_MEMORY_USAGE, MAX_EXTERNAL_MEMORY_USAGE}
@@ -27,8 +27,8 @@ pub struct OperatingSystem<F: ApplicationFramework + 'static> {
     // pub filesystem: Filesystem<'a>,
     // pub last_title_millis: u32,
 
-    // pub text_mode: bool,
-    // pub multi_tap: MultiTapState,
+    pub text_mode: bool,
+    pub multi_tap: MultiTapState,
 }
 
 impl<F: ApplicationFramework> OperatingSystem<F> {
@@ -37,11 +37,16 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
     pub fn new(framework: F) -> Self {
         Self {
             framework,
+
             application_list: ApplicationList::new(),
             active_application: None,
             active_application_index: None,
+
             menu: None, // TODO: initialise later
             showing_menu: true,
+
+            text_mode: false,
+            multi_tap: MultiTapState::new(),
         }
     }
 
@@ -68,7 +73,6 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
     /// Returns a reference to the application which should be ticked. This is typically the running
     /// application, unless showing the menu, in which case it is the menu application itself.
     pub fn application_to_tick(&mut self) -> &mut dyn Application<Framework = F> {
-        
         if self.showing_menu {
             self.menu.as_mut().unwrap()
         } else {
@@ -378,32 +382,56 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         //     }
         // }
     }
+
+    /// Utility method to translate a `ButtonInput` to an `OSInput`.
+    /// 
+    /// This may have a variety of side effects, including opening/closing menus or changing
+    /// multitap state. As such, it should be called only for a *press* and not a release.
+    fn button_input_to_os_input(&mut self, input: ButtonInput) -> Option<OSInput> {
+        let mut result = match input {
+            // Special cases
+            ButtonInput::Menu => {
+                self.toggle_menu();
+                return None
+            }
+            ButtonInput::Text => {
+                self.text_mode = !self.text_mode;
+                return None
+            }
+            ButtonInput::None => return None,
+
+            btn => Some(OSInput::Button(btn)),
+        };
+
+        // Intercept if a digit was pressed in text mode - this needs to be converted to a
+        // character according to the OS' multi-tap state
+        if self.text_mode {
+            if let Some(r@OSInput::Button(ButtonInput::Digit(_))) = result {
+                result = self.multi_tap.input(r);
+            } else {
+                // Make sure we don't cycle the wrong character if we e.g. move with the arrows
+                self.multi_tap.drop_keypress();
+            }
+        }
+
+        return result
+    }
+
+    pub fn input(&mut self) -> OSInput {
+        loop {
+            let event = self.framework.buttons_mut().wait_event();
+            if let ButtonEvent::Press(btn_input) = event {
+                if let Some(os_input) = self.button_input_to_os_input(btn_input) {
+                    return os_input
+                }
+            }
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum OSInput {
-    Exe,
-    Shift,
-    List,
-
-    MoveLeft,
-    MoveRight,
-    MoveUp,
-    MoveDown,
-    Delete,
-    Clear,
-
-    Digit(u8),
-
-    Point,
-    Parentheses,
-
-    Add,
-    Subtract,
-    Multiply,
-    Fraction,
-    Power,
-
+    Button(ButtonInput),
     TextMultiTapNew(char),
     TextMultiTapCycle(char),
 }

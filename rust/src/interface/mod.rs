@@ -4,8 +4,8 @@ use core::{str::from_utf8, slice};
 use alloc::{string::String, boxed::Box};
 pub use display::*;
 
-// mod buttons;
-// pub use buttons::*;
+mod buttons;
+pub use buttons::*;
 
 // mod storage;
 // pub use storage::*;
@@ -15,8 +15,13 @@ pub use display::*;
 
 pub trait ApplicationFramework {
     type DisplayI : DisplayInterface;
+    type ButtonsI : ButtonsInterface;
 
     fn display(&self) -> &Self::DisplayI;
     fn display_mut(&mut self) -> &mut Self::DisplayI;
+
+    fn buttons(&self) -> &Self::ButtonsI;
+    fn buttons_mut(&mut self) -> &mut Self::ButtonsI;
+
     fn hardware_revision(&self) -> String;
 }

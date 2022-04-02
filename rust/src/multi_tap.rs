@@ -1,4 +1,4 @@
-use crate::{interface::framework, operating_system::OSInput};
+use crate::{operating_system::OSInput, interface::ButtonInput};
 
 pub struct MultiTapState {
     current_list: Option<&'static [char]>,
@@ -41,12 +41,13 @@ impl MultiTapState {
         let shift = self.shift;
         self.shift = false;
 
-        if input == OSInput::Shift {
+        if input == OSInput::Button(ButtonInput::Shift) {
             self.shift = true;
-        } else if let OSInput::Digit(digit) = input {
+        } else if let OSInput::Button(ButtonInput::Digit(digit)) = input {
             // If it's been more than the threshold time since a key was pressed, discard the
             // information about the previous keypress and start a new character
-            let now_ms = (framework().millis)();
+            // IMPORTANT TODO - Multitap will be broken with this commented out
+            let now_ms = 100000; // (framework().millis)();
             if now_ms - self.last_press_ms > PRESS_COOLDOWN_MS {
                 self.drop_keypress();
             }

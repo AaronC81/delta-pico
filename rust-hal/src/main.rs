@@ -17,12 +17,12 @@ mod droid_sans_20;
 use core::{alloc::Layout, panic::PanicInfo};
 
 use alloc_cortex_m::CortexMHeap;
-use button_matrix::ButtonEvent;
+use button_matrix::{RawButtonEvent, ButtonMatrix};
 use cortex_m::{prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_spi_FullDuplex, _embedded_hal_blocking_delay_DelayMs}, delay::Delay};
 use cortex_m_rt::entry;
-use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, Colour}, delta_pico_main};
+use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, Colour, ButtonsInterface, ButtonEvent, ButtonInput}, delta_pico_main};
 use droid_sans_20::droid_sans_20_lookup;
-use embedded_hal::{digital::v2::OutputPin, spi::MODE_0, blocking::delay::DelayMs, can::Frame};
+use embedded_hal::{digital::v2::OutputPin, spi::MODE_0, blocking::delay::DelayMs, can::Frame, blocking::i2c::{Write, Read}};
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
 
 use ili9341::Ili9341;
@@ -31,14 +31,14 @@ use ili9341::Ili9341;
 use rp_pico as bsp;
 // use sparkfun_pro_micro_rp2040 as bsp;
 
-use bsp::hal::{
+use bsp::{hal::{
     clocks::{init_clocks_and_plls, Clock},
     pac,
     sio::Sio,
     watchdog::Watchdog,
-    spi::{Spi, Enabled, SpiDevice}, gpio::{FunctionSpi, Pin, PinId, Output, PushPull, bank0::Gpio25, FunctionI2C}, I2C,
-};
-use shared_bus::BusManagerSimple;
+    spi::{Spi, Enabled, SpiDevice}, gpio::{FunctionSpi, Pin, PinId, Output, PushPull, bank0::{Gpio25, Gpio20, Gpio21}, FunctionI2C}, I2C, i2c::Controller,
+}, pac::I2C0};
+use shared_bus::{BusManagerSimple, I2cProxy, NullMutex, BusManager};
 use util::saturating_into::SaturatingInto;
 
 use crate::graphics::{DrawingSurface, RawColour, Sprite};
@@ -48,6 +48,7 @@ static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
 
 static mut LED_PIN: Option<Pin<Gpio25, Output<PushPull>>> = None;
 static mut DELAY: Option<Delay> = None;
+static mut SHARED_I2C: Option<BusManager<NullMutex<I2C<I2C0, (Pin<Gpio20, FunctionI2C>, Pin<Gpio21, FunctionI2C>), Controller>>>> = None;
 
 #[entry]
 fn main() -> ! {
@@ -149,12 +150,14 @@ fn main() -> ! {
         &mut pac.RESETS,
         clocks.peripheral_clock,
     );
-    let shared_i2c = BusManagerSimple::new(i2c);
-    let col_pcf = pcf8574::Pcf8574::new(0x38, shared_i2c.acquire_i2c());
-    let row_pcf = pcf8574::Pcf8574::new(0x3E, shared_i2c.acquire_i2c());
+
+    unsafe { SHARED_I2C = Some(BusManagerSimple::new(i2c)); }
+
+    let col_pcf = pcf8574::Pcf8574::new(0x38, unsafe { SHARED_I2C.as_mut().unwrap().acquire_i2c() });
+    let row_pcf = pcf8574::Pcf8574::new(0x3E, unsafe { SHARED_I2C.as_mut().unwrap().acquire_i2c() });
 
     // Init button matrix and wait for key
-    let mut buttons = button_matrix::ButtonMatrix::new(
+    let mut buttons = ButtonMatrix::new(
         row_pcf,
         col_pcf, 
         // TODO: This is not "clever" or "I know better" usage of `unsafe`, this is literally just
@@ -170,7 +173,9 @@ fn main() -> ! {
 
             cursor_x: 0,
             cursor_y: 0,
-        }
+        },
+
+        buttons: ButtonsImpl { matrix: buttons }
     };
     delta_pico_main(framework);
 
@@ -271,15 +276,67 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
     }
 }
 
-struct FrameworkImpl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> {
-    display: DisplayImpl<SpiD, DcPin, RstPin, Delay>,
+struct ButtonsImpl<
+    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError>,
+    RowError,
+    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError>,
+    ColError,
+    Delay: DelayMs<u8> + 'static,
+> {
+    matrix: ButtonMatrix<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay>,
 }
 
-impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> ApplicationFramework for FrameworkImpl<SpiD, DcPin, RstPin, Delay> {
+impl<
+    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError>,
+    RowError,
+    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError>,
+    ColError,
+    Delay: DelayMs<u8> + 'static,
+> ButtonsInterface for ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay> {
+    fn wait_event(&mut self) -> delta_pico_rust::interface::ButtonEvent {
+        self.matrix.get_event(true).unwrap();
+        ButtonEvent::Press(ButtonInput::Exe)
+    }
+
+    fn poll_event(&mut self) -> Option<delta_pico_rust::interface::ButtonEvent> {
+        todo!()
+    }
+}
+
+struct FrameworkImpl<
+    SpiD: SpiDevice,
+    DcPin: PinId,
+    RstPin: PinId,
+    Delay: DelayMs<u8> + 'static,
+
+    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError>,
+    RowError,
+    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError>,
+    ColError,
+> {
+    display: DisplayImpl<SpiD, DcPin, RstPin, Delay>,
+    buttons: ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay>,
+}
+
+impl<
+    SpiD: SpiDevice,
+    DcPin: PinId,
+    RstPin: PinId,
+    Delay: DelayMs<u8> + 'static,
+
+    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError>,
+    RowError,
+    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError>,
+    ColError,
+> ApplicationFramework for FrameworkImpl<SpiD, DcPin, RstPin, Delay, RowI2CDevice, RowError, ColI2CDevice, ColError> {
     type DisplayI = DisplayImpl<SpiD, DcPin, RstPin, Delay>;
+    type ButtonsI = ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay>;
 
     fn display(&self) -> &Self::DisplayI { &self.display }
     fn display_mut(&mut self) -> &mut Self::DisplayI { &mut self.display }
+
+    fn buttons(&self) -> &Self::ButtonsI { &self.buttons }
+    fn buttons_mut(&mut self) -> &mut Self::ButtonsI { &mut self.buttons }
 
     fn hardware_revision(&self) -> alloc::string::String {
         "Rev. 3 (Rust Framework)".into()
