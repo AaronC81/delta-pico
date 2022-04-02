@@ -64,6 +64,15 @@ impl<'a, 'b, F: ApplicationFramework> ApplicationList<F> {
     }
 }
 
+macro_rules! os_accessor {
+    ($n:ty) => {
+        impl<F: ApplicationFramework> $n {
+            fn os(&self) -> &OperatingSystem<F> { unsafe { &*self.os } }
+            fn os_mut(&self) -> &mut OperatingSystem<F> { unsafe { &mut *self.os } }        
+        }
+    };
+}
+
 pub mod menu;
 // pub mod calculator;
 pub mod about;

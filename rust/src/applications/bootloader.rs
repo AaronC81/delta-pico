@@ -5,6 +5,8 @@ pub struct BootloaderApplication<F: ApplicationFramework + 'static> {
     os: *mut OperatingSystem<F>,
 }
 
+os_accessor!(BootloaderApplication<F>);
+
 impl<F: ApplicationFramework> Application for BootloaderApplication<F> {
     type Framework = F;
 
@@ -20,9 +22,4 @@ impl<F: ApplicationFramework> Application for BootloaderApplication<F> {
     fn tick(&mut self) {
         self.os_mut().framework.reboot_into_bootloader();
     }
-}
-
-impl<F: ApplicationFramework> BootloaderApplication<F> {
-    fn os(&self) -> &OperatingSystem<F> { unsafe { &*self.os } }
-    fn os_mut(&self) -> &mut OperatingSystem<F> { unsafe { &mut *self.os } }
 }

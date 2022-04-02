@@ -8,6 +8,8 @@ pub struct MenuApplication<F: ApplicationFramework + 'static> {
     menu: UIMenu<F>,
 }
 
+os_accessor!(MenuApplication<F>);
+
 impl<F: ApplicationFramework> Application for MenuApplication<F> {
     type Framework = F;
 
@@ -50,9 +52,4 @@ impl<F: ApplicationFramework> Application for MenuApplication<F> {
             }
         }
     }
-}
-
-impl<F: ApplicationFramework> MenuApplication<F> {
-    fn os(&self) -> &OperatingSystem<F> { unsafe { &*self.os } }
-    fn os_mut(&self) -> &mut OperatingSystem<F> { unsafe { &mut *self.os } }
 }

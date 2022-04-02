@@ -7,6 +7,8 @@ pub struct AboutApplication<F: ApplicationFramework + 'static> {
     os: *mut OperatingSystem<F>,
 }
 
+os_accessor!(AboutApplication<F>);
+
 impl<'a, 'b, F: ApplicationFramework> Application for AboutApplication<F> {
     type Framework = F;
 
@@ -44,7 +46,3 @@ impl<'a, 'b, F: ApplicationFramework> Application for AboutApplication<F> {
     }
 }
 
-impl<F: ApplicationFramework> AboutApplication<F> {
-    fn os(&self) -> &OperatingSystem<F> { unsafe { &*self.os } }
-    fn os_mut(&self) -> &mut OperatingSystem<F> { unsafe { &mut *self.os } }
-}
