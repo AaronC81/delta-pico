@@ -17,6 +17,8 @@ rustflags = [
   # "-Z", "trap-unreachable=no",
   "-C", "inline-threshold=5",
   "-C", "no-vectorize-loops",
+
+  "--cfg", 'delta_pico_rev="rev3"'
 ]
 
 [build]

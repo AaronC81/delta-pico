@@ -41,7 +41,7 @@ impl<F: ApplicationFramework> Application for MenuApplication<F> {
         self.menu.draw();
         self.os_mut().framework.display_mut().draw();
 
-        if let OSInput::Button(btn) = self.os_mut().input() {
+        if let Some(OSInput::Button(btn)) = self.os_mut().input() {
             match btn {
                 ButtonInput::MoveUp => self.menu.move_up(),
                 ButtonInput::MoveDown => self.menu.move_down(),

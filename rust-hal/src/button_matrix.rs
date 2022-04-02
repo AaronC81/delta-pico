@@ -99,7 +99,7 @@ impl<
                 }
 
                 // Same button still being held
-                Some((_, _)) => (),
+                Some((_, _)) => return Ok(None),
             }
         }
     

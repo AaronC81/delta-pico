@@ -13,6 +13,7 @@ mod button_matrix;
 mod graphics;
 mod util;
 mod droid_sans_20;
+mod rev;
 
 use core::{alloc::Layout, panic::PanicInfo};
 
@@ -294,8 +295,21 @@ impl<
     Delay: DelayMs<u8> + 'static,
 > ButtonsInterface for ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay> {
     fn wait_event(&mut self) -> delta_pico_rust::interface::ButtonEvent {
-        self.matrix.get_event(true).unwrap();
-        ButtonEvent::Press(ButtonInput::Exe)
+        loop {
+            match self.matrix.get_event(true).unwrap() {
+                Some(RawButtonEvent::Press(row, col)) => {
+                    let input = rev::BUTTON_MAPPING[row as usize][col as usize];
+                    return ButtonEvent::Press(input)
+                }
+
+                Some(RawButtonEvent::Release(row, col)) => {
+                    let input = rev::BUTTON_MAPPING[row as usize][col as usize];
+                    return ButtonEvent::Release(input)
+                }
+
+                _ => continue,
+            };
+        }
     }
 
     fn poll_event(&mut self) -> Option<delta_pico_rust::interface::ButtonEvent> {

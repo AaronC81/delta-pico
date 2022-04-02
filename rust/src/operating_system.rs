@@ -417,13 +417,11 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         return result
     }
 
-    pub fn input(&mut self) -> OSInput {
+    pub fn input(&mut self) -> Option<OSInput> {
         loop {
             let event = self.framework.buttons_mut().wait_event();
             if let ButtonEvent::Press(btn_input) = event {
-                if let Some(os_input) = self.button_input_to_os_input(btn_input) {
-                    return os_input
-                }
+                return self.button_input_to_os_input(btn_input)
             }
         }
     }
