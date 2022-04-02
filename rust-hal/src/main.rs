@@ -12,8 +12,9 @@ mod pcf8574;
 mod button_matrix;
 mod graphics;
 mod util;
-mod droid_sans_20;
 mod rev;
+
+include!(concat!(env!("OUT_DIR"), "/font_data.rs"));
 
 use core::{alloc::Layout, panic::PanicInfo};
 
@@ -22,7 +23,6 @@ use button_matrix::{RawButtonEvent, ButtonMatrix};
 use cortex_m::{prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_spi_FullDuplex, _embedded_hal_blocking_delay_DelayMs}, delay::Delay};
 use cortex_m_rt::entry;
 use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, Colour, ButtonsInterface, ButtonEvent, ButtonInput}, delta_pico_main};
-use droid_sans_20::droid_sans_20_lookup;
 use embedded_hal::{digital::v2::OutputPin, spi::MODE_0, blocking::delay::DelayMs, can::Frame, blocking::i2c::{Write, Read}};
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
 
@@ -207,7 +207,7 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
     fn draw_char(&mut self, character: u8) {
         let (x, y) = self.get_cursor();
 
-        let character_bitmap = droid_sans_20_lookup(character);
+        let character_bitmap = font_data::droid_sans_20::droid_sans_20_lookup(character);
         if character_bitmap.is_none() { return; }
         let character_bitmap = character_bitmap.unwrap();
 

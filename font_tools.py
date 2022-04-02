@@ -23,15 +23,15 @@ def write_font_glyphs(font_path, size, glyphs_path) -> str:
 def generate_font_source(name, glyphs_path) -> str:
     from PIL import Image
 
-    # Load the image with PIL and iterate over its pixels to build up a C array
-    result = ""
+    # Load the image with PIL and iterate over its pixels to build up a Rust array
+    result = f"pub mod {name} {{\n\n"
     valid_ids = []
     for glyph in sorted(os.listdir(glyphs_path)):
         # Validate name (so we don't try to process a .DS_Store or something)
         if not (glyph.startswith("glyph_") and glyph.endswith(".png")):
             continue
 
-        # The C name is {font name}_{glyph ASCII ID} - the [6:-4] chops off the glyph_ and .png
+        # The Rust name is {font name}_{glyph ASCII ID} - the [6:-4] chops off the glyph_ and .png
         glyph_id = int(glyph[6:-4])
         valid_ids.append(glyph_id)
         glyph_c_name = f"{name}_{glyph_id}".upper()
@@ -82,7 +82,7 @@ def generate_font_source(name, glyphs_path) -> str:
             result += f"        {glyph_id} => None,\n"
 
     result +=  "    }\n"
-    result +=  "}\n"
+    result +=  "}\n}\n"
 
     return result
 

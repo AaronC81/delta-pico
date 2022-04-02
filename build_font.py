@@ -1,8 +1,6 @@
 import os, subprocess, tempfile
 from font_tools import generate_font_source
 
-print("Building fonts...")
-
 root_dir = os.path.dirname(os.path.realpath(__file__))
 
 try:
@@ -19,19 +17,22 @@ fonts_to_build = []
 with open(os.path.join(root_dir, "font", "fontspec")) as f:
     fonts_to_build = f.readlines()
 
+source = "pub mod font_data {\n\n"
+
 for font in fonts_to_build:
     name, path, size = font.split()
     glyphs_dir = tempfile.mkdtemp()
 
     # Invoke FFPython to generate glyphs
-    print(os.path.join(root_dir, "font", path))
     subprocess.check_output([
         ffpython, f"{root_dir}/font_tools.py", "glyphs",
         os.path.join(root_dir, "font", path), str(size), glyphs_dir
     ])
 
-    # Generate and save source
-    glyphs_source = generate_font_source(name, glyphs_dir)
+    # Generate source
+    source += generate_font_source(name, glyphs_dir)
 
-    with open(os.path.join(root_dir, "font", f"{name}.rs"), "w") as f:
-        f.write(glyphs_source)
+source += "\n}"
+
+# Print source, Rust side will save it
+print(source)
