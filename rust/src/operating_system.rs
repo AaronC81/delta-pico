@@ -87,34 +87,6 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         self.showing_menu = !self.showing_menu;
     }
 
-    /// Reboots the Raspberry Pi Pico into its bootloader. This halts the software and cannot be
-    /// exited without a power cycle.
-    pub fn reboot_into_bootloader(&mut self) -> ! {
-        // Awww, yeah!
-        // This is a translation of the parts of...
-        //   - https://github.com/raspberrypi/pico-sdk/blob/master/src/rp2_common/pico_bootrom/bootrom.c
-        //   - https://github.com/raspberrypi/pico-sdk/blob/master/src/rp2_common/pico_bootrom/include/pico/bootrom.h
-        // ...required to call `reset_usb_boot`.
-        // Nothing super fancy is going on here, just lots of casting pointers around.
-        // The mem::transmute calls are required because Rust doesn't allow you to cast `*const _`
-        // to `extern "C" fn(...) -> _`, even though the latter is still just a pointer in memory.
-        unsafe {
-            // Resolve a function which allows us to look up items in ROM tables
-            let rom_table_lookup_fn_addr = *(0x18 as *const u16) as *const ();
-            let rom_table_lookup_fn: extern "C" fn(*const u16, u32) -> *const () = mem::transmute(rom_table_lookup_fn_addr);
-            
-            // Use that function to look up the address of the USB bootloader function
-            let usb_boot_fn_code = (('B' as u32) << 8) | ('U' as u32);
-            let func_table = *(0x14 as *const u16) as *const u16;
-            let usb_boot_fn_addr = rom_table_lookup_fn(func_table, usb_boot_fn_code);
-
-            // Call that function
-            let usb_boot_fn: extern "C" fn(u32, u32) = mem::transmute(usb_boot_fn_addr);
-            usb_boot_fn(0, 0);
-        }
-        panic!("failed to access bootloader")
-    }
-
     /// Enables USB mass storage mode. The calculator will appear as a mass storage device, and hang
     /// until it is either ejected or the user presses DEL.
     /// Temporary, can be removed when driver interacts directly with storage.

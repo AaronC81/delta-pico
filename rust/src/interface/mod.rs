@@ -24,4 +24,5 @@ pub trait ApplicationFramework {
     fn buttons_mut(&mut self) -> &mut Self::ButtonsI;
 
     fn hardware_revision(&self) -> String;
+    fn reboot_into_bootloader(&mut self) -> !;
 }
