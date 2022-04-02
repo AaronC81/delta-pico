@@ -15,6 +15,7 @@ mod util;
 mod rev;
 
 include!(concat!(env!("OUT_DIR"), "/font_data.rs"));
+include!(concat!(env!("OUT_DIR"), "/bitmap_data.rs"));
 
 use core::{alloc::Layout, panic::PanicInfo};
 
@@ -250,7 +251,50 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
         self.screen_sprite.draw_filled_rect(x1, y1, w, h, c.into()).unwrap();
     }
     fn draw_sprite(&mut self, x: i16, y: i16, sprite: &Self::Sprite) { }
-    fn draw_bitmap(&mut self, x: i16, y: i16, name: &str) { }
+    fn draw_bitmap(&mut self, x: i16, y: i16, name: &str) {
+        // Look up bitmap
+        let bitmap = bitmap_data::lookup(name);
+
+        let width = bitmap[0];
+        let height = bitmap[1];
+        let transparency = bitmap[2];
+        let run_length = bitmap[3];
+    
+        let mut index = 4;
+        let mut ox = 0;
+        while ox < width {
+            let mut oy = 0;
+            while oy < height {
+                if bitmap[index] == run_length {
+                    let times = bitmap[index + 1];
+                    let colour = bitmap[index + 2];
+
+                    if colour != transparency {
+                        for i in 0..times {
+                            if let Some(px) = self.screen_sprite.try_pixel(x + ox as i16, y + oy as i16 + i as i16) {
+                                *px = Colour(colour).into();
+                            }
+                        }
+                    }
+
+                    oy += times - 1;
+                    index += 3;
+                } else {
+                    let colour = bitmap[index];
+                    if colour != transparency {
+                        if let Some(px) = self.screen_sprite.try_pixel(x + ox as i16, y + oy as i16) {
+                            *px = Colour(colour).into();
+                        }
+                    }
+                    index += 1;
+                }
+
+                oy += 1;
+            }
+
+            ox += 1;
+        }
+    }
     fn print(&mut self, s: &str) {
         for c in s.as_bytes() {
             self.draw_char(*c);
