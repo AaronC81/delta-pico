@@ -67,9 +67,6 @@ def generate_font_source(name, glyphs_path) -> str:
 
         result += f"const {glyph_c_name}_LEN: usize = {length};\n"
 
-        # Generate function to access this
-        result += f"pub fn {glyph_c_name}_get() -> &'static [u8] {{ &{glyph_c_name}[..] }}\n\n"
-
     # Finally, generate a table to look up these glyph bitmaps
     result += f"pub fn {name}_lookup(c: u8) -> Option<&'static [u8]> {{\n"
     result +=  "    match c {\n"
@@ -77,7 +74,7 @@ def generate_font_source(name, glyphs_path) -> str:
     for glyph_id in range(256):
         if glyph_id in valid_ids:
             glyph_c_name = f"{name}_{glyph_id}".upper()
-            result += f"        {glyph_id} => Some({glyph_c_name}_get()),\n"
+            result += f"        {glyph_id} => Some(&{glyph_c_name}[..]),\n"
         else:
             result += f"        {glyph_id} => None,\n"
 
