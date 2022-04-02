@@ -2,16 +2,18 @@ use core::cell::RefCell;
 use alloc::{format, rc::Rc, string::ToString, vec::Vec, vec};
 use rand::{self, SeedableRng, Rng};
 
-use crate::{interface::{Colour, ShapeFill}, operating_system::{OSInput, os}};
+use crate::{interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput}, operating_system::{OSInput, OperatingSystem}};
 use super::{Application, ApplicationInfo};
-use crate::interface::framework;
 
-pub struct NumbersGame {
+pub struct NumbersGame<F: ApplicationFramework + 'static> {
+    os: *mut OperatingSystem<F>,
     score: u64,
     board: [[Rc<RefCell<Tile>>; 4]; 4], // Row, then column
     rng: rand::StdRng,
     game_over: bool,
 }
+
+os_accessor!(NumbersGame<F>);
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 enum Tile {
@@ -32,7 +34,9 @@ macro_rules! blank {
     };
 }
 
-impl Application for NumbersGame {
+impl<F: ApplicationFramework> Application for NumbersGame<F> {
+    type Framework = F;
+
     fn info() -> ApplicationInfo {
         ApplicationInfo {
             name: "2048".into(),
@@ -40,7 +44,8 @@ impl Application for NumbersGame {
         }
     }
 
-    fn new() -> Self where Self: Sized { Self {
+    fn new(os: *mut OperatingSystem<F>) -> Self where Self: Sized { Self {
+        os,
         score: 0,
         board: [
             [blank!(), blank!(), blank!(), Rc::new(RefCell::new(Tile::Filled(2)))],
@@ -53,12 +58,12 @@ impl Application for NumbersGame {
     } }
 
     fn tick(&mut self) {
-        framework().display.fill_screen(Colour::BLACK);
+        self.os_mut().framework.display_mut().fill_screen(Colour::BLACK);
 
-        os().ui_draw_title("Numbers Game");
+        self.os_mut().ui_draw_title("Numbers Game");
 
-        let padding = 10_i64;
-        let tile_size = (framework().display.width as i64 - 5 * padding) as i64 / 4;
+        let padding = 10;
+        let tile_size = (self.os().framework.display().width() - 5 * padding) / 4;
 
         let mut y = 50;
         
@@ -71,9 +76,9 @@ impl Application for NumbersGame {
                     Tile::Filled(n) => (n.to_string(), Colour::ORANGE),
                 };
 
-                framework().display.draw_rect(x, y, tile_size, tile_size, colour, ShapeFill::Filled, 4);
+                self.os_mut().framework.display_mut().draw_rect(x as i16, y as i16, tile_size, tile_size, colour, ShapeFill::Filled, 4);
 
-                framework().display.print_centred(x, y + tile_size / 3, tile_size, &format!("  {}  ", text));
+                self.os_mut().framework.display_mut().print_centred(x as i16, (y + tile_size / 3) as i16, tile_size, &format!("  {}  ", text));
 
                 x += tile_size + padding;
             }
@@ -81,23 +86,23 @@ impl Application for NumbersGame {
             y += tile_size + padding;
         }
 
-        framework().display.print_at(10, 285, &format!("{}{}", self.score, if self.game_over {
+        self.os_mut().framework.display_mut().print_at(10, 285, &format!("{}{}", self.score, if self.game_over {
             " | [EXE] Restart"
         } else { "" }));
 
-        framework().display.draw();
+        self.os_mut().framework.display_mut().draw();
 
-        if let Some(input) = framework().buttons.wait_press() {
-            if input == OSInput::Exe {
-                os().restart_application();
+        if let Some(input) = self.os_mut().input() {
+            if input == OSInput::Button(ButtonInput::Exe) {
+                self.os_mut().restart_application();
             }
 
             if !self.game_over {
                 match input {
-                    OSInput::MoveDown => self.take_turn(Direction::Down),
-                    OSInput::MoveUp => self.take_turn(Direction::Up),
-                    OSInput::MoveLeft => self.take_turn(Direction::Left),
-                    OSInput::MoveRight => self.take_turn(Direction::Right),
+                    OSInput::Button(ButtonInput::MoveDown) => self.take_turn(Direction::Down),
+                    OSInput::Button(ButtonInput::MoveUp) => self.take_turn(Direction::Up),
+                    OSInput::Button(ButtonInput::MoveLeft) => self.take_turn(Direction::Left),
+                    OSInput::Button(ButtonInput::MoveRight) => self.take_turn(Direction::Right),
                     _ => (),
                 }
             }
@@ -105,7 +110,7 @@ impl Application for NumbersGame {
     }
 }
 
-impl NumbersGame {
+impl<F: ApplicationFramework> NumbersGame<F> {
     fn take_turn(&mut self, direction: Direction) {
         // Movement
         self.score += self.move_tiles(direction);

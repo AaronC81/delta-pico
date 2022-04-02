@@ -79,6 +79,6 @@ pub mod about;
 // pub mod graph;
 pub mod bootloader;
 // pub mod storage;
-// pub mod numbers_game;
+pub mod numbers_game;
 // pub mod settings;
 // pub mod files;
