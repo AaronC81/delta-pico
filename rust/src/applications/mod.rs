@@ -1,7 +1,4 @@
-use core::cell::RefCell;
-
-use alloc::{boxed::Box, string::String, vec, vec::Vec, rc::Rc};
-
+use alloc::{boxed::Box, string::String, vec, vec::Vec};
 use crate::{operating_system::OperatingSystem, interface::ApplicationFramework};
 
 pub struct ApplicationInfo {
@@ -67,7 +64,10 @@ impl<'a, 'b, F: ApplicationFramework> ApplicationList<F> {
 macro_rules! os_accessor {
     ($n:ty) => {
         impl<F: ApplicationFramework> $n {
+            #[allow(unused)]
             fn os(&self) -> &OperatingSystem<F> { unsafe { &*self.os } }
+
+            #[allow(unused)]
             fn os_mut(&self) -> &mut OperatingSystem<F> { unsafe { &mut *self.os } }        
         }
     };
