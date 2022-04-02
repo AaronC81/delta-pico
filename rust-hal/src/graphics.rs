@@ -57,11 +57,11 @@ impl Sprite {
         &mut self.data[y as usize * self.width as usize + x as usize]
     }
 
-    pub fn try_pixel(&mut self, x: u16, y: u16) -> Option<&mut RawColour> {
+    pub fn try_pixel(&mut self, x: i16, y: i16) -> Option<&mut RawColour> {
         if y as usize * self.width as usize + x as usize > self.data.len() {
             None
         } else {
-            Some(self.pixel(x, y))
+            Some(self.pixel(x as u16, y as u16))
         }
     }
 }

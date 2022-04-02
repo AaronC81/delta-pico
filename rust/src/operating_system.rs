@@ -32,7 +32,7 @@ pub struct OperatingSystem<F: ApplicationFramework + 'static> {
 }
 
 impl<F: ApplicationFramework> OperatingSystem<F> {
-    pub const TITLE_BAR_HEIGHT: i64 = 30;
+    pub const TITLE_BAR_HEIGHT: u16 = 30;
     
     pub fn new(framework: F) -> Self {
         Self {
@@ -118,7 +118,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         self.framework.display_mut().fill_screen(Colour::BLACK);
         self.ui_draw_title("USB Mass Storage");
         let width = self.framework.display().width();
-        self.framework.display_mut().print_centred(0, 100, width as i64, "Saving...");
+        self.framework.display_mut().print_centred(0, 100, width, "Saving...");
         self.framework.display_mut().draw();
 
         // TODO
@@ -138,7 +138,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
 
         let width = self.framework.display().width();
         self.framework.display_mut().draw_rect(
-            0, 0, width as i64, Self::TITLE_BAR_HEIGHT,
+            0, 0, width, Self::TITLE_BAR_HEIGHT,
             Colour::ORANGE, ShapeFill::Filled, 0
         );
 
@@ -437,7 +437,7 @@ impl<F: ApplicationFramework> UIMenu<F> {
 
     pub fn draw(&mut self) {
         // Draw items
-        let mut y = OperatingSystem::<F>::TITLE_BAR_HEIGHT + 10;
+        let mut y = (OperatingSystem::<F>::TITLE_BAR_HEIGHT + 10) as i16;
 
         // Bail early if no items
         if self.items.is_empty() {
@@ -452,7 +452,7 @@ impl<F: ApplicationFramework> UIMenu<F> {
 
             if i == self.selected_index {
                 self.os_mut().framework.display_mut().draw_rect(
-                    5, y, self.os().framework.display().width() as i64 - 5 * 2 - 8, 54,
+                    5, y, self.os().framework.display().width() - 5 * 2 - 8, 54,
                     Colour::BLUE, ShapeFill::Filled, 7
                 );
             }
@@ -481,8 +481,8 @@ impl<F: ApplicationFramework> UIMenu<F> {
         let scroll_indicator_bar_height = scroll_indicator_bar_height_per_item * core::cmp::min(Self::ITEMS_PER_PAGE, self.items.len());
 
         self.os_mut().framework.display_mut().draw_rect(
-            self.os_mut().framework.display().width() as i64 - 8, 40 + scroll_indicator_bar_offset as i64,
-            4, scroll_indicator_bar_height as i64, Colour::DARK_BLUE, ShapeFill::Filled, 2
+            self.os_mut().framework.display().width() as i16 - 8, 40 + scroll_indicator_bar_offset as i16,
+            4, scroll_indicator_bar_height as u16, Colour::DARK_BLUE, ShapeFill::Filled, 2
         );
     }
 

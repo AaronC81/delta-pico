@@ -190,10 +190,10 @@ struct DisplayImpl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<
 impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayInterface for DisplayImpl<SpiD, DcPin, RstPin, Delay> {
     type Sprite = ();
 
-    fn width(&self) -> u64 { 240 }
-    fn height(&self) -> u64 { 320 }
+    fn width(&self) -> u16 { 240 }
+    fn height(&self) -> u16 { 320 }
 
-    fn new_sprite(&mut self, width: i16, height: i16) -> Self::Sprite { todo!() }
+    fn new_sprite(&mut self, width: u16, height: u16) -> Self::Sprite { todo!() }
     fn switch_to_sprite(&mut self, sprite: &mut Self::Sprite) { todo!() }
 
     fn switch_to_screen(&mut self) {}
@@ -202,8 +202,8 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
         self.screen_sprite.fill_surface(c.into()).unwrap();
     }
 
-    fn draw_char(&mut self, x: i64, y: i64, character: u8) {
-        self.set_cursor(x, y);
+    fn draw_char(&mut self, character: u8) {
+        let (x, y) = self.get_cursor();
 
         let character_bitmap = droid_sans_20_lookup(character);
         if character_bitmap.is_none() { return; }
@@ -234,7 +234,7 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
                 };
 
                 if alpha_nibble > 0x8 {
-                    if let Some(px) = self.screen_sprite.try_pixel((x + ox as i64).saturating_into(), (y + oy as i64).saturating_into()) {
+                    if let Some(px) = self.screen_sprite.try_pixel(x + ox as i16, y + oy as i16) {
                         *px = RawColour(0xFFFF);
                     }
                 }
@@ -243,31 +243,24 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
 
         self.cursor_x += Into::<i16>::into(character_bitmap[0]) - 1;
     } 
-    fn draw_line(&mut self, x1: i64, y1: i64, x2: i64, y2: i64, c: Colour) { }
-    fn draw_rect(&mut self, x1: i64, y1: i64, w: i64, h: i64, c: Colour, fill: delta_pico_rust::interface::ShapeFill, radius: u16) {
-        self.screen_sprite.draw_filled_rect(
-            x1.saturating_into(),
-            y1.saturating_into(),
-            w.saturating_into(),
-            h.saturating_into(),
-            c.into(),
-        ).unwrap();
+    fn draw_line(&mut self, x1: i16, y1: i16, x2: i16, y2: i16, c: Colour) { }
+    fn draw_rect(&mut self, x1: i16, y1: i16, w: u16, h: u16, c: Colour, fill: delta_pico_rust::interface::ShapeFill, radius: u16) {
+        self.screen_sprite.draw_filled_rect(x1, y1, w, h, c.into()).unwrap();
     }
-    fn draw_sprite(&mut self, x: i64, y: i64, sprite: &Self::Sprite) { }
-    fn draw_bitmap(&mut self, x: i64, y: i64, name: &str) { }
+    fn draw_sprite(&mut self, x: i16, y: i16, sprite: &Self::Sprite) { }
+    fn draw_bitmap(&mut self, x: i16, y: i16, name: &str) { }
     fn print(&mut self, s: &str) {
         for c in s.as_bytes() {
-            let (x, y) = self.get_cursor();
-            self.draw_char(x, y, *c);
+            self.draw_char(*c);
         }
     }
 
-    fn set_cursor(&mut self, x: i64, y: i64) {
-        self.cursor_x = x.saturating_into();
-        self.cursor_y = y.saturating_into();
+    fn set_cursor(&mut self, x: i16, y: i16) {
+        self.cursor_x = x;
+        self.cursor_y = y;
     }
-    fn get_cursor(&self) -> (i64, i64) {
-        (self.cursor_x.into(), self.cursor_y.into())
+    fn get_cursor(&self) -> (i16, i16) {
+        (self.cursor_x, self.cursor_y)
     }
 
     fn set_font_size(&mut self, size: delta_pico_rust::interface::FontSize) { }
