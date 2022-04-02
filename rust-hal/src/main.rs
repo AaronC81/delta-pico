@@ -19,6 +19,7 @@ include!(concat!(env!("OUT_DIR"), "/bitmap_data.rs"));
 
 use core::{alloc::Layout, panic::PanicInfo};
 
+use alloc::string::{String, ToString};
 use alloc_cortex_m::CortexMHeap;
 use button_matrix::{RawButtonEvent, ButtonMatrix};
 use cortex_m::{prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_spi_FullDuplex, _embedded_hal_blocking_delay_DelayMs}, delay::Delay};
@@ -392,9 +393,7 @@ impl<
     fn buttons(&self) -> &Self::ButtonsI { &self.buttons }
     fn buttons_mut(&mut self) -> &mut Self::ButtonsI { &mut self.buttons }
 
-    fn hardware_revision(&self) -> alloc::string::String {
-        "Rev. 3 (Rust Framework)".into()
-    }
+    fn hardware_revision(&self) -> String { rev::REVISION_NAME.to_string() }
 
     fn reboot_into_bootloader(&mut self) -> ! {
         // Awww, yeah!
