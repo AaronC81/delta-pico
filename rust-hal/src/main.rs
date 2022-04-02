@@ -132,13 +132,9 @@ fn main() -> ! {
         rst_pin,
         unsafe { core::ptr::read(DELAY.as_ref().unwrap()) },
     ).init().unwrap();
-    ili.fill(RawColour::BLACK).unwrap();
 
     // Create screen sprite
-    let mut sprite = Sprite::new(240, 320);
-    sprite.fill_surface(RawColour(0xF000)).unwrap();
-    sprite.draw_filled_rect(10, 10, 30, 30, RawColour(0x000F)).unwrap();
-    ili.draw_screen_sprite(&sprite).unwrap();
+    let sprite = Sprite::new(240, 320);
 
     // Construct PCF8574 instances
     let mut sda_pin = pins.gpio20.into_mode::<FunctionI2C>();
