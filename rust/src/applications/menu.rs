@@ -3,9 +3,9 @@ use alloc::{vec, vec::Vec};
 use crate::{interface::{Colour, ApplicationFramework, DisplayInterface}, operating_system::{OSInput, UIMenu, UIMenuItem, OperatingSystem}};
 use super::{Application, ApplicationInfo};
 
-pub struct MenuApplication<F: ApplicationFramework> {
+pub struct MenuApplication<F: ApplicationFramework + 'static> {
     os: *mut OperatingSystem<F>,
-    menu: UIMenu,
+    menu: UIMenu<F>,
 }
 
 impl<F: ApplicationFramework> Application for MenuApplication<F> {
@@ -21,7 +21,7 @@ impl<F: ApplicationFramework> Application for MenuApplication<F> {
     fn new(os: *mut OperatingSystem<F>) -> Self where Self: Sized {
         Self {
             os,
-            menu: UIMenu::new(vec![]),
+            menu: UIMenu::new(os, vec![]),
         }
     }
 
@@ -40,6 +40,8 @@ impl<F: ApplicationFramework> Application for MenuApplication<F> {
             .collect::<Vec<_>>();
         self.menu.draw();
         self.os_mut().framework.display_mut().draw();
+
+        loop {}
 
         // if let Some(btn) = framework().buttons.wait_press() {
         //     match btn {

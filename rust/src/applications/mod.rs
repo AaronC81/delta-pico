@@ -34,9 +34,9 @@ pub trait Application {
     fn new(os: *mut OperatingSystem<Self::Framework>) -> Self where Self: Sized;
     fn tick(&mut self);
 
-    // fn new_dyn() -> Box<dyn Application<'a, Framework = Self::Framework>> where Self: Sized, Self: 'static {
-    //     Box::new(Self::new())
-    // }
+    fn new_dyn(os: *mut OperatingSystem<Self::Framework>) -> Box<dyn Application<Framework = Self::Framework>> where Self: Sized, Self: 'static {
+        Box::new(Self::new(os))
+    }
 
     fn destroy(&mut self) {}
 
@@ -45,21 +45,23 @@ pub trait Application {
     }
 }
 
-pub struct ApplicationList<F: ApplicationFramework> {
-    pub applications: Vec<(ApplicationInfo, fn() -> Rc<RefCell<dyn Application<Framework = F>>>)>,
+pub struct ApplicationList<F: ApplicationFramework + 'static> {
+    pub os: *mut OperatingSystem<F>,
+    pub applications: Vec<(ApplicationInfo, fn(*mut OperatingSystem<F>) -> Box<dyn Application<Framework = F>>)>,
 }
 
-impl<F: ApplicationFramework> ApplicationList<F> {
+impl<'a, 'b, F: ApplicationFramework> ApplicationList<F> {
     pub fn new() -> Self {
         Self {
+            os: core::ptr::null_mut(),
             applications: vec![],
         }
     }
 
-    // pub fn add<T>(&mut self) where T: Application<'a> {
-    //     let info = T::info();
-    //     self.applications.push((info, T::new_dyn))
-    // }
+    pub fn add<T>(&mut self) where T: Application<Framework = F> + 'static {
+        let info = T::info();
+        self.applications.push((info, T::new_dyn))
+    }
 }
 
 pub mod menu;

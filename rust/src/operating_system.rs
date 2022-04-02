@@ -11,17 +11,17 @@ use crate::{
     // c_allocator::{MEMORY_USAGE, EXTERNAL_MEMORY_USAGE, MAX_MEMORY_USAGE, MAX_EXTERNAL_MEMORY_USAGE}
 };
 
-pub struct OperatingSystem<F: ApplicationFramework> {
+pub struct OperatingSystem<F: ApplicationFramework + 'static> {
     pub framework: F,
 
     // TODO: I don't think the operating system can hold application lists any more, since that 
     // would lead to recursive references (unless we use an Rc) - so where *do* we put them?
 
     pub application_list: ApplicationList<F>,
-    pub menu: Option<Rc<RefCell<MenuApplication<F>>>>,
+    pub menu: Option<MenuApplication<F>>,
     pub showing_menu: bool,
 
-    pub active_application: Option<Rc<RefCell<dyn Application<Framework = F>>>>,
+    pub active_application: Option<Box<dyn Application<Framework = F>>>,
     pub active_application_index: Option<usize>,
 
     // pub filesystem: Filesystem<'a>,
@@ -53,7 +53,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         // TODO: destroy now unused
 
         self.active_application_index = Some(index);
-        self.active_application = Some(self.application_list.applications[index].1());
+        self.active_application = Some(self.application_list.applications[index].1(self.application_list.os));
     }
 
     /// Restarts the current application. If none is open, panics.
@@ -67,14 +67,16 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
 
     /// Returns a reference to the application which should be ticked. This is typically the running
     /// application, unless showing the menu, in which case it is the menu application itself.
-    // pub fn application_to_tick(&mut self) -> Rc<RefCell<dyn Application<Framework = F>>> {
-    //     if self.showing_menu {
-    //         self.menu.clone().expect("menu not configured yet")
-    //     } else {
-    //         // TODO: use menu here if None
-    //         self.active_application.clone().unwrap()
-    //     }
-    // }
+    pub fn application_to_tick(&mut self) -> &mut dyn Application<Framework = F> {
+        
+        if self.showing_menu {
+            self.menu.as_mut().unwrap()
+        } else {
+            self.active_application.as_mut()
+                .map(|x| x.as_mut())
+                .unwrap_or(self.menu.as_mut().unwrap())
+        }
+    }
 
     /// Toggles whether the global menu is currently being shown.
     pub fn toggle_menu(&mut self) {
@@ -414,73 +416,74 @@ pub struct UIMenuItem {
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub struct UIMenu {
+pub struct UIMenu<F: ApplicationFramework + 'static> {
+    os: *mut OperatingSystem<F>,
     pub items: Vec<UIMenuItem>,
     pub selected_index: usize,
     page_scroll_offset: usize,
 }
 
-impl UIMenu {
+impl<F: ApplicationFramework> UIMenu<F> {
     const ITEMS_PER_PAGE: usize = 5;
 
-    pub fn new(items: Vec<UIMenuItem>) -> Self {
+    pub fn new(os: *mut OperatingSystem<F>, items: Vec<UIMenuItem>) -> Self {
         Self {
+            os,
             items,
             selected_index: 0,
             page_scroll_offset: 0,
         }
     }
 
-    pub fn draw(&self) {
-        todo!()
-        // // Draw items
-        // let mut y = OperatingSystemInterface::TITLE_BAR_HEIGHT + 10;
+    pub fn draw(&mut self) {
+        // Draw items
+        let mut y = OperatingSystem::<F>::TITLE_BAR_HEIGHT + 10;
 
-        // // Bail early if no items
-        // if self.items.is_empty() {
-        //     self.framework.display().print_at(75, y, "No items");
-        //     return;
-        // }
+        // Bail early if no items
+        if self.items.is_empty() {
+            self.os_mut().framework.display_mut().print_at(75, y, "No items");
+            return;
+        }
 
-        // for (i, item) in self.items.iter().enumerate().skip(self.page_scroll_offset).take(Self::ITEMS_PER_PAGE) {
-        //     // Work out whether we need to wrap
-        //     // TODO: not an exact width
-        //     let (lines, _, _) = self.framework.display().wrap_text(&item.title, 120);
+        for (i, item) in self.items.iter().enumerate().skip(self.page_scroll_offset).take(Self::ITEMS_PER_PAGE) {
+            // Work out whether we need to wrap
+            // TODO: not an exact width
+            let (lines, _, _) = self.os_mut().framework.display_mut().wrap_text(&item.title, 120);
 
-        //     if i == self.selected_index {
-        //         self.framework.display().draw_rect(
-        //             5, y, self.framework.display().width as i64 - 5 * 2 - 8, 54,
-        //             Colour::BLUE, ShapeFill::Filled, 7
-        //         );
-        //     }
+            if i == self.selected_index {
+                self.os_mut().framework.display_mut().draw_rect(
+                    5, y, self.os().framework.display().width() as i64 - 5 * 2 - 8, 54,
+                    Colour::BLUE, ShapeFill::Filled, 7
+                );
+            }
 
-        //     if lines.len() == 1 {
-        //         self.framework.display().print_at(65, y + 18, &lines[0]);
-        //     } else {
-        //         self.framework.display().print_at(65, y + 7, &lines[0]);
-        //         self.framework.display().print_at(65, y + 28 , &lines[1]);
-        //     }
-        //     self.framework.display().draw_bitmap(7, y + 2, &item.icon);
+            if lines.len() == 1 {
+                self.os_mut().framework.display_mut().print_at(65, y + 18, &lines[0]);
+            } else {
+                self.os_mut().framework.display_mut().print_at(65, y + 7, &lines[0]);
+                self.os_mut().framework.display_mut().print_at(65, y + 28 , &lines[1]);
+            }
+            self.os_mut().framework.display_mut().draw_bitmap(7, y + 2, &item.icon);
 
-        //     // Draw toggle, if necessary
-        //     if let Some(toggle_position) = item.toggle {
-        //         let toggle_bitmap_name = if toggle_position { "toggle_on" } else { "toggle_off" };
-        //         self.framework.display().draw_bitmap(195, y + 20, toggle_bitmap_name);
-        //     }
+            // Draw toggle, if necessary
+            if let Some(toggle_position) = item.toggle {
+                let toggle_bitmap_name = if toggle_position { "toggle_on" } else { "toggle_off" };
+                self.os_mut().framework.display_mut().draw_bitmap(195, y + 20, toggle_bitmap_name);
+            }
 
-        //     y += 54;
-        // }
+            y += 54;
+        }
 
-        // // Draw scroll amount indicator
-        // let scroll_indicator_column_height = 54 * Self::ITEMS_PER_PAGE;
-        // let scroll_indicator_bar_height_per_item = scroll_indicator_column_height / self.items.len();
-        // let scroll_indicator_bar_offset = scroll_indicator_bar_height_per_item * self.page_scroll_offset;
-        // let scroll_indicator_bar_height = scroll_indicator_bar_height_per_item * Self::ITEMS_PER_PAGE;
+        // Draw scroll amount indicator
+        let scroll_indicator_column_height = 54 * Self::ITEMS_PER_PAGE;
+        let scroll_indicator_bar_height_per_item = scroll_indicator_column_height / self.items.len();
+        let scroll_indicator_bar_offset = scroll_indicator_bar_height_per_item * self.page_scroll_offset;
+        let scroll_indicator_bar_height = scroll_indicator_bar_height_per_item * core::cmp::min(Self::ITEMS_PER_PAGE, self.items.len());
 
-        // self.framework.display().draw_rect(
-        //     self.framework.display().width as i64 - 8, 40 + scroll_indicator_bar_offset as i64,
-        //     4, scroll_indicator_bar_height as i64, Colour::DARK_BLUE, ShapeFill::Filled, 2
-        // );        
+        self.os_mut().framework.display_mut().draw_rect(
+            self.os_mut().framework.display().width() as i64 - 8, 40 + scroll_indicator_bar_offset as i64,
+            4, scroll_indicator_bar_height as i64, Colour::DARK_BLUE, ShapeFill::Filled, 2
+        );
     }
 
     pub fn move_up(&mut self) {
@@ -517,4 +520,7 @@ impl UIMenu {
             self.page_scroll_offset += 1;
         }
     }
+
+    fn os(&self) -> &OperatingSystem<F> { unsafe { &*self.os } }
+    fn os_mut(&self) -> &mut OperatingSystem<F> { unsafe { &mut *self.os } }
 }

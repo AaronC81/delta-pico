@@ -3,7 +3,7 @@ use alloc::format;
 use crate::{interface::{Colour, ApplicationFramework, DisplayInterface}, operating_system::OperatingSystem};
 use super::{Application, ApplicationInfo};
 
-pub struct AboutApplication<F: ApplicationFramework> {
+pub struct AboutApplication<F: ApplicationFramework + 'static> {
     os: *mut OperatingSystem<F>,
 }
 

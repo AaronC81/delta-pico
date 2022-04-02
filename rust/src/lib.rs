@@ -6,7 +6,7 @@ extern crate alloc;
 mod c_allocator;
 
 use core::{panic::PanicInfo, cell::RefCell};
-use alloc::{format, string::String, rc::Rc};
+use alloc::{format, string::String, rc::Rc, boxed::Box};
 use applications::{about::{AboutApplication, self}, Application};
 use c_allocator::CAllocator;
 
@@ -23,7 +23,7 @@ use interface::{ApplicationFramework, DisplayInterface};
 
 use crate::{interface::Colour, operating_system::{OSInput, OperatingSystem}};
 
-pub extern "C" fn delta_pico_main<F: ApplicationFramework>(framework: F) {
+pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: F) {
     let mut os = OperatingSystem::new(framework);
 
     os.framework.display_mut().fill_screen(Colour(0xFFFF));
@@ -33,7 +33,7 @@ pub extern "C" fn delta_pico_main<F: ApplicationFramework>(framework: F) {
     // os().application_list.add::<applications::graph::GraphApplication>();
     // os().application_list.add::<applications::numbers_game::NumbersGame>();
     // os().application_list.add::<applications::files::FilesApplication>();
-    // os.application_list.add::<applications::about::AboutApplication<F>>();
+    os.application_list.add::<applications::about::AboutApplication<F>>();
     // os().application_list.add::<applications::settings::SettingsApplication>();
     // os().application_list.add::<applications::storage::StorageApplication>();
     // os.application_list.add::<applications::bootloader::BootloaderApplication>();
@@ -56,11 +56,10 @@ pub extern "C" fn delta_pico_main<F: ApplicationFramework>(framework: F) {
     //     (framework().usb_mass_storage.begin)();
     // });
 
-    let mut about_app = AboutApplication::new(&mut os);
-    loop { about_app.tick(); }
+    // Set up menu
+    os.menu = Some(applications::menu::MenuApplication::new(&mut os as *mut _));
 
     loop {
-        // about_app.tick();
-        // os.application_to_tick().tick();
+        os.application_to_tick().tick();
     }
 }
