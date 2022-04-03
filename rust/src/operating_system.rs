@@ -159,15 +159,15 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         // let charge_bitmap = if charge_status == -1 { "power_usb".into() } else { format!("battery_{}", charge_status) };
         // self.framework.display().draw_bitmap(200, 6, &charge_bitmap);
 
-        // // Draw text indicator
-        // if os().text_mode {
-        //     self.framework.display().draw_rect(145, 4, 50, 24, Colour::WHITE, ShapeFill::Hollow, 5);
-        //     if os().multi_tap.shift {
-        //         self.framework.display().print_at(149, 6, "TEXT");
-        //     } else {
-        //         self.framework.display().print_at(153, 6, "text");
-        //     }
-        // }
+        // Draw text indicator
+        if self.text_mode {
+            self.framework.display_mut().draw_rect(145, 4, 50, 24, Colour::WHITE, ShapeFill::Hollow, 5);
+            if self.multi_tap.shift {
+                self.framework.display_mut().print_at(149, 6, "TEXT");
+            } else {
+                self.framework.display_mut().print_at(153, 6, "text");
+            }
+        }
     }
 
     /// Opens a menu with the items in the slice `items`. The user can navigate the menu with the
