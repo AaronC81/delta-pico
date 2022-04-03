@@ -32,4 +32,7 @@ pub trait ApplicationFramework {
 
     fn millis(&self) -> u64;
     fn micros(&self) -> u64;
+
+    /// Get the number of (used, total available) bytes of memory.
+    fn memory_usage(&self) -> (usize, usize);
 }

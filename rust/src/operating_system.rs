@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, format, string::String, vec::Vec, rc::Rc};
+use alloc::{boxed::Box, format, string::{String, ToString}, vec::Vec, rc::Rc};
 use rbop::{Number, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 use core::{cmp::max, mem, slice, marker::PhantomData, cell::{RefCell, RefMut}, borrow::{Borrow, BorrowMut}};
 
@@ -138,35 +138,21 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
 
     /// Draws a title bar to the top of the screen, with the text `s`.
     pub fn ui_draw_title(&mut self, s: &str) {
-        // let now_millis = (framework().millis)();
-        // let millis_elapsed = now_millis - self.last_title_millis;
-        // self.last_title_millis = now_millis;
-
         let width = self.framework.display().width();
         self.framework.display_mut().draw_rect(
             0, 0, width, Self::TITLE_BAR_HEIGHT,
             Colour::ORANGE, ShapeFill::Filled, 0
         );
 
-        // Draw title, according to settings
-        // let frame_time = format!("{} ms", millis_elapsed);
-        // let heap_usage = format!(
-        //     "({}+{})[{}+{}]kB",
-        //     unsafe { MEMORY_USAGE / 1000 },
-        //     unsafe { EXTERNAL_MEMORY_USAGE / 1000 },
-        //     unsafe { MAX_MEMORY_USAGE / 1000 },
-        //     unsafe { MAX_EXTERNAL_MEMORY_USAGE / 1000 },
-        // );
+        // TODO: frame time
+        let s = if self.filesystem.settings.values.show_heap_usage {
+            let (used, total) = self.framework.memory_usage();
+            format!("{}/{}kB", used / 1000, total / 1000)
+        } else {
+            s.to_string()
+        };
 
-        // let settings = &os().filesystem.settings.values;
-        // let title_text = match (settings.show_frame_time, settings.show_heap_usage) {
-        //     (true, true) => format!("{} | {}", heap_usage, frame_time),
-        //     (true, false) => frame_time,
-        //     (false, true) => heap_usage,
-        //     (false, false) => s.into(),
-        // };
-
-        self.framework.display_mut().print_at(5, 7, s);
+        self.framework.display_mut().print_at(5, 7, &s);
 
         // Draw charge indicator
         // let charge_status = (framework().charge_status)();

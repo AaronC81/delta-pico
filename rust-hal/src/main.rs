@@ -50,6 +50,7 @@ use crate::graphics::{DrawingSurface, Sprite};
 
 #[global_allocator]
 static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
+const HEAP_SIZE: usize = 200_000;
 
 static mut LED_PIN: Option<Pin<Gpio25, Output<PushPull>>> = None;
 static mut DELAY: Option<Delay> = None;
@@ -60,7 +61,6 @@ fn main() -> ! {
     // Set up allocator
     {
         use core::mem::MaybeUninit;
-        const HEAP_SIZE: usize = 200_000;
         static mut HEAP: [MaybeUninit<u8>; HEAP_SIZE] = [MaybeUninit::uninit(); HEAP_SIZE];
         unsafe {
             ALLOCATOR.init((&mut HEAP).as_ptr() as usize, HEAP_SIZE)
@@ -481,6 +481,10 @@ impl<
 
     fn millis(&self) -> u64 {
         self.micros() / 1000
+    }
+
+    fn memory_usage(&self) -> (usize, usize) {
+        (ALLOCATOR.used(), HEAP_SIZE)
     }
 }
 
