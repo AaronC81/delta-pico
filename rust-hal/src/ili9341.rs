@@ -1,10 +1,11 @@
 use core::marker::PhantomData;
 use cortex_m::prelude::{_embedded_hal_spi_FullDuplex};
+use delta_pico_rust::interface::Colour;
 use embedded_hal::{digital::v2::OutputPin, blocking::delay::DelayMs};
 use rp_pico::hal::{Spi, spi::SpiDevice, spi, gpio::{Pin, PinId, Output, PushPull}};
 use nb::{self, block};
 
-use crate::graphics::{DrawingSurface, Sprite, RawColour};
+use crate::graphics::{Sprite};
 use crate::util::saturating_into::SaturatingInto;
 
 pub struct Enabled;
@@ -212,12 +213,13 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<E
     }
 
     /// Immediately fills the screen with the given colour.
-    pub fn fill(&mut self, colour: RawColour) -> Result<(), Ili9341Error> {
+    pub fn fill(&mut self, colour: Colour) -> Result<(), Ili9341Error> {
         // Set drawing area to cover screen
         let pixels = self.set_pixel_drawing_area(0, self.width - 1, 0, self.height - 1)?;
 
         // Write bytes
-        let (high, low) = colour.as_bytes();
+        let high = ((colour.0 & 0xFF00) >> 8) as u8;
+        let low = (colour.0 & 0xFF) as u8;
         let mut writer = self.fast_data_write()?;
         for _ in 0..pixels {
             writer.send(high)?;
@@ -238,10 +240,8 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<E
         self.set_pixel_drawing_area(0, self.width - 1, 0, self.height - 1)?;
         let mut writer = self.fast_data_write()?;
         for pixel in &sprite.data {
-            let (high, low) = pixel.as_bytes();
-            // Need to swap bytes for display
-            writer.send(low)?;
-            writer.send(high)?;
+            writer.send((pixel.0 >> 8) as u8)?;
+            writer.send((pixel.0 & 0xFF) as u8)?;
         }
 
         Ok(())

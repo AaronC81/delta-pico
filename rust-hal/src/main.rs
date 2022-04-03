@@ -44,7 +44,7 @@ use bsp::{hal::{
 use shared_bus::{BusManagerSimple, I2cProxy, NullMutex, BusManager};
 use util::saturating_into::SaturatingInto;
 
-use crate::graphics::{DrawingSurface, RawColour, Sprite};
+use crate::graphics::{DrawingSurface, Sprite};
 
 #[global_allocator]
 static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
@@ -248,7 +248,7 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
 
                 if alpha_nibble > 0x8 {
                     if let Some(px) = self.screen_sprite.try_pixel(x + ox as i16, y + oy as i16) {
-                        *px = RawColour(0xFFFF);
+                        *px = Colour(0xFFFF);
                     }
                 }
             }
