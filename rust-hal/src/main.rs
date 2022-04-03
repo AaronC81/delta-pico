@@ -213,13 +213,18 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
     fn draw_char(&mut self, character: u8) {
         let (x, y) = self.get_cursor();
 
+        if character == '\n' as u8 {
+            self.cursor_x = 0;
+            self.cursor_y += font_data::droid_sans_20::droid_sans_20_lookup('A' as u8).unwrap()[1] as i16;
+            return;
+        }
+
         let character_bitmap = font_data::droid_sans_20::droid_sans_20_lookup(character);
         if character_bitmap.is_none() { return; }
         let character_bitmap = character_bitmap.unwrap();
 
         // TODO: anti-aliasing or any transparency
         // TODO: font colour
-        // TODO: \n
 
         // Each character is 4bpp;, so we maintain a flip-flopping boolean of whether to read the
         // upper or lower byte
