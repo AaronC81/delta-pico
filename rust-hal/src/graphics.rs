@@ -49,7 +49,7 @@ impl DrawingSurface for Sprite {
         Ok(())
     }
 
-    fn draw_filled_rect(&mut self, x: i16, y: i16, mut w: u16, h: u16, colour: Colour) -> Result<(), Self::Error> {
+    fn draw_filled_rect(&mut self, x: i16, y: i16, mut w: u16, mut h: u16, colour: Colour) -> Result<(), Self::Error> {
         // If the rectangle spills over the left, adjust width and X origin so we still start
         // in-bounds (which also allows `x` to become unsigned)
         let x = if x < 0 {
@@ -64,8 +64,21 @@ impl DrawingSurface for Sprite {
             w = self.width - x as u16;
         }
 
+        // Same for spilling over the top
+        let y = if y < 0 {
+            h -= y.abs() as u16;
+            0usize
+        } else {
+            y as usize
+        };
+
+        // Spilling over the bottom
+        if y as u16 + h >= self.height {
+            h = self.height - y as u16;
+        }
+
         // Draw line-by-line
-        for curr_y in y..(y as i32 + h as i32).saturating_into() {
+        for curr_y in y..(y + h as usize) {
             if curr_y < 0 { continue; }
             let curr_y = curr_y as usize;
 
