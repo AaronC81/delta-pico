@@ -19,9 +19,12 @@ pub mod timer;
 pub mod multi_tap;
 // pub mod tests;
 
-use interface::{ApplicationFramework, DisplayInterface};
+use interface::{ApplicationFramework, DisplayInterface, ButtonInput};
 
 use crate::{interface::Colour, operating_system::{OSInput, OperatingSystem}};
+
+static mut PANIC_OS_POINTER: *mut () = core::ptr::null_mut();
+static mut PANIC_HANDLER: Option<Box<dyn FnMut(&PanicInfo) -> ()>> = None;
 
 pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: F) {
     let mut os = OperatingSystem::new(framework);
@@ -61,7 +64,61 @@ pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: 
     // Set up menu
     os.menu = Some(applications::menu::MenuApplication::new(&mut os as *mut _));
 
+    // Set up a panic handler!
+    // Yeah, this is super unsafe, but we can't use `panic_handler` because we don't know the T in 
+    // `OperatingSystem<T>`.
+    unsafe {
+        PANIC_OS_POINTER = &mut os as *mut OperatingSystem<F> as *mut ();
+        PANIC_HANDLER = Some(Box::new(|info| {
+            let os = (PANIC_OS_POINTER as *mut OperatingSystem<F>).as_mut().unwrap();
+
+            os.framework.display_mut().switch_to_screen();
+            os.framework.display_mut().fill_screen(Colour::BLACK);
+        
+            // Draw panic title bar
+            let width = os.framework.display().width();
+            os.framework.display_mut().draw_rect(
+                0, 0, width, 30,
+                Colour::RED, interface::ShapeFill::Filled, 0,
+            );
+            os.framework.display_mut().print_at(5, 7, "Panic   :(");
+        
+            // Draw error text
+            let (lines, line_height, _) =
+                os.framework.display_mut().wrap_text(&format!("{}", info), width - 20);
+            for (i, line) in lines.iter().enumerate() {
+                os.framework.display_mut().print_at(
+                    10, 30 + 5 + line_height * i as i16,
+                    line
+                );
+            }
+        
+            // Draw keys
+            let height = os.framework.display().height();
+            os.framework.display_mut().print_at(
+                0, height as i16 - 50, "Restart the device, or use\n[EXE] to enter bootloader"
+            );
+            
+            os.framework.display_mut().draw();
+        
+            loop {
+                if let Some(OSInput::Button(ButtonInput::Exe)) = os.input() {
+                    os.framework.reboot_into_bootloader();
+                }
+            }
+        }));
+    }
+
     loop {
         os.application_to_tick().tick();
+    }
+}
+
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    unsafe {
+        PANIC_HANDLER.as_mut().unwrap()(info);
+
+        loop {}
     }
 }

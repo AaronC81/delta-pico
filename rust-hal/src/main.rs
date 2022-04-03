@@ -491,23 +491,6 @@ fn oom(_: Layout) -> ! {
     }
 }
 
-#[panic_handler]
-fn panic(_: &PanicInfo) -> ! {
-    loop {
-        blink(100);
-        blink(100);
-        blink(100);
-        blink(500);
-        blink(500);
-        blink(500);
-        blink(100);
-        blink(100);
-        blink(100);
-
-        unsafe { DELAY.as_mut().unwrap() }.delay_ms(300);        
-    }
-}
-
 fn blink(time: u32) {
     unsafe { LED_PIN.as_mut().unwrap() }.set_high().unwrap();
     unsafe { DELAY.as_mut().unwrap() }.delay_ms(time);
