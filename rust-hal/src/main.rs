@@ -9,6 +9,7 @@ extern crate alloc;
 
 mod ili9341;
 mod pcf8574;
+mod cat24c;
 mod button_matrix;
 mod graphics;
 mod util;
@@ -22,9 +23,10 @@ use core::{alloc::Layout, panic::PanicInfo};
 use alloc::string::{String, ToString};
 use alloc_cortex_m::CortexMHeap;
 use button_matrix::{RawButtonEvent, ButtonMatrix};
+use cat24c::Cat24C;
 use cortex_m::{prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_spi_FullDuplex, _embedded_hal_blocking_delay_DelayMs}, delay::Delay};
 use cortex_m_rt::entry;
-use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, Colour, ButtonsInterface, ButtonEvent, ButtonInput}, delta_pico_main};
+use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, Colour, ButtonsInterface, ButtonEvent, ButtonInput, StorageInterface}, delta_pico_main};
 use embedded_hal::{digital::v2::OutputPin, spi::MODE_0, blocking::delay::DelayMs, can::Frame, blocking::i2c::{Write, Read}};
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
 
@@ -167,6 +169,9 @@ fn main() -> ! {
         unsafe { DELAY.as_mut().unwrap() }
     );
 
+    // Init flash storage
+    let flash = Cat24C::new(0x50, unsafe { SHARED_I2C.as_mut().unwrap().acquire_i2c() });
+
     let framework = FrameworkImpl {
         display: DisplayImpl {
             ili,
@@ -177,6 +182,7 @@ fn main() -> ! {
         },
 
         buttons: ButtonsImpl { matrix: buttons },
+        storage: StorageImpl { flash },
         
         timer,
     };
@@ -367,6 +373,33 @@ impl<
     }
 }
 
+struct StorageImpl<
+    StorageI2CDevice: Write<Error = StorageError> + Read<Error = StorageError>,
+    StorageError,
+> {
+    flash: Cat24C<StorageI2CDevice, StorageError>,
+}
+
+impl<
+    StorageI2CDevice: Write<Error = StorageError> + Read<Error = StorageError>,
+    StorageError,
+> StorageInterface for StorageImpl<StorageI2CDevice, StorageError> {
+    fn is_connected(&mut self) -> bool { self.flash.is_connected() }
+    fn is_busy(&mut self) -> bool { self.flash.is_busy() }
+
+    fn write(&mut self, address: u16, bytes: &[u8]) -> Option<()> {
+        self.flash.write(address, bytes).ok()
+    }
+
+    fn read(&mut self, address: u16, bytes: &mut [u8]) -> Option<()> {
+        self.flash.read(address, bytes).ok()
+    }
+
+    // No-ops for now - no multicore
+    fn acquire_priority(&mut self) {}
+    fn release_priority(&mut self) {}
+}
+
 struct FrameworkImpl<
     SpiD: SpiDevice,
     DcPin: PinId,
@@ -377,9 +410,13 @@ struct FrameworkImpl<
     RowError,
     ColI2CDevice: Write<Error = ColError> + Read<Error = ColError>,
     ColError,
+
+    StorageI2CDevice: Write<Error = StorageError> + Read<Error = StorageError>,
+    StorageError,
 > {
     display: DisplayImpl<SpiD, DcPin, RstPin, Delay>,
     buttons: ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay>,
+    storage: StorageImpl<StorageI2CDevice, StorageError>,
     timer: Timer,
 }
 
@@ -393,15 +430,22 @@ impl<
     RowError,
     ColI2CDevice: Write<Error = ColError> + Read<Error = ColError>,
     ColError,
-> ApplicationFramework for FrameworkImpl<SpiD, DcPin, RstPin, Delay, RowI2CDevice, RowError, ColI2CDevice, ColError> {
+
+    StorageI2CDevice: Write<Error = StorageError> + Read<Error = StorageError>,
+    StorageError,
+> ApplicationFramework for FrameworkImpl<SpiD, DcPin, RstPin, Delay, RowI2CDevice, RowError, ColI2CDevice, ColError, StorageI2CDevice, StorageError> {
     type DisplayI = DisplayImpl<SpiD, DcPin, RstPin, Delay>;
     type ButtonsI = ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay>;
+    type StorageI = StorageImpl<StorageI2CDevice, StorageError>;
 
     fn display(&self) -> &Self::DisplayI { &self.display }
     fn display_mut(&mut self) -> &mut Self::DisplayI { &mut self.display }
 
     fn buttons(&self) -> &Self::ButtonsI { &self.buttons }
     fn buttons_mut(&mut self) -> &mut Self::ButtonsI { &mut self.buttons }
+
+    fn storage(&self) -> &Self::StorageI { &self.storage }
+    fn storage_mut(&mut self) -> &mut Self::StorageI { &mut self.storage }
 
     fn hardware_revision(&self) -> String { rev::REVISION_NAME.to_string() }
 

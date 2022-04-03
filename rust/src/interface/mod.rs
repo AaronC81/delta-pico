@@ -7,8 +7,8 @@ pub use display::*;
 mod buttons;
 pub use buttons::*;
 
-// mod storage;
-// pub use storage::*;
+mod storage;
+pub use storage::*;
 
 // mod usb_mass_storage;
 // pub use usb_mass_storage::*;
@@ -16,12 +16,16 @@ pub use buttons::*;
 pub trait ApplicationFramework {
     type DisplayI : DisplayInterface;
     type ButtonsI : ButtonsInterface;
+    type StorageI : StorageInterface;
 
     fn display(&self) -> &Self::DisplayI;
     fn display_mut(&mut self) -> &mut Self::DisplayI;
 
     fn buttons(&self) -> &Self::ButtonsI;
     fn buttons_mut(&mut self) -> &mut Self::ButtonsI;
+
+    fn storage(&self) -> &Self::StorageI;
+    fn storage_mut(&mut self) -> &mut Self::StorageI;
 
     fn hardware_revision(&self) -> String;
     fn reboot_into_bootloader(&mut self) -> !;

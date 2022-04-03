@@ -37,7 +37,7 @@ pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: 
     // os().application_list.add::<applications::files::FilesApplication>();
     os.application_list.add::<applications::about::AboutApplication<F>>();
     os.application_list.add::<applications::settings::SettingsApplication<F>>();
-    // os().application_list.add::<applications::storage::StorageApplication>();
+    os.application_list.add::<applications::storage::StorageApplication<F>>();
     os.application_list.add::<applications::bootloader::BootloaderApplication<F>>();
 
     // if !(os.framework.storage.connected)() {
