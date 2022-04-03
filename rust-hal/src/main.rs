@@ -39,7 +39,7 @@ use bsp::{hal::{
     pac,
     sio::Sio,
     watchdog::Watchdog,
-    spi::{Spi, Enabled, SpiDevice}, gpio::{FunctionSpi, Pin, PinId, Output, PushPull, bank0::{Gpio25, Gpio20, Gpio21}, FunctionI2C}, I2C, i2c::Controller,
+    spi::{Spi, Enabled, SpiDevice}, gpio::{FunctionSpi, Pin, PinId, Output, PushPull, bank0::{Gpio25, Gpio20, Gpio21}, FunctionI2C}, I2C, i2c::Controller, Timer,
 }, pac::I2C0};
 use shared_bus::{BusManagerSimple, I2cProxy, NullMutex, BusManager};
 use util::saturating_into::SaturatingInto;
@@ -87,6 +87,8 @@ fn main() -> ! {
     unsafe {
         DELAY = Some(cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().integer()));
     }
+
+    let timer = Timer::new(pac.TIMER, &mut pac.RESETS);
 
     let pins = bsp::Pins::new(
         pac.IO_BANK0,
@@ -174,7 +176,9 @@ fn main() -> ! {
             cursor_y: 0,
         },
 
-        buttons: ButtonsImpl { matrix: buttons }
+        buttons: ButtonsImpl { matrix: buttons },
+        
+        timer,
     };
     delta_pico_main(framework);
 
@@ -371,6 +375,7 @@ struct FrameworkImpl<
 > {
     display: DisplayImpl<SpiD, DcPin, RstPin, Delay>,
     buttons: ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay>,
+    timer: Timer,
 }
 
 impl<
@@ -419,6 +424,14 @@ impl<
             usb_boot_fn(0, 0);
         }
         panic!("failed to access bootloader")
+    }
+
+    fn micros(&self) -> u64 {
+        self.timer.get_counter()
+    }
+
+    fn millis(&self) -> u64 {
+        self.micros() / 1000
     }
 }
 

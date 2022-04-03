@@ -25,4 +25,7 @@ pub trait ApplicationFramework {
 
     fn hardware_revision(&self) -> String;
     fn reboot_into_bootloader(&mut self) -> !;
+
+    fn millis(&self) -> u64;
+    fn micros(&self) -> u64;
 }
