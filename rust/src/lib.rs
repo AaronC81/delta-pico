@@ -15,7 +15,7 @@ pub mod operating_system;
 // pub mod rbop_impl;
 pub mod applications;
 // pub mod filesystem;
-// pub mod timer;
+pub mod timer;
 pub mod multi_tap;
 // pub mod tests;
 

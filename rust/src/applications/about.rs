@@ -1,6 +1,6 @@
 use alloc::format;
 
-use crate::{interface::{Colour, ApplicationFramework, DisplayInterface}, operating_system::OperatingSystem};
+use crate::{interface::{Colour, ApplicationFramework, DisplayInterface}, operating_system::{OperatingSystem, os_accessor}};
 use super::{Application, ApplicationInfo};
 
 pub struct AboutApplication<F: ApplicationFramework + 'static> {

@@ -2,7 +2,7 @@ use core::cell::RefCell;
 use alloc::{format, rc::Rc, string::ToString, vec::Vec, vec};
 use rand::{self, SeedableRng, Rng};
 
-use crate::{interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput}, operating_system::{OSInput, OperatingSystem}};
+use crate::{interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput}, operating_system::{OSInput, OperatingSystem, os_accessor}};
 use super::{Application, ApplicationInfo};
 
 pub struct NumbersGame<F: ApplicationFramework + 'static> {

@@ -1,4 +1,4 @@
-use crate::{interface::ApplicationFramework, operating_system::OperatingSystem};
+use crate::{interface::ApplicationFramework, operating_system::{OperatingSystem, os_accessor}};
 use super::{Application, ApplicationInfo};
 
 pub struct BootloaderApplication<F: ApplicationFramework + 'static> {

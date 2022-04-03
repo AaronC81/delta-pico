@@ -522,3 +522,16 @@ impl<F: ApplicationFramework> UIMenu<F> {
     fn os(&self) -> &OperatingSystem<F> { unsafe { &*self.os } }
     fn os_mut(&self) -> &mut OperatingSystem<F> { unsafe { &mut *self.os } }
 }
+
+macro_rules! os_accessor {
+    ($n:ty) => {
+        impl<F: ApplicationFramework> $n {
+            #[allow(unused)]
+            fn os(&self) -> &OperatingSystem<F> { unsafe { &*self.os } }
+
+            #[allow(unused)]
+            fn os_mut(&self) -> &mut OperatingSystem<F> { unsafe { &mut *self.os } }        
+        }
+    };
+}
+pub(crate) use os_accessor;
