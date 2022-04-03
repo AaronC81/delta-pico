@@ -47,7 +47,7 @@ pub struct ApplicationList<F: ApplicationFramework + 'static> {
     pub applications: Vec<(ApplicationInfo, fn(*mut OperatingSystem<F>) -> Box<dyn Application<Framework = F>>)>,
 }
 
-impl<'a, 'b, F: ApplicationFramework> ApplicationList<F> {
+impl<F: ApplicationFramework> ApplicationList<F> {
     pub fn new() -> Self {
         Self {
             os: core::ptr::null_mut(),

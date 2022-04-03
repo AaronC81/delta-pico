@@ -9,7 +9,7 @@ pub struct AboutApplication<F: ApplicationFramework + 'static> {
 
 os_accessor!(AboutApplication<F>);
 
-impl<'a, 'b, F: ApplicationFramework> Application for AboutApplication<F> {
+impl<F: ApplicationFramework> Application for AboutApplication<F> {
     type Framework = F;
 
     fn info() -> ApplicationInfo {
