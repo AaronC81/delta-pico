@@ -14,7 +14,7 @@ pub mod interface;
 pub mod operating_system;
 // pub mod rbop_impl;
 pub mod applications;
-// pub mod filesystem;
+pub mod filesystem;
 pub mod timer;
 pub mod multi_tap;
 // pub mod tests;
@@ -28,11 +28,10 @@ static mut PANIC_HANDLER: Option<Box<dyn FnMut(&PanicInfo) -> ()>> = None;
 
 pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: F) {
     let mut os = OperatingSystem::new(framework);
-
+    os.second_init();
+    
     os.framework.display_mut().fill_screen(Colour(0xFFFF));
     os.framework.display_mut().draw();
-
-    os.application_list.os = &mut os as *mut _;
 
     // os().application_list.add::<applications::calculator::CalculatorApplication>();
     // os().application_list.add::<applications::graph::GraphApplication>();

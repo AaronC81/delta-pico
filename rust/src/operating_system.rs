@@ -5,7 +5,7 @@ use core::{cmp::max, mem, slice, marker::PhantomData, cell::{RefCell, RefMut}, b
 use crate::{
     applications::{Application, ApplicationList, menu::MenuApplication},
     // filesystem::{CalculationHistory, ChunkTable, Filesystem, RawStorage, Settings, FatInterface},
-    interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent}, multi_tap::MultiTapState,
+    interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, SettingsValues},
     // multi_tap::MultiTapState,
     // rbop_impl::RbopContext,
     // c_allocator::{MEMORY_USAGE, EXTERNAL_MEMORY_USAGE, MAX_MEMORY_USAGE, MAX_EXTERNAL_MEMORY_USAGE}
@@ -24,7 +24,7 @@ pub struct OperatingSystem<F: ApplicationFramework + 'static> {
     pub active_application: Option<Box<dyn Application<Framework = F>>>,
     pub active_application_index: Option<usize>,
 
-    // pub filesystem: Filesystem<'a>,
+    pub filesystem: Filesystem<F>,
     // pub last_title_millis: u32,
 
     pub text_mode: bool,
@@ -34,7 +34,7 @@ pub struct OperatingSystem<F: ApplicationFramework + 'static> {
 impl<F: ApplicationFramework> OperatingSystem<F> {
     pub const TITLE_BAR_HEIGHT: u16 = 30;
     
-    pub fn new(framework: F) -> Self {
+    pub fn new(mut framework: F) -> Self {
         Self {
             framework,
 
@@ -45,9 +45,39 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
             menu: None, // TODO: initialise later
             showing_menu: true,
 
+            filesystem: Filesystem {
+                settings: Settings::new(
+                    RawStorage {
+                        os: core::ptr::null_mut(),
+                        start_address: 0,
+                        length: Settings::<F>::MINIMUM_STORAGE_SIZE,
+                    }
+                )
+                // settings: Settings {
+                //     storage: RawStorage {
+                //         os: core::ptr::null_mut(),
+                //         start_address: 0,
+                //         length: Settings::<F>::MINIMUM_STORAGE_SIZE,
+                //     },
+                //     values: SettingsValues::default(),
+                // }
+            },
+
             text_mode: false,
             multi_tap: MultiTapState::new(),
         }
+    }
+
+    /// Performs second-stage initialisation tasks which require a pointer to this OS instance.
+    /// This *MUST* be called shortly after `new`, or nasty UB and null dereferences will occur.
+    pub fn second_init(&mut self) {
+        // Set up cyclic raw pointers
+        let ptr = self as *mut _;
+        self.application_list.os = ptr;
+        self.filesystem.settings.storage.os = ptr;
+
+        // Load storage values
+        self.filesystem.settings.load_into_self();
     }
 
     /// Replaces the currently-running application with a new instance of the application at `index`

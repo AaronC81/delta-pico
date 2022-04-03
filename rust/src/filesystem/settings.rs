@@ -1,8 +1,9 @@
+use crate::{interface::{StorageInterface, ApplicationFramework}, operating_system::{OperatingSystem, os_accessor}};
+
 use super::{RawStorage, RawStorageAddress};
 
-pub struct Settings<'a> {
-    pub storage: RawStorage<'a>,
-
+pub struct Settings<F: ApplicationFramework + 'static> {
+    pub storage: RawStorage<F>,
     pub values: SettingsValues,
 }
 
@@ -23,7 +24,7 @@ impl Default for SettingsValues {
     }
 }
 
-impl<'a> Settings<'a> {
+impl<F: ApplicationFramework> Settings<F> {
     // These random values were chosen so that a fully 0xFF'd or 0x00'd memory can be detected, and
     // settings can be left unset.
 
@@ -36,26 +37,19 @@ impl<'a> Settings<'a> {
     /// The value of a false boolean when stored as a byte.
     const FALSE_BYTE: u8 = 0xB5;
 
-    /// Returns a new `Settings` instance, loading settings from storage, or falling back to default
-    /// settings if it is not accessible.
-    pub fn new(storage: RawStorage<'a>) -> Self {
-        let mut instance = Self {
+    /// Returns a new `Settings` instance with default settings.
+    pub fn new(storage: RawStorage<F>) -> Self {
+        Self {
             storage,
             values: SettingsValues::default(),
-        };
-
-        if let Some(values) = instance.load() {
-            instance.values = values;
         }
-
-        instance
     }
 
     /// Loads settings values from storage, using their defaults if any are not set. Returns None
-    /// if storage is inaccessible.
-    /// 
-    /// This method is not mutating - the loaded settings values are not replaced.
-    pub fn load(&self) -> Option<SettingsValues> {
+    /// if storage is inaccessible. Despite taking `mut self` due to use of the I2C bus, this does
+    /// not mutate any values.
+    pub fn load(&mut self) -> Option<SettingsValues> {
+        // TODO: fails because no OS pointer yet
         let default = SettingsValues::default();
         Some(SettingsValues {
             // TODO: index 0 should be a storage version
@@ -63,6 +57,14 @@ impl<'a> Settings<'a> {
             show_frame_time: self.read_bool(RawStorageAddress(2), default.show_frame_time)?,
             fire_button_press_only: self.read_bool(RawStorageAddress(3), default.fire_button_press_only)?,
         })
+    }
+
+    /// Loads settings values from storage and replaces the values in this instance with those
+    /// loaded. If loading fails, keeps using the existing values.
+    pub fn load_into_self(&mut self) {
+        if let Some(values) = self.load() {
+            self.values = values;
+        }
     }
 
     /// Saves the settings values in this instance to storage. Returns None if storage is
@@ -76,7 +78,7 @@ impl<'a> Settings<'a> {
 
     /// Loads a boolean from storage, or falls back to a given default if no valid boolean is
     /// stored. Returns None if storage is inaccessible.
-    fn read_bool(&self, address: RawStorageAddress, default: bool) -> Option<bool> {
+    fn read_bool(&mut self, address: RawStorageAddress, default: bool) -> Option<bool> {
         let byte = self.storage.read_byte(address)?;
         match byte {
             Self::TRUE_BYTE => Some(true),

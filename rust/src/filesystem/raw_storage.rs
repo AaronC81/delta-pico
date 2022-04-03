@@ -1,41 +1,46 @@
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
 
-use crate::interface::StorageInterface;
+use crate::{interface::{StorageInterface, ApplicationFramework}, operating_system::{OperatingSystem, os_accessor}};
 
 /// A relative address into `RawStorage`.
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub struct RawStorageAddress(pub u16);
 
 /// A block of storage which can be used freely to store any data.
-pub struct RawStorage<'a> {
+pub struct RawStorage<F: ApplicationFramework + 'static> {
+    pub os: *mut OperatingSystem<F>,
+
     pub start_address: u16,
     pub length: u16,
-    pub storage: &'a mut StorageInterface,
 }
 
-impl<'a> RawStorage<'a> {
+os_accessor!(RawStorage<F>);
+
+impl<F: ApplicationFramework> RawStorage<F> {
     /// Reads a byte from this storage area. Returns None if storage is inaccessible or
     /// out-of-bounds.
-    pub fn read_byte(&self, address: RawStorageAddress) -> Option<u8> {
+    pub fn read_byte(&mut self, address: RawStorageAddress) -> Option<u8> {
         self.read_bytes(address, 1).map(|x| x[0])
     }
 
     /// Reads a sequence of bytes from this storage area. Returns None if storage is inaccessible or
     /// out-of-bounds.
-    pub fn read_bytes(&self, address: RawStorageAddress, count: u16) -> Option<Vec<u8>> {
-        self.storage.read(self.absolute_address(address)?, count)
+    pub fn read_bytes(&mut self, address: RawStorageAddress, count: u16) -> Option<Vec<u8>> {
+        let mut buffer = vec![0; count as usize];
+        self.os_mut().framework.storage_mut().read(self.absolute_address(address)?, &mut buffer[..])?;
+        Some(buffer)
     }
 
     /// Writes a byte to this storage area. Returns None if storage is inaccessible or
     /// out-of-bounds.
-    pub fn write_byte(&self, address: RawStorageAddress, byte: u8) -> Option<()> {
+    pub fn write_byte(&mut self, address: RawStorageAddress, byte: u8) -> Option<()> {
         self.write_bytes(address, &[byte])
     }
 
     /// Writes a sequence of bytes to this storage area. Returns None if storage is inaccessible or
     /// out-of-bounds.
-    pub fn write_bytes(&self, address: RawStorageAddress, bytes: &[u8]) -> Option<()> {
-        self.storage.write(self.absolute_address(address)?, bytes)
+    pub fn write_bytes(&mut self, address: RawStorageAddress, bytes: &[u8]) -> Option<()> {
+        self.os_mut().framework.storage_mut().write(self.absolute_address(address)?, bytes)
     }
 
     /// Returns the absolute address of a `RawStorageAddress`, or None if it is invalid.

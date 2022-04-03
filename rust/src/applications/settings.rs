@@ -25,42 +25,12 @@ impl<F: ApplicationFramework> Application for SettingsApplication<F> {
     }
 
     fn new(os: *mut OperatingSystem<F>) -> Self {
-        Self {
+        let mut result = Self {
             os,
-
-            menu: UIMenu::new(os, vec![
-                // UIMenuItem {
-                //     title: "Show frame time".into(),
-                //     icon: "settings_show_frame_time".into(),
-                //     toggle: Some(os().filesystem.settings.values.show_frame_time),
-                // },
-                // UIMenuItem {
-                //     title: "Show heap usage".into(),
-                //     icon: "settings_show_memory_usage".into(),
-                //     toggle: Some(os().filesystem.settings.values.show_heap_usage),
-                // },
-                // UIMenuItem {
-                //     title: "Fire button press only".into(),
-                //     icon: "settings_fire_button_press_only".into(),
-                //     toggle: Some(os().filesystem.settings.values.fire_button_press_only),
-                // },
-                UIMenuItem {
-                    title: "Graphics benchmark".into(),
-                    icon: "settings_graphics_benchmark".into(),
-                    toggle: None,
-                },
-                // UIMenuItem {
-                //     title: "Run test suite".into(),
-                //     icon: "settings_test".into(),
-                //     toggle: None,
-                // },
-                // UIMenuItem {
-                //     title: "Memory leak test".into(),
-                //     icon: "settings_memory_leak".into(),
-                //     toggle: None,
-                // }
-            ]),
-        }
+            menu: UIMenu::new(os, vec![]),
+        };
+        result.build_menu();
+        result
     }
 
     fn tick(&mut self) {
@@ -82,12 +52,53 @@ impl<F: ApplicationFramework> Application for SettingsApplication<F> {
 }
 
 impl<F: ApplicationFramework> SettingsApplication<F> {
-    fn change_selected_setting(&mut self) {
-        match self.menu.selected_index {
-            0 => self.graphics_benchmark(),
+    fn build_menu(&mut self) {
+        self.menu.items = vec![
+            UIMenuItem {
+                title: "Show frame time".into(),
+                icon: "settings_show_frame_time".into(),
+                toggle: Some(self.os().filesystem.settings.values.show_frame_time),
+            },
+            UIMenuItem {
+                title: "Show heap usage".into(),
+                icon: "settings_show_memory_usage".into(),
+                toggle: Some(self.os().filesystem.settings.values.show_heap_usage),
+            },
+            UIMenuItem {
+                title: "Graphics benchmark".into(),
+                icon: "settings_graphics_benchmark".into(),
+                toggle: None,
+            },
+            // UIMenuItem {
+            //     title: "Run test suite".into(),
+            //     icon: "settings_test".into(),
+            //     toggle: None,
+            // },
+            // UIMenuItem {
+            //     title: "Memory leak test".into(),
+            //     icon: "settings_memory_leak".into(),
+            //     toggle: None,
+            // }
+        ];
+    }
 
-            // 0 => self.toggle_setting(0, &mut os().filesystem.settings.values.show_frame_time),
-            // 1 => self.toggle_setting(1, &mut os().filesystem.settings.values.show_heap_usage),
+    fn change_selected_setting(&mut self) {
+        let setting_value: &mut bool;
+        let index: usize;
+
+        match self.menu.selected_index {
+            0 => {
+                setting_value = &mut self.os_mut().filesystem.settings.values.show_frame_time;
+                index = 0;
+            }
+            1 => {
+                setting_value = &mut self.os_mut().filesystem.settings.values.show_heap_usage;
+                index = 1;
+            }
+            2 => {
+                self.graphics_benchmark();
+                return
+            }
             // 2 => {
             //     // Show a warning if we're turning it on
             //     if !os().filesystem.settings.values.fire_button_press_only {
@@ -102,14 +113,12 @@ impl<F: ApplicationFramework> SettingsApplication<F> {
             
             _ => unreachable!()
         }
-    }
 
-    // fn toggle_setting(&mut self, index: usize, setting: &mut bool) {
-    //     *setting = !*setting;
-    //     self.menu.items[index].toggle = Some(*setting);
-        
-    //     os().filesystem.settings.save();
-    // }
+        *setting_value = !*setting_value;
+        self.menu.items[index].toggle = Some(*setting_value);
+
+        self.os_mut().filesystem.settings.save();
+    }
 
     fn graphics_benchmark(&self) {
         // TODO: We could test sprites too
