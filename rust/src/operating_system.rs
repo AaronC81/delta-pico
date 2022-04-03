@@ -160,51 +160,51 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
     /// These menus are typically to be opened with the LIST key. If `can_close` is true, pressing
     /// LIST will return None.
     pub fn ui_open_menu(&mut self, items: &[String], can_close: bool) -> Option<usize> {
-        todo!()
-        // const ITEM_GAP: i64 = 30;
-        // let mut selected_index = 0;
+        const ITEM_GAP: i16 = 30;
+        let mut selected_index = 0;
 
-        // loop {
-        //     // Draw background
-        //     let mut y = (self.framework.display().height() as i64 - ITEM_GAP * items.len() as i64 - 10) as i64;
-        //     self.framework.display().draw_rect(0, y, 240, 400, Colour::GREY, ShapeFill::Filled, 10);
-        //     self.framework.display().draw_rect(0, y, 240, 400, Colour::WHITE, ShapeFill::Hollow, 10);
+        loop {
+            // Draw background
+            let mut y = self.framework.display().height() as i16 - ITEM_GAP * items.len() as i16 - 10;
+            self.framework.display_mut().draw_rect(0, y, 240, 400, Colour::GREY, ShapeFill::Filled, 10);
+            self.framework.display_mut().draw_rect(0, y, 240, 400, Colour::WHITE, ShapeFill::Hollow, 10);
 
-        //     // Draw items
-        //     y += 10;
-        //     for (i, item) in items.iter().enumerate() {
-        //         if i == selected_index {
-        //             self.framework.display().draw_rect(
-        //                 5, y, self.framework.display().width() as i64 - 5 * 2, 25,
-        //                 Colour::BLUE, ShapeFill::Filled, 7
-        //             );
-        //         }
-        //         self.framework.display().print_at(10, y as i64 + 4, item);
+            // Draw items
+            y += 10;
+            for (i, item) in items.iter().enumerate() {
+                if i == selected_index {
+                    let width = self.framework.display().width();
+                    self.framework.display_mut().draw_rect(
+                        5, y as i16, width - 5 * 2, 25,
+                        Colour::BLUE, ShapeFill::Filled, 7
+                    );
+                }
+                self.framework.display_mut().print_at(10, y + 4, item);
 
-        //         y += ITEM_GAP;
-        //     }
+                y += ITEM_GAP;
+            }
 
-        //     self.framework.display().draw();
+            self.framework.display_mut().draw();
 
-        //     if let Some(btn) = framework().buttons.wait_press() {
-        //         match btn {
-        //             OSInput::MoveUp => {
-        //                 if selected_index == 0 {
-        //                     selected_index = items.len() - 1;
-        //                 } else {
-        //                     selected_index -= 1;
-        //                 }
-        //             }
-        //             OSInput::MoveDown => {
-        //                 selected_index += 1;
-        //                 selected_index %= items.len();
-        //             }
-        //             OSInput::Exe => return Some(selected_index),
-        //             OSInput::List if can_close => return None,
-        //             _ => (),
-        //         }
-        //     }
-        // }
+            if let Some(btn) = self.input() {
+                match btn {
+                    OSInput::Button(ButtonInput::MoveUp) => {
+                        if selected_index == 0 {
+                            selected_index = items.len() - 1;
+                        } else {
+                            selected_index -= 1;
+                        }
+                    }
+                    OSInput::Button(ButtonInput::MoveDown) => {
+                        selected_index += 1;
+                        selected_index %= items.len();
+                    }
+                    OSInput::Button(ButtonInput::Exe) => return Some(selected_index),
+                    OSInput::Button(ButtonInput::List) if can_close => return None,
+                    _ => (),
+                }
+            }
+        }
     }
 
     /// Opens an rbop input box with the given `title` and optionally starts the node tree at the
