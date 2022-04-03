@@ -26,7 +26,7 @@ use button_matrix::{RawButtonEvent, ButtonMatrix};
 use cat24c::Cat24C;
 use cortex_m::{prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_spi_FullDuplex, _embedded_hal_blocking_delay_DelayMs}, delay::Delay};
 use cortex_m_rt::entry;
-use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, Colour, ButtonsInterface, ButtonEvent, ButtonInput, StorageInterface}, delta_pico_main};
+use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, Colour, ButtonsInterface, ButtonEvent, ButtonInput, StorageInterface, ShapeFill}, delta_pico_main};
 use embedded_hal::{digital::v2::OutputPin, spi::MODE_0, blocking::delay::DelayMs, can::Frame, blocking::i2c::{Write, Read}};
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
 
@@ -263,8 +263,9 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
         self.cursor_x += Into::<i16>::into(character_bitmap[0]) - 1;
     } 
     fn draw_line(&mut self, x1: i16, y1: i16, x2: i16, y2: i16, c: Colour) { }
-    fn draw_rect(&mut self, x1: i16, y1: i16, w: u16, h: u16, c: Colour, fill: delta_pico_rust::interface::ShapeFill, radius: u16) {
-        self.screen_sprite.draw_filled_rect(x1, y1, w, h, c.into()).unwrap();
+    fn draw_rect(&mut self, x1: i16, y1: i16, w: u16, h: u16, c: Colour, fill: ShapeFill, radius: u16) {
+        // TODO: radius ignored
+        self.screen_sprite.draw_rect(x1, y1, w, h, fill == ShapeFill::Filled, c.into()).unwrap();
     }
     fn draw_sprite(&mut self, x: i16, y: i16, sprite: &Self::Sprite) { }
     fn draw_bitmap(&mut self, x: i16, y: i16, name: &str) {

@@ -9,7 +9,7 @@ pub trait DrawingSurface {
     type Error;
 
     fn fill_surface(&mut self, colour: Colour) -> Result<(), Self::Error>;
-    fn draw_filled_rect(&mut self, x: i16, y: i16, w: u16, h: u16, colour: Colour) -> Result<(), Self::Error>;
+    fn draw_rect(&mut self, x: i16, y: i16, w: u16, h: u16, filled: bool, colour: Colour) -> Result<(), Self::Error>;
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -49,7 +49,7 @@ impl DrawingSurface for Sprite {
         Ok(())
     }
 
-    fn draw_filled_rect(&mut self, x: i16, y: i16, mut w: u16, mut h: u16, colour: Colour) -> Result<(), Self::Error> {
+    fn draw_rect(&mut self, x: i16, y: i16, mut w: u16, mut h: u16, filled: bool, colour: Colour) -> Result<(), Self::Error> {
         // If the rectangle spills over the left, adjust width and X origin so we still start
         // in-bounds (which also allows `x` to become unsigned)
         let x = if x < 0 {
@@ -82,10 +82,19 @@ impl DrawingSurface for Sprite {
             if curr_y < 0 { continue; }
             let curr_y = curr_y as usize;
 
-            self.data[
-                (curr_y * self.width as usize + x)
-                ..(curr_y * self.width as usize + x + w as usize)
-            ].fill(colour);
+            if filled {
+                self.data[
+                    (curr_y * self.width as usize + x)
+                    ..(curr_y * self.width as usize + x + w as usize)
+                ].fill(colour);
+            } else {
+                // Only draw on a border
+                for curr_x in x..(x + w as usize) {
+                    if curr_x == x || curr_y == y || curr_x == (x + w as usize - 1) || curr_y == (y + h as usize - 1) {
+                        *self.pixel(curr_x as u16, curr_y as u16) = colour;
+                    }
+                }
+            }
         }
 
         Ok(())
