@@ -5,6 +5,11 @@ mod config {
     pub const REVISION_NAME: &str = "Rev. 3";
 }
 
+#[cfg(not(delta_pico_rev = "rev3"))]
+mod config {
+    pub const REVISION_NAME: &str = "Unknown";
+}
+
 pub use config::*;
 
 pub const BUTTON_MAPPING: [[I; 7]; 7] = [
