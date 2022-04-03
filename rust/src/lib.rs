@@ -19,7 +19,7 @@ pub mod timer;
 pub mod multi_tap;
 // pub mod tests;
 
-use interface::{ApplicationFramework, DisplayInterface, ButtonInput};
+use interface::{ApplicationFramework, DisplayInterface, ButtonInput, StorageInterface};
 
 use crate::{interface::Colour, operating_system::{OSInput, OperatingSystem}};
 
@@ -43,9 +43,9 @@ pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: 
     os.application_list.add::<applications::storage::StorageApplication<F>>();
     os.application_list.add::<applications::bootloader::BootloaderApplication<F>>();
 
-    // if !(os.framework.storage.connected)() {
-    //     os.ui_text_dialog("Unable to communicate with storage.");
-    // }
+    if !os.framework.storage_mut().is_connected() {
+        os.ui_text_dialog("Unable to communicate with storage.");
+    }
 
     // Show a splash screen while we load storage
     os.framework.display_mut().fill_screen(Colour::BLACK);
