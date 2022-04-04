@@ -1,6 +1,7 @@
 use alloc::{string::ToString, vec};
+use az::SaturatingAs;
 use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{UnstructuredNodeRoot, MoveResult}, render::{Area, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility, SizedGlyph}};
-use crate::{interface::{Colour, ShapeFill, FontSize, ButtonInput, ApplicationFramework}, operating_system::{OSInput, OperatingSystem}, graphics::Sprite, util::SaturatingInto};
+use crate::{interface::{Colour, ShapeFill, FontSize, ButtonInput, ApplicationFramework}, operating_system::{OSInput, OperatingSystem}, graphics::Sprite};
 
 use core::cmp::max;
 
@@ -217,7 +218,7 @@ impl Renderer for &mut Sprite {
         }
 
         let point = glyph.point;
-        let (x, y) = (point.x.saturating_into(), point.y.saturating_into());
+        let (x, y) = (point.x.saturating_as::<i16>(), point.y.saturating_as::<i16>());
 
         match glyph.glyph.glyph {
             Glyph::Digit { number } => self.draw_char_at(x, y, (number + b'0') as char),

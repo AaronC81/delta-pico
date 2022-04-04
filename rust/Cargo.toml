@@ -12,6 +12,7 @@ rbop = { path = "../../rbop" }
 rust_decimal = { version = "1.9.0", default-features = false }
 rand = { version = "0.4", default-features = false }
 num-traits = { version = "0.2.14", default-features = false }
+az = "1.2.0"
 
 # crates.io latest version is very out-of-date and doesn't build
 fatfs = { git = "https://github.com/rafalh/rust-fatfs", version = "0.4.0", default-features = false }

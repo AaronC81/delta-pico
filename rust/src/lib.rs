@@ -23,7 +23,6 @@ pub mod timer;
 pub mod multi_tap;
 // pub mod tests;
 pub mod graphics;
-pub mod util;
 
 use interface::{ApplicationFramework, DisplayInterface, ButtonInput, StorageInterface};
 

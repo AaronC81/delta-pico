@@ -1,11 +1,12 @@
 use alloc::{boxed::Box, format, string::{String, ToString}, vec::Vec, rc::Rc};
+use az::SaturatingAs;
 use rbop::{Number, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 use core::{cmp::max, mem, slice, marker::PhantomData, cell::{RefCell, RefMut}, borrow::{Borrow, BorrowMut}};
 
 use crate::{
     applications::{Application, ApplicationList, menu::MenuApplication},
     // filesystem::{CalculationHistory, ChunkTable, Filesystem, RawStorage, Settings, FatInterface},
-    interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, SettingsValues}, graphics::Sprite, rbop_impl::RbopContext, util::SaturatingInto,
+    interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, SettingsValues}, graphics::Sprite, rbop_impl::RbopContext,
     // multi_tap::MultiTapState,
     // rbop_impl::RbopContext,
     // c_allocator::{MEMORY_USAGE, EXTERNAL_MEMORY_USAGE, MAX_MEMORY_USAGE, MAX_EXTERNAL_MEMORY_USAGE}
@@ -265,8 +266,8 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
                 Some(&mut rbop_ctx.nav_path.to_navigator()),
                 LayoutComputationProperties::default(),
             );
-            let height: u16 = max(layout.area.height, minimum_height.into()).saturating_into();
-            let width: u16 = layout.area.width.saturating_into();
+            let height: u16 = max(layout.area.height, minimum_height.into()).saturating_as::<u16>();
+            let width = layout.area.width.saturating_as::<u16>();
 
             if height > minimum_height {
                 minimum_height = height;
@@ -280,11 +281,11 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
                 - height
                 - 30
                 - PADDING as u16 * 2;
-            self.display_sprite.draw_rect(0, y.saturating_into(), 240, 400, Colour::GREY, ShapeFill::Filled, 10);
-            self.display_sprite.draw_rect(0, y.saturating_into(), 240, 400, Colour::WHITE, ShapeFill::Hollow, 10);      
+            self.display_sprite.draw_rect(0, y.saturating_as::<i16>(), 240, 400, Colour::GREY, ShapeFill::Filled, 10);
+            self.display_sprite.draw_rect(0, y.saturating_as::<i16>(), 240, 400, Colour::WHITE, ShapeFill::Hollow, 10);      
             
             // Draw title
-            self.display_sprite.print_at(PADDING, y.saturating_into() + PADDING, &title.clone());
+            self.display_sprite.print_at(PADDING, y.saturating_as::<i16>() + PADDING, &title.clone());
 
             // Draw background and expression to sprite
             rbop_ctx.sprite.fill(Colour::GREY);

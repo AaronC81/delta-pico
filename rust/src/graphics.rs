@@ -1,7 +1,8 @@
 use core::convert::Infallible;
 
 use alloc::{vec, vec::Vec, string::{String, ToString}};
-use crate::{interface::{Colour, FontSize, ShapeFill}, util::SaturatingInto};
+use az::SaturatingAs;
+use crate::{interface::{Colour, FontSize, ShapeFill}};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Sprite {
@@ -161,7 +162,7 @@ impl Sprite {
     pub fn draw_sprite(&mut self, x: i16, y: i16, sprite: &mut Sprite) {
         for x_offset in 0..sprite.width {
             for y_offset in 0..sprite.height {
-                if let Some(px) = self.try_pixel(x + x_offset.saturating_into(), y + y_offset.saturating_into()) {
+                if let Some(px) = self.try_pixel(x + x_offset.saturating_as::<i16>(), y + y_offset.saturating_as::<i16>()) {
                     *px = *sprite.pixel(x_offset, y_offset);
                 }
             }
