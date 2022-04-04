@@ -1,7 +1,7 @@
 use core::convert::Infallible;
 
 use alloc::{vec, vec::Vec, string::{String, ToString}};
-use crate::interface::{Colour, FontSize, ShapeFill};
+use crate::{interface::{Colour, FontSize, ShapeFill}, util::SaturatingInto};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Sprite {
@@ -22,6 +22,17 @@ impl Sprite {
             cursor_x: 0,
             cursor_y: 0,
         }
+    }
+
+    pub fn empty() -> Sprite {
+        Sprite::new(0, 0)
+    }
+
+    pub fn resize(&mut self, width: u16, height: u16) {
+        self.width = width;
+        self.height = height;
+        self.data.resize(width as usize * height as usize, Colour::BLACK);
+        self.fill(Colour::BLACK);
     }
 
     pub fn pixel(&mut self, x: u16, y: u16) -> &mut Colour {
@@ -146,6 +157,16 @@ impl Sprite {
 
         self.cursor_x += Into::<i16>::into(character_bitmap[0]) - 1;
     } 
+
+    pub fn draw_sprite(&mut self, x: i16, y: i16, sprite: &mut Sprite) {
+        for x_offset in 0..sprite.width {
+            for y_offset in 0..sprite.height {
+                if let Some(px) = self.try_pixel(x + x_offset.saturating_into(), y + y_offset.saturating_into()) {
+                    *px = *sprite.pixel(x_offset, y_offset);
+                }
+            }
+        }
+    }
 
     pub fn draw_bitmap(&mut self, x: i16, y: i16, name: &str) {
         // Look up bitmap

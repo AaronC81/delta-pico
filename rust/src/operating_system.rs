@@ -5,7 +5,7 @@ use core::{cmp::max, mem, slice, marker::PhantomData, cell::{RefCell, RefMut}, b
 use crate::{
     applications::{Application, ApplicationList, menu::MenuApplication},
     // filesystem::{CalculationHistory, ChunkTable, Filesystem, RawStorage, Settings, FatInterface},
-    interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, SettingsValues}, graphics::Sprite,
+    interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, SettingsValues}, graphics::Sprite, rbop_impl::RbopContext, util::SaturatingInto,
     // multi_tap::MultiTapState,
     // rbop_impl::RbopContext,
     // c_allocator::{MEMORY_USAGE, EXTERNAL_MEMORY_USAGE, MAX_MEMORY_USAGE, MAX_EXTERNAL_MEMORY_USAGE}
@@ -237,72 +237,78 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
     /// Opens an rbop input box with the given `title` and optionally starts the node tree at the
     /// given `root`. When the user presses EXE, returns the current node tree.
     pub fn ui_input_expression(&mut self, title: impl Into<String>, root: Option<UnstructuredNodeRoot>) -> UnstructuredNodeRoot {
-        todo!()
-        // const PADDING: u64 = 10;
+        const PADDING: i16 = 10;
         
-        // let mut rbop_ctx = RbopContext {
-        //     viewport: Some(Viewport::new(Area::new(
-        //         self.framework.display().width - PADDING * 2,
-        //         self.framework.display().height - PADDING * 2,
-        //     ))),
-        //     ..RbopContext::new()
-        // };
+        let mut expression_sprite = Sprite::empty();
+        let mut rbop_ctx = RbopContext {
+            viewport: Some(Viewport::new(Area::new(
+                (self.display_sprite.width - PADDING as u16 * 2).into(),
+                (self.display_sprite.height - PADDING as u16 * 2).into(),
+            ))),
+            ..RbopContext::new(self as *mut _, &mut expression_sprite)
+        };
 
-        // if let Some(unr) = root {
-        //     rbop_ctx.root = unr;
-        // }
+        if let Some(unr) = root {
+            rbop_ctx.root = unr;
+        }
 
-        // let title = title.into();
+        let title = title.into();
 
-        // // Don't let the box get any shorter than the maximum height it has achieved, or you'll get
-        // // ghost boxes if the height reduces since we don't redraw the whole frame
-        // let mut minimum_height = 0;
+        // Don't let the box get any shorter than the maximum height it has achieved, or you'll get
+        // ghost boxes if the height reduces since we don't redraw the whole frame
+        let mut minimum_height = 0u16;
         
-        // loop {
-        //     // Calculate layout in advance so we know height
-        //     let layout = framework().layout(
-        //         &rbop_ctx.root,
-        //         Some(&mut rbop_ctx.nav_path.to_navigator()),
-        //         LayoutComputationProperties::default(),
-        //     );
-        //     let height = max(layout.area.height, minimum_height);
+        loop {
+            // Calculate layout in advance so we know size
+            let layout = rbop_ctx.sprite.layout(
+                &rbop_ctx.root,
+                Some(&mut rbop_ctx.nav_path.to_navigator()),
+                LayoutComputationProperties::default(),
+            );
+            let height: u16 = max(layout.area.height, minimum_height.into()).saturating_into();
+            let width: u16 = layout.area.width.saturating_into();
 
-        //     if height > minimum_height {
-        //         minimum_height = height;
-        //     }
+            if height > minimum_height {
+                minimum_height = height;
+            }
 
-        //     // Draw background
-        //     let y = self.framework.display().height
-        //         - height
-        //         - 30
-        //         - PADDING * 2;
-        //     self.framework.display().draw_rect(0, y as i64, 240, 400, Colour::GREY, ShapeFill::Filled, 10);
-        //     self.framework.display().draw_rect(0, y as i64, 240, 400, Colour::WHITE, ShapeFill::Hollow, 10);      
+            // Resize the sprite now that we know the size
+            rbop_ctx.sprite.resize(width, height);
+
+            // Draw background of dialog
+            let y = self.display_sprite.height
+                - height
+                - 30
+                - PADDING as u16 * 2;
+            self.display_sprite.draw_rect(0, y.saturating_into(), 240, 400, Colour::GREY, ShapeFill::Filled, 10);
+            self.display_sprite.draw_rect(0, y.saturating_into(), 240, 400, Colour::WHITE, ShapeFill::Hollow, 10);      
             
-        //     // Draw title
-        //     self.framework.display().print_at(PADDING as i64, (y + PADDING) as i64, &title.clone());
+            // Draw title
+            self.display_sprite.print_at(PADDING, y.saturating_into() + PADDING, &title.clone());
 
-        //     // Draw expression
-        //     framework().rbop_location_x = PADDING as i64;
-        //     framework().rbop_location_y = (y + 30 + PADDING) as i64;
-        //     framework().draw_all(
-        //         &rbop_ctx.root, 
-        //         Some(&mut rbop_ctx.nav_path.to_navigator()),
-        //         rbop_ctx.viewport.as_ref(),
-        //     );
+            // Draw background and expression to sprite
+            rbop_ctx.sprite.fill(Colour::GREY);
+            rbop_ctx.sprite.draw_all(
+                &rbop_ctx.root, 
+                Some(&mut rbop_ctx.nav_path.to_navigator()),
+                rbop_ctx.viewport.as_ref(),
+            );
 
-        //     // Push to screen
-        //     self.framework.display().draw();
+            // Draw sprite to screen
+            self.display_sprite.draw_sprite(PADDING, y as i16 + 30 + PADDING, &mut rbop_ctx.sprite);
 
-        //     // Poll for input
-        //     if let Some(input) = framework().buttons.wait_press() {
-        //         if OSInput::Exe == input {
-        //             return rbop_ctx.root;
-        //         } else {
-        //             rbop_ctx.input(input);
-        //         }
-        //     }
-        // }
+            // Update screen
+            self.draw();
+
+            // Poll for input
+            if let Some(input) = self.input() {
+                if input == OSInput::Button(ButtonInput::Exe) {
+                    return rbop_ctx.root;
+                } else {
+                    rbop_ctx.input(input);
+                }
+            }
+        }
     }
 
     /// A variant of `ui_input_expression` which upgrades and evaluates the input.

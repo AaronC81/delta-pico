@@ -5,8 +5,8 @@ use crate::{interface::{Colour, ShapeFill, FontSize, ButtonInput, ApplicationFra
 use core::cmp::max;
 
 pub struct RbopContext<'a, F: ApplicationFramework + 'static> {
-    os: *mut OperatingSystem<F>,
-    sprite: &'a mut Sprite,
+    pub os: *mut OperatingSystem<F>,
+    pub sprite: &'a mut Sprite,
 
     pub root: UnstructuredNodeRoot,
     pub nav_path: NavPath,
