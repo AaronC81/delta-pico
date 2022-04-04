@@ -41,7 +41,7 @@ impl Sprite {
     }
 
     pub fn try_pixel(&mut self, x: i16, y: i16) -> Option<&mut Colour> {
-        if y as usize * self.width as usize + x as usize > self.data.len() {
+        if y as usize * self.width as usize + x as usize >= self.data.len() {
             None
         } else {
             Some(self.pixel(x as u16, y as u16))
@@ -51,9 +51,30 @@ impl Sprite {
     pub fn fill(&mut self, colour: Colour) {
         self.data.fill(colour);
     }
+    
+    pub fn draw_pixel(&mut self, x: i16, y: i16, colour: Colour) {
+        if let Some(px) = self.try_pixel(x, y) {
+            *px = colour;
+        }
+    }
 
-    pub fn draw_line(&self, x1: i64, y1: i64, x2: i64, y2: i64, colour: Colour) {
-        // TODO
+    pub fn draw_line(&mut self, mut x1: i16, mut y1: i16, mut x2: i16, mut y2: i16, colour: Colour) {
+        // We expect the 1s to be lower than the 2s - if not, swap them
+        if x1 > x2 { core::mem::swap(&mut x1, &mut x2); }
+        if y1 > y2 { core::mem::swap(&mut y1, &mut y2); }
+
+        // Only horizontal and vertical lines supported, but the OS doesn't need to draw anything else
+        if y1 == y2 {
+            // Horizontal
+            for x in x1..x2 {
+                self.draw_pixel(x, y1, colour);
+            }
+        } else if x1 == x2 {
+            // Vertical
+            for y in y1..y2 {
+                self.draw_pixel(x1, y, colour);
+            }
+        }
     }
 
     pub fn draw_rect(&mut self, x: i16, y: i16, mut w: u16, mut h: u16, colour: Colour, filled: ShapeFill, radius: u16) {
@@ -100,7 +121,7 @@ impl Sprite {
                 // Only draw on a border
                 for curr_x in x..(x + w as usize) {
                     if curr_x == x || curr_y == y || curr_x == (x + w as usize - 1) || curr_y == (y + h as usize - 1) {
-                        *self.pixel(curr_x as u16, curr_y as u16) = colour;
+                        self.draw_pixel(curr_x as i16, curr_y as i16, colour);
                     }
                 }
             }
@@ -149,9 +170,7 @@ impl Sprite {
                 };
 
                 if alpha_nibble > 0x8 {
-                    if let Some(px) = self.try_pixel(x + ox as i16, y + oy as i16) {
-                        *px = Colour(0xFFFF);
-                    }
+                    self.draw_pixel(x + ox as i16, y + oy as i16, Colour::WHITE);
                 }
             }
         }
@@ -162,9 +181,11 @@ impl Sprite {
     pub fn draw_sprite(&mut self, x: i16, y: i16, sprite: &mut Sprite) {
         for x_offset in 0..sprite.width {
             for y_offset in 0..sprite.height {
-                if let Some(px) = self.try_pixel(x + x_offset.saturating_as::<i16>(), y + y_offset.saturating_as::<i16>()) {
-                    *px = *sprite.pixel(x_offset, y_offset);
-                }
+                self.draw_pixel(
+                    x + x_offset.saturating_as::<i16>(),
+                    y + y_offset.saturating_as::<i16>(),
+                    *sprite.pixel(x_offset, y_offset)
+                );
             }
         }
     }
@@ -189,9 +210,7 @@ impl Sprite {
 
                     if colour != transparency {
                         for i in 0..times {
-                            if let Some(px) = self.try_pixel(x + ox as i16, y + oy as i16 + i as i16) {
-                                *px = Colour(colour).into();
-                            }
+                            self.draw_pixel(x + ox as i16, y + oy as i16 + i as i16, Colour(colour));
                         }
                     }
 
@@ -200,9 +219,7 @@ impl Sprite {
                 } else {
                     let colour = bitmap[index];
                     if colour != transparency {
-                        if let Some(px) = self.try_pixel(x + ox as i16, y + oy as i16) {
-                            *px = Colour(colour).into();
-                        }
+                        self.draw_pixel(x + ox as i16, y + oy as i16, Colour(colour).into());
                     }
                     index += 1;
                 }

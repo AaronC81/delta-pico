@@ -272,7 +272,9 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
             }
 
             // Resize the sprite now that we know the size
-            rbop_ctx.sprite.resize(width, height);
+            // 1 larger to account for the possibility that the cursor is at the end - we told rbop
+            // that the cursor has a width of 0, so it won't account for it in the layout size
+            rbop_ctx.sprite.resize(width + 1, height + 1);
 
             // Draw background of dialog
             let y = self.display_sprite.height

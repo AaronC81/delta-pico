@@ -230,36 +230,36 @@ impl Renderer for &mut Sprite {
             Glyph::Divide => self.draw_char_at(x, y, '/'),
             
             Glyph::Fraction { inner_width } =>
-                self.draw_line(point.x, point.y, point.x + inner_width as i64, point.y, Colour::WHITE),
+                self.draw_line(x, y, x + inner_width.saturating_as::<i16>(), y, Colour::WHITE),
             
             Glyph::Cursor { height } =>
-                self.draw_line(point.x, point.y, point.x, point.y + height as i64, Colour::WHITE),
+                self.draw_line(x, y, x, y + height.saturating_as::<i16>(), Colour::WHITE),
 
             Glyph::Placeholder => self.draw_rect(
                 x, y, 6, 6, Colour::GREY, ShapeFill::Filled, 0
             ),
 
             Glyph::LeftParenthesis { inner_height } => {
-                let inner_height = max(MINIMUM_PAREN_HEIGHT, inner_height) as i64;
+                let inner_height = max(MINIMUM_PAREN_HEIGHT, inner_height).saturating_as::<i16>();
                 
-                self.draw_line(point.x + 3, point.y, point.x + 3, point.y + 1, Colour::WHITE);
-                self.draw_line(point.x + 2, point.y + 2, point.x + 2, point.y + 6, Colour::WHITE);
+                self.draw_line(x + 3, y, x + 3, y + 1, Colour::WHITE);
+                self.draw_line(x + 2, y + 2, x + 2, y + 6, Colour::WHITE);
 
-                self.draw_line(point.x + 1, point.y + 7, point.x + 1, point.y + inner_height - 8, Colour::WHITE);
+                self.draw_line(x + 1, y + 7, x + 1, y + inner_height - 8, Colour::WHITE);
 
-                self.draw_line(point.x + 3, point.y + inner_height - 2, point.x + 3, point.y + inner_height - 1, Colour::WHITE);
-                self.draw_line(point.x + 2, point.y + inner_height - 7, point.x + 2, point.y + inner_height - 3, Colour::WHITE);
+                self.draw_line(x + 3, y + inner_height - 2, x + 3, y + inner_height - 1, Colour::WHITE);
+                self.draw_line(x + 2, y + inner_height - 7, x + 2, y + inner_height - 3, Colour::WHITE);
             }
             Glyph::RightParenthesis { inner_height } => {
-                let inner_height = max(MINIMUM_PAREN_HEIGHT, inner_height) as i64;
+                let inner_height = max(MINIMUM_PAREN_HEIGHT, inner_height).saturating_as::<i16>();
                 
-                self.draw_line(point.x + 1, point.y, point.x + 1, point.y + 1, Colour::WHITE);
-                self.draw_line(point.x + 2, point.y + 2, point.x + 2, point.y + 6, Colour::WHITE);
+                self.draw_line(x + 1, y, x + 1, y + 1, Colour::WHITE);
+                self.draw_line(x + 2, y + 2, x + 2, y + 6, Colour::WHITE);
 
-                self.draw_line(point.x + 3, point.y + 7, point.x + 3, point.y + inner_height - 8, Colour::WHITE);
+                self.draw_line(x + 3, y + 7, x + 3, y + inner_height - 8, Colour::WHITE);
 
-                self.draw_line(point.x + 1, point.y + inner_height - 2, point.x + 1, point.y + inner_height - 1, Colour::WHITE);
-                self.draw_line(point.x + 2, point.y + inner_height - 7, point.x + 2, point.y + inner_height - 3, Colour::WHITE);
+                self.draw_line(x + 1, y + inner_height - 2, x + 1, y + inner_height - 1, Colour::WHITE);
+                self.draw_line(x + 2, y + inner_height - 7, x + 2, y + inner_height - 3, Colour::WHITE);
             }
 
             Glyph::Sqrt { .. } => unimplemented!(),
