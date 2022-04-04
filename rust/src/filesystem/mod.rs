@@ -1,10 +1,10 @@
-// pub mod chunk_table;
+pub mod chunk_table;
 pub mod raw_storage;
 // pub mod calculation_history;
 pub mod settings;
 // pub mod fat_interface;
 
-// pub use chunk_table::*;
+pub use chunk_table::*;
 pub use raw_storage::*;
 // pub use calculation_history::*;
 pub use settings::*;

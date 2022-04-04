@@ -6,6 +6,16 @@ use crate::{interface::{StorageInterface, ApplicationFramework}, operating_syste
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub struct RawStorageAddress(pub u16);
 
+impl RawStorageAddress {
+    pub fn offset(&self, offset: u16) -> RawStorageAddress {
+        RawStorageAddress(self.0 + offset)
+    }
+
+    pub fn signed_offset(&self, offset: i16) -> RawStorageAddress {
+        RawStorageAddress((self.0 as i16 + offset) as u16)
+    }
+}
+
 /// A block of storage which can be used freely to store any data.
 pub struct RawStorage<F: ApplicationFramework + 'static> {
     pub os: *mut OperatingSystem<F>,
@@ -41,6 +51,14 @@ impl<F: ApplicationFramework> RawStorage<F> {
     /// out-of-bounds.
     pub fn write_bytes(&mut self, address: RawStorageAddress, bytes: &[u8]) -> Option<()> {
         self.os_mut().framework.storage_mut().write(self.absolute_address(address)?, bytes)
+    }
+
+    /// Fills `count` bytes with the given byte value, starting from the given address.
+    pub fn fill_bytes(&mut self, address: RawStorageAddress, count: u16, byte: u8) -> Option<()> {
+        for offset in 0..count {
+            self.write_byte(address.offset(offset), byte)?;
+        }
+        Some(())
     }
 
     /// Returns the absolute address of a `RawStorageAddress`, or None if it is invalid.

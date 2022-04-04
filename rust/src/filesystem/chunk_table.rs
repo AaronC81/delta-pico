@@ -2,7 +2,9 @@ use core::convert::TryInto;
 
 use alloc::{vec, vec::Vec};
 
-use crate::interface::StorageInterface;
+use crate::interface::{StorageInterface, ApplicationFramework};
+
+use super::{RawStorage, RawStorageAddress};
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub struct ChunkAddress(pub u16);
@@ -32,43 +34,43 @@ pub struct ChunkIndex(pub u16);
 /// can be derived by the caller from the data in the chunks.
 ///
 /// Chunk 0 will never be allocated, so can be used as a null/unassigned value in the map.
-pub struct ChunkTable<'a> {
+pub struct ChunkTable<F: ApplicationFramework + 'static> {
+    pub storage: RawStorage<F>,
     pub start_address: u16,
     pub chunks: u16,
-    pub storage: &'a mut StorageInterface,
 }
 
-impl<'a> ChunkTable<'a> {
+impl<F: ApplicationFramework + 'static> ChunkTable<F> {
     pub const CHUNK_SIZE: u16 = 16;
     pub const CHUNK_ADDRESS_SIZE: u16 = 2;
 
-    fn chunk_map_address(&self) -> u16 { self.start_address }
+    fn chunk_map_address(&self) -> RawStorageAddress { RawStorageAddress(0) }
     fn chunk_map_length(&self) -> u16 { Self::CHUNK_ADDRESS_SIZE * self.chunks }
     
-    fn chunk_heap_address(&self) -> u16 { self.chunk_map_address() + self.chunk_map_length() }
+    fn chunk_heap_address(&self) -> RawStorageAddress { self.chunk_map_address().offset(self.chunk_map_length()) }
     fn chunk_heap_length(&self) -> u16 { Self::CHUNK_SIZE * self.chunks }
     
-    fn chunk_state_address(&self) -> u16 { self.chunk_heap_address() + self.chunk_heap_length() }
+    fn chunk_state_address(&self) -> RawStorageAddress { self.chunk_heap_address().offset(self.chunk_heap_length()) }
     fn chunk_state_length(&self) -> u16 { self.chunks / 8 }
     
     #[allow(dead_code)]
     fn total_length(&self) -> u16 { self.chunk_map_length() + self.chunk_heap_length() + self.chunk_state_length() }
     
-    /// Given a chunk address, returns the absolute address into the storage device where this
-    /// chunk's first byte is located.
-    fn chunk_to_storage_address(&self, address: ChunkAddress) -> u16 {
+    /// Given a chunk address, returns the address into the storage device where this chunk's first
+    /// byte is located.
+    fn chunk_to_storage_address(&self, address: ChunkAddress) -> RawStorageAddress {
         if address.0 > self.chunks {
             panic!("chunk {} out of range", address.0);
         }
-        self.chunk_heap_address() + Self::CHUNK_SIZE * address.0
+        self.chunk_heap_address().offset(Self::CHUNK_SIZE * address.0)
     } 
     
     /// Given a chunk index, returns the chunk address which this index maps to.
-    pub fn chunk_for_index(&self, index: ChunkIndex) -> Option<ChunkAddress> {
+    pub fn chunk_for_index(&mut self, index: ChunkIndex) -> Option<ChunkAddress> {
         if index.0 >= self.chunks { return None }
         
-        let chunk_address_bytes = self.storage.read(
-            self.chunk_map_address() + Self::CHUNK_ADDRESS_SIZE * index.0,
+        let chunk_address_bytes = self.storage.read_bytes(
+            self.chunk_map_address().offset(Self::CHUNK_ADDRESS_SIZE * index.0),
             Self::CHUNK_ADDRESS_SIZE as u16
         )?;
         let chunk_address = ((chunk_address_bytes[0] as u16) << 8) | chunk_address_bytes[1] as u16;
@@ -81,26 +83,28 @@ impl<'a> ChunkTable<'a> {
     }
 
     /// Sets a chunk index to point to a particular chunk address.
-    pub fn set_chunk_for_index(&self, index: ChunkIndex, address: ChunkAddress) -> Option<()> {
-        self.storage.write(
-            self.chunk_map_address() + Self::CHUNK_ADDRESS_SIZE * index.0,
+    pub fn set_chunk_for_index(&mut self, index: ChunkIndex, address: ChunkAddress) -> Option<()>
+    where [(); Self::CHUNK_SIZE as usize]: {
+        self.storage.write_bytes(
+            self.chunk_map_address().offset(Self::CHUNK_ADDRESS_SIZE * index.0),
             &[(address.0 >> 8) as u8, (address.0 & 0xFF) as u8],
         )
     }
     
     /// Reads one chunk.
-    pub fn read_chunk(&self, address: ChunkAddress) -> Option<Vec<u8>> {
-        self.storage.read(self.chunk_to_storage_address(address), Self::CHUNK_SIZE as u16)
+    pub fn read_chunk(&mut self, address: ChunkAddress) -> Option<Vec<u8>> {
+        self.storage.read_bytes(self.chunk_to_storage_address(address), Self::CHUNK_SIZE as u16)
     }
     
     /// Writes one chunk.
     pub fn write_chunk(&mut self, address: ChunkAddress, data: &[u8; 16]) -> Option<()> {
-        self.storage.write(self.chunk_to_storage_address(address), data)
+        self.storage.write_bytes(self.chunk_to_storage_address(address), data)
     }
 
     /// Writes the given bytes onto the heap starting from the given chunk address. The bytes can
     /// span more than one chunk length.
-    pub fn write_bytes(&mut self, address: ChunkAddress, data: Vec<u8>) -> Option<()> {
+    pub fn write_bytes(&mut self, address: ChunkAddress, data: Vec<u8>) -> Option<()>
+    where [(); Self::CHUNK_SIZE as usize]: {
         for (i, chunk) in data.chunks(16).enumerate() {
             let mut buffer = [0_u8; Self::CHUNK_SIZE as usize];
             for (i, b) in chunk.iter().enumerate() {
@@ -118,8 +122,8 @@ impl<'a> ChunkTable<'a> {
 
         for ci in 0..self.chunk_state_length() {
             // Grab the next 8 flags
-            let chunk_state_byte_address = self.chunk_state_address() + ci;
-            let chunk_state_byte = self.storage.read(chunk_state_byte_address, 1)?[0];
+            let chunk_state_byte_address = self.chunk_state_address().offset(ci);
+            let chunk_state_byte = self.storage.read_bytes(chunk_state_byte_address, 1)?[0];
             
             // Iterate over them
             let mut mask = 0b10000000_u8;
@@ -175,7 +179,8 @@ impl<'a> ChunkTable<'a> {
     }
 
     /// Returns an iterator over the bytes in the heap, starting from the given chunk address.
-    pub fn iter_bytes(&'a self, address: ChunkAddress) -> ChunkTableByteIterator<'a> {
+    pub fn iter_bytes<'a>(&'a mut self, address: ChunkAddress) -> ChunkTableByteIterator<'a, F>
+    where [(); ChunkTable::<F>::CHUNK_SIZE as usize]: {
         ChunkTableByteIterator::new(self, address)
     }
     
@@ -186,10 +191,10 @@ impl<'a> ChunkTable<'a> {
         
         // The fact that states are bit-packed makes this a bit tricker.
         // Start by building up a list of modifications to make, grouped by byte.
-        let mut modifications_by_byte: Vec<(u16, u8)> = vec![];
+        let mut modifications_by_byte: Vec<(RawStorageAddress, u8)> = vec![];
         'outer: for i in 0..length {
             // Calculate byte to modify and bit mask to apply
-            let byte_address = self.chunk_state_address() + (address.0 + i) / 8;
+            let byte_address = self.chunk_state_address().offset((address.0 + i) / 8);
             let bit_mask = 0b10000000 >> ((address.0 + i) % 8);
             
             // Try to find an entry for this byte in the modification list
@@ -205,7 +210,7 @@ impl<'a> ChunkTable<'a> {
         }
         
         // Apply modifications
-        let mut bytes = self.storage.read(modifications_by_byte[0].0, modifications_by_byte.len() as u16)?;
+        let mut bytes = self.storage.read_bytes(modifications_by_byte[0].0, modifications_by_byte.len() as u16)?;
         for (i, (_, mask)) in modifications_by_byte.iter().enumerate() {
             if set_used {
                 bytes[i] |= mask;
@@ -213,7 +218,7 @@ impl<'a> ChunkTable<'a> {
                 bytes[i] &= !mask;
             }
         }
-        self.storage.write(modifications_by_byte[0].0, &bytes)?;
+        self.storage.write_bytes(modifications_by_byte[0].0, &bytes)?;
         
         Some(())
     }
@@ -237,26 +242,28 @@ impl<'a> ChunkTable<'a> {
     ///
     /// Passing `hard` as `true` will zero the entire table, including the heap.
     pub fn clear(&mut self, hard: bool) -> Option<()> {
-        self.storage.clear_range(self.chunk_map_address(), self.chunk_map_length())?;
-        self.storage.clear_range(self.chunk_state_address(), self.chunk_state_length())?;
+        self.storage.fill_bytes(self.chunk_map_address(), self.chunk_map_length(), 0)?;
+        self.storage.fill_bytes(self.chunk_state_address(), self.chunk_state_length(), 0)?;
 
         if hard {
-            self.storage.clear_range(self.chunk_heap_address(), self.chunk_heap_length())?;
+            self.storage.fill_bytes(self.chunk_heap_address(), self.chunk_heap_length(), 0)?;
         }
 
         Some(())
     }
 }
 
-pub struct ChunkTableByteIterator<'a> {
-    pub table: &'a ChunkTable<'a>,
-    buffer: [u8; ChunkTable::CHUNK_SIZE as usize],
+pub struct ChunkTableByteIterator<'a, F: ApplicationFramework + 'static>
+where [(); ChunkTable::<F>::CHUNK_SIZE as usize]: {
+    pub table: &'a mut ChunkTable<F>,
+    buffer: [u8; ChunkTable::<F>::CHUNK_SIZE as usize],
     buffer_index: usize,
     pub chunk: ChunkAddress,
 }
 
-impl<'a> ChunkTableByteIterator<'a> {
-    fn new(table: &'a ChunkTable<'a>, chunk: ChunkAddress) -> Self {
+impl<'a, F: ApplicationFramework + 'static> ChunkTableByteIterator<'a, F>
+where [(); ChunkTable::<F>::CHUNK_SIZE as usize]: {
+    fn new(table: &'a mut ChunkTable<F>, chunk: ChunkAddress) -> Self {
         let initial_buffer = table.read_chunk(chunk).unwrap().try_into().unwrap();
         Self {
             table,
@@ -267,7 +274,8 @@ impl<'a> ChunkTableByteIterator<'a> {
     }
 }
 
-impl<'a> Iterator for ChunkTableByteIterator<'a> {
+impl<'a, F: ApplicationFramework + 'static> Iterator for ChunkTableByteIterator<'a, F>
+where [(); ChunkTable::<F>::CHUNK_SIZE as usize]: {
     type Item = u8;
 
     fn next(&mut self) -> Option<Self::Item> {

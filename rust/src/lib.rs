@@ -1,5 +1,6 @@
 #![no_std]
 #![feature(default_alloc_error_handler)]
+#![feature(generic_const_exprs)]
 
 extern crate alloc;
 
