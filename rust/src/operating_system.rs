@@ -343,43 +343,45 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
 
     /// Opens a text dialog in the centre of the screen which can be dismissed with EXE.
     pub fn ui_text_dialog(&mut self, s: &str) {
-        todo!()
-        // const H_PADDING: i64 = 30;
-        // const H_INNER_PADDING: i64 = 10;
-        // const V_PADDING: i64 = 10;
-        // let w = self.framework.display().width as i64 - H_PADDING * 2;
-        // let (lines, ch, h) = self.framework.display().wrap_text(s, w - H_INNER_PADDING * 2);
-        // let y_start = (self.framework.display().height as i64 - h) / 2;
+        const H_PADDING: u16 = 30;
+        const H_INNER_PADDING: u16 = 10;
+        const V_PADDING: u16 = 10;
 
-        // self.framework.display().draw_rect(
-        //     H_PADDING, y_start,
-        //     w, h + V_PADDING * 2,
-        //     Colour::GREY, ShapeFill::Filled, 10
-        // );
-        // self.framework.display().draw_rect(
-        //     H_PADDING, y_start,
-        //     w, h + V_PADDING * 2,
-        //     Colour::WHITE, ShapeFill::Hollow, 10
-        // );
+        let w = self.display_sprite.width - H_PADDING * 2;
+        let (lines, ch, h) = self.display_sprite.wrap_text(s, w - H_INNER_PADDING * 2);
+        let h = h as u16;
+        let y_start = (self.display_sprite.height - h) / 2;
+
+        self.display_sprite.draw_rect(
+            H_PADDING as i16, y_start as i16,
+            w, h + V_PADDING as u16 * 2,
+            Colour::GREY, ShapeFill::Filled, 10
+        );
+        self.display_sprite.draw_rect(
+            H_PADDING as i16, y_start as i16,
+            w, h + V_PADDING as u16 * 2,
+            Colour::WHITE, ShapeFill::Hollow, 10
+        );
         
-        // for (i, line) in lines.iter().enumerate() {
-        //     self.framework.display().print_at(
-        //         H_PADDING + H_INNER_PADDING, y_start + V_PADDING + ch * i as i64,
-        //         line
-        //     );
-        // }
+        for (i, line) in lines.iter().enumerate() {
+            self.display_sprite.print_at(
+                (H_PADDING + H_INNER_PADDING) as i16,
+                y_start as i16 + V_PADDING as i16 + ch as i16 * i as i16,
+                line
+            );
+        }
 
-        // // Push to screen
-        // self.framework.display().draw();
+        // Push to screen
+        self.draw();
 
-        // // Poll for input
-        // loop {
-        //     if let Some(input) = framework().buttons.wait_press() {
-        //         if OSInput::Exe == input {
-        //             break;
-        //         }
-        //     }
-        // }
+        // Poll for input
+        loop {
+            if let Some(input) = self.input() {
+                if OSInput::Button(ButtonInput::Exe) == input {
+                    break;
+                }
+            }
+        }
     }
 
     /// Utility method to translate a `ButtonInput` to an `OSInput`.
