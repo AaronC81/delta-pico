@@ -15,9 +15,6 @@ mod graphics;
 mod util;
 mod rev;
 
-include!(concat!(env!("OUT_DIR"), "/font_data.rs"));
-include!(concat!(env!("OUT_DIR"), "/bitmap_data.rs"));
-
 use core::{alloc::Layout, panic::PanicInfo};
 
 use alloc::string::{String, ToString};
@@ -221,11 +218,11 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
 
         if character == '\n' as u8 {
             self.cursor_x = 0;
-            self.cursor_y += font_data::droid_sans_20::droid_sans_20_lookup('A' as u8).unwrap()[1] as i16;
+            self.cursor_y += delta_pico_rust::font_data::droid_sans_20::droid_sans_20_lookup('A' as u8).unwrap()[1] as i16;
             return;
         }
 
-        let character_bitmap = font_data::droid_sans_20::droid_sans_20_lookup(character);
+        let character_bitmap = delta_pico_rust::font_data::droid_sans_20::droid_sans_20_lookup(character);
         if character_bitmap.is_none() { return; }
         let character_bitmap = character_bitmap.unwrap();
 
@@ -270,7 +267,7 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
     fn draw_sprite(&mut self, x: i16, y: i16, sprite: &Self::Sprite) { }
     fn draw_bitmap(&mut self, x: i16, y: i16, name: &str) {
         // Look up bitmap
-        let bitmap = bitmap_data::lookup(name);
+        let bitmap = delta_pico_rust::bitmap_data::lookup(name);
 
         let width = bitmap[0];
         let height = bitmap[1];
