@@ -1,7 +1,7 @@
 use core::convert::Infallible;
 
-use alloc::{vec, vec::Vec};
-use crate::interface::Colour;
+use alloc::{vec, vec::Vec, string::{String, ToString}};
+use crate::interface::{Colour, FontSize, ShapeFill};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Sprite {
@@ -36,11 +36,13 @@ impl Sprite {
         }
     }
 
-    fn fill_surface(&mut self, colour: Colour) {
+    pub fn fill(&mut self, colour: Colour) {
         self.data.fill(colour);
     }
 
-    fn draw_rect(&mut self, x: i16, y: i16, mut w: u16, mut h: u16, filled: bool, colour: Colour) {
+    pub fn draw_rect(&mut self, x: i16, y: i16, mut w: u16, mut h: u16, colour: Colour, filled: ShapeFill, radius: u16) {
+        // TODO: radius
+        
         // If the rectangle spills over the left, adjust width and X origin so we still start
         // in-bounds (which also allows `x` to become unsigned)
         let x = if x < 0 {
@@ -73,7 +75,7 @@ impl Sprite {
             if curr_y < 0 { continue; }
             let curr_y = curr_y as usize;
 
-            if filled {
+            if filled == ShapeFill::Filled {
                 self.data[
                     (curr_y * self.width as usize + x)
                     ..(curr_y * self.width as usize + x + w as usize)
@@ -89,7 +91,7 @@ impl Sprite {
         }
     }
 
-    fn draw_char(&mut self, character: u8) {
+    pub fn draw_char(&mut self, character: u8) {
         let (x, y) = self.get_cursor();
 
         if character == '\n' as u8 {
@@ -136,7 +138,7 @@ impl Sprite {
         self.cursor_x += Into::<i16>::into(character_bitmap[0]) - 1;
     } 
 
-    fn draw_bitmap(&mut self, x: i16, y: i16, name: &str) {
+    pub fn draw_bitmap(&mut self, x: i16, y: i16, name: &str) {
         // Look up bitmap
         let bitmap = crate::bitmap_data::lookup(name);
 
@@ -180,17 +182,130 @@ impl Sprite {
             ox += 1;
         }
     }
-    fn print(&mut self, s: &str) {
+    
+    pub fn print(&mut self, s: &str) {
         for c in s.as_bytes() {
             self.draw_char(*c);
         }
     }
 
-    fn set_cursor(&mut self, x: i16, y: i16) {
+    pub fn set_cursor(&mut self, x: i16, y: i16) {
         self.cursor_x = x;
         self.cursor_y = y;
     }
-    fn get_cursor(&self) -> (i16, i16) {
+
+    pub fn get_cursor(&self) -> (i16, i16) {
         (self.cursor_x, self.cursor_y)
     }
+
+    pub fn print_at(&mut self, x: i16, y: i16, s: &str) {
+        self.set_cursor(x, y);
+        self.print(s);
+    }
+
+    pub fn print_centred(&mut self, x: i16, y: i16, w: u16, s: &str) {
+        let (text_width, _) = self.string_size(s);
+
+        let x_offset = (w as i16 - text_width) / 2;
+        self.print_at(x + x_offset, y, s);
+    }
+
+    /// Calculates the size of a SINGLE-LINE string, returning it in the form (width, height).
+    /// 
+    /// The implementation of this function is *very* dodgy, deliberately drawing out-of-bounds and
+    /// watching the cursor. It may not be portable depending on the HAL - if you start getting
+    /// panics when printing, start looking here!
+    pub fn string_size(&mut self, string: &str) -> (i16, i16) {
+        // Won't work for strings with newlines
+
+        // Draw the string off the screen and see how much the cursor moved
+        // HACK: This draws to a buffer, right? Could we be overwriting some random memory by
+        // writing out of bounds??
+        self.set_cursor(0, self.height as i16 + 100);
+        self.print(string);
+        let (x, _) = self.get_cursor();
+        self.print("\n");
+        let (_, y) = self.get_cursor();
+        (x, y - (self.height as i16 + 100))
+    }
+
+    /// Wraps a string by breaking it into lines on whitespace, so that it fits in a given width.
+    /// Returns a tuple in the form:
+    /// 
+    /// (
+    ///     list of lines,
+    ///     height of each line,
+    ///     total height of text,
+    /// )
+    pub fn wrap_text(&mut self, string: &str, width: u16) -> (Vec<String>, i16, i16) {
+        // All characters are assumed to have the same height
+
+        let mut x = 0;
+        let mut y = 0;
+        let mut lines: Vec<String> = vec!["".into()];
+        let char_height = self.string_size("A").1;
+
+        for word in string.split_whitespace() {
+            // Work out size of this word
+            let (this_char_x, this_char_y) = self.string_size(word);
+
+            // Rare special case - what if this word will never fit on a single line?
+            // I've only seen this in panic messages so far
+            // VERY slow, but panic messages occur infrequently enough that I don't think that's a
+            // huge problem
+            if this_char_x > width as i16 {
+                // For clarity (and ease of implementation!) start a new line for extremely long
+                // words
+                lines.push("".into());
+
+                // Break it up character-by-character until we've exhausted the whole word
+                let word_chars = word.chars();
+                let mut buffer = String::new();
+
+                for char in word_chars {
+                    // Add character to buffer
+                    buffer.push(char);
+                    
+                    // If the word no longer fits on a line, insert buffer minus last character as
+                    // a line, start new line, and reset buffer
+                    let (buffer_width, _) = self.string_size(&buffer);
+                    if buffer_width > width as i16 {
+                        buffer.remove(buffer.len() - 1);
+                        lines.last_mut().unwrap().push_str(&buffer);
+
+                        lines.push("".into());
+                        y += this_char_y;
+
+                        buffer = char.to_string();
+                    } 
+                }
+
+                // We might be left with a buffer, empty it and set current X position
+                lines.last_mut().unwrap().push_str(&buffer);
+                lines.last_mut().unwrap().push(' ');
+
+                x = self.string_size(&buffer).0;
+
+                continue;
+            }
+
+            // Is it going to fit on this line?
+            x += this_char_x;
+            if x > width as i16 {
+                // No - start a new line
+                lines.push("".into());
+                x = this_char_x;
+                y += this_char_y;
+            }
+            
+            // Add to end of current line
+            lines.last_mut().unwrap().push_str(word);
+            lines.last_mut().unwrap().push(' ');
+        }
+
+        // Factor in width of last line into height
+        (lines, char_height, y + char_height)
+    }
+
+    // TODO: FontSize
 }

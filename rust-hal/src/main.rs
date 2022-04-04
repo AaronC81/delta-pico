@@ -11,7 +11,6 @@ mod ili9341;
 mod pcf8574;
 mod cat24c;
 mod button_matrix;
-mod graphics;
 mod util;
 mod rev;
 
@@ -23,7 +22,7 @@ use button_matrix::{RawButtonEvent, ButtonMatrix};
 use cat24c::Cat24C;
 use cortex_m::{prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_spi_FullDuplex, _embedded_hal_blocking_delay_DelayMs}, delay::Delay};
 use cortex_m_rt::entry;
-use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, Colour, ButtonsInterface, ButtonEvent, ButtonInput, StorageInterface, ShapeFill}, delta_pico_main};
+use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, Colour, ButtonsInterface, ButtonEvent, ButtonInput, StorageInterface, ShapeFill}, delta_pico_main, graphics::Sprite};
 use embedded_hal::{digital::v2::OutputPin, spi::MODE_0, blocking::delay::DelayMs, can::Frame, blocking::i2c::{Write, Read}};
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
 
@@ -42,8 +41,6 @@ use bsp::{hal::{
 }, pac::I2C0};
 use shared_bus::{BusManagerSimple, I2cProxy, NullMutex, BusManager};
 use util::saturating_into::SaturatingInto;
-
-use crate::graphics::{DrawingSurface, Sprite};
 
 #[global_allocator]
 static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
@@ -136,9 +133,6 @@ fn main() -> ! {
         unsafe { core::ptr::read(DELAY.as_ref().unwrap()) },
     ).init().unwrap();
 
-    // Create screen sprite
-    let sprite = Sprite::new(240, 320);
-
     // Construct PCF8574 instances
     let mut sda_pin = pins.gpio20.into_mode::<FunctionI2C>();
     let mut scl_pin = pins.gpio21.into_mode::<FunctionI2C>();
@@ -170,14 +164,7 @@ fn main() -> ! {
     let flash = Cat24C::new(0x50, unsafe { SHARED_I2C.as_mut().unwrap().acquire_i2c() });
 
     let framework = FrameworkImpl {
-        display: DisplayImpl {
-            ili,
-            screen_sprite: sprite,
-
-            cursor_x: 0,
-            cursor_y: 0,
-        },
-
+        display: DisplayImpl { ili },
         buttons: ButtonsImpl { matrix: buttons },
         storage: StorageImpl { flash },
         
@@ -192,142 +179,14 @@ fn main() -> ! {
 
 struct DisplayImpl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> {
     ili: Ili9341<ili9341::Enabled, SpiD, DcPin, RstPin, Delay>,
-    screen_sprite: Sprite,
-
-    cursor_x: i16,
-    cursor_y: i16,
 }
 
 impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayInterface for DisplayImpl<SpiD, DcPin, RstPin, Delay> {
-    type Sprite = ();
-
     fn width(&self) -> u16 { 240 }
     fn height(&self) -> u16 { 320 }
 
-    fn new_sprite(&mut self, width: u16, height: u16) -> Self::Sprite { todo!() }
-    fn switch_to_sprite(&mut self, sprite: &mut Self::Sprite) { todo!() }
-
-    fn switch_to_screen(&mut self) {}
-
-    fn fill_screen(&mut self, c: Colour) {
-        self.screen_sprite.fill_surface(c.into()).unwrap();
-    }
-
-    fn draw_char(&mut self, character: u8) {
-        let (x, y) = self.get_cursor();
-
-        if character == '\n' as u8 {
-            self.cursor_x = 0;
-            self.cursor_y += delta_pico_rust::font_data::droid_sans_20::droid_sans_20_lookup('A' as u8).unwrap()[1] as i16;
-            return;
-        }
-
-        let character_bitmap = delta_pico_rust::font_data::droid_sans_20::droid_sans_20_lookup(character);
-        if character_bitmap.is_none() { return; }
-        let character_bitmap = character_bitmap.unwrap();
-
-        // TODO: anti-aliasing or any transparency
-        // TODO: font colour
-
-        // Each character is 4bpp;, so we maintain a flip-flopping boolean of whether to read the
-        // upper or lower byte
-        let mut lower_byte = false;
-        let mut index = 2usize;
-
-        let width = character_bitmap[0];
-        let height = character_bitmap[1];
-
-        for ox in 0..width {
-            for oy in 0..height {
-                let alpha_nibble = if lower_byte {
-                    lower_byte = false;
-                    let x = character_bitmap[index] & 0xF;
-                    index += 1;
-                    x
-                } else {
-                    lower_byte = true;
-                    (character_bitmap[index] & 0xF0) >> 4
-                };
-
-                if alpha_nibble > 0x8 {
-                    if let Some(px) = self.screen_sprite.try_pixel(x + ox as i16, y + oy as i16) {
-                        *px = Colour(0xFFFF);
-                    }
-                }
-            }
-        }
-
-        self.cursor_x += Into::<i16>::into(character_bitmap[0]) - 1;
-    } 
-    fn draw_line(&mut self, x1: i16, y1: i16, x2: i16, y2: i16, c: Colour) { }
-    fn draw_rect(&mut self, x1: i16, y1: i16, w: u16, h: u16, c: Colour, fill: ShapeFill, radius: u16) {
-        // TODO: radius ignored
-        self.screen_sprite.draw_rect(x1, y1, w, h, fill == ShapeFill::Filled, c.into()).unwrap();
-    }
-    fn draw_sprite(&mut self, x: i16, y: i16, sprite: &Self::Sprite) { }
-    fn draw_bitmap(&mut self, x: i16, y: i16, name: &str) {
-        // Look up bitmap
-        let bitmap = delta_pico_rust::bitmap_data::lookup(name);
-
-        let width = bitmap[0];
-        let height = bitmap[1];
-        let transparency = bitmap[2];
-        let run_length = bitmap[3];
-    
-        let mut index = 4;
-        let mut ox = 0;
-        while ox < width {
-            let mut oy = 0;
-            while oy < height {
-                if bitmap[index] == run_length {
-                    let times = bitmap[index + 1];
-                    let colour = bitmap[index + 2];
-
-                    if colour != transparency {
-                        for i in 0..times {
-                            if let Some(px) = self.screen_sprite.try_pixel(x + ox as i16, y + oy as i16 + i as i16) {
-                                *px = Colour(colour).into();
-                            }
-                        }
-                    }
-
-                    oy += times - 1;
-                    index += 3;
-                } else {
-                    let colour = bitmap[index];
-                    if colour != transparency {
-                        if let Some(px) = self.screen_sprite.try_pixel(x + ox as i16, y + oy as i16) {
-                            *px = Colour(colour).into();
-                        }
-                    }
-                    index += 1;
-                }
-
-                oy += 1;
-            }
-
-            ox += 1;
-        }
-    }
-    fn print(&mut self, s: &str) {
-        for c in s.as_bytes() {
-            self.draw_char(*c);
-        }
-    }
-
-    fn set_cursor(&mut self, x: i16, y: i16) {
-        self.cursor_x = x;
-        self.cursor_y = y;
-    }
-    fn get_cursor(&self) -> (i16, i16) {
-        (self.cursor_x, self.cursor_y)
-    }
-
-    fn set_font_size(&mut self, size: delta_pico_rust::interface::FontSize) { }
-    fn get_font_size(&self) -> delta_pico_rust::interface::FontSize { delta_pico_rust::interface::FontSize::Default }
-
-    fn draw(&mut self) {
-        self.ili.draw_screen_sprite(&self.screen_sprite).unwrap();
+    fn draw_display_sprite(&mut self, sprite: &Sprite) {
+        self.ili.draw_screen_sprite(sprite).unwrap();
     }
 }
 

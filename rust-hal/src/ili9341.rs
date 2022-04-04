@@ -1,11 +1,10 @@
 use core::marker::PhantomData;
 use cortex_m::prelude::{_embedded_hal_spi_FullDuplex};
-use delta_pico_rust::interface::Colour;
+use delta_pico_rust::{interface::Colour, graphics::Sprite};
 use embedded_hal::{digital::v2::OutputPin, blocking::delay::DelayMs};
 use rp_pico::hal::{Spi, spi::SpiDevice, spi, gpio::{Pin, PinId, Output, PushPull}};
 use nb::{self, block};
 
-use crate::graphics::{Sprite};
 use crate::util::saturating_into::SaturatingInto;
 
 pub struct Enabled;

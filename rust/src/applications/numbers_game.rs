@@ -58,8 +58,7 @@ impl<F: ApplicationFramework> Application for NumbersGame<F> {
     } }
 
     fn tick(&mut self) {
-        self.os_mut().framework.display_mut().fill_screen(Colour::BLACK);
-
+        self.os_mut().display_sprite.fill(Colour::BLACK);
         self.os_mut().ui_draw_title("Numbers Game");
 
         let padding = 10;
@@ -76,9 +75,9 @@ impl<F: ApplicationFramework> Application for NumbersGame<F> {
                     Tile::Filled(n) => (n.to_string(), Colour::ORANGE),
                 };
 
-                self.os_mut().framework.display_mut().draw_rect(x as i16, y as i16, tile_size, tile_size, colour, ShapeFill::Filled, 4);
+                self.os_mut().display_sprite.draw_rect(x as i16, y as i16, tile_size, tile_size, colour, ShapeFill::Filled, 4);
 
-                self.os_mut().framework.display_mut().print_centred(x as i16, (y + tile_size / 3) as i16, tile_size, &format!("  {}  ", text));
+                self.os_mut().display_sprite.print_centred(x as i16, (y + tile_size / 3) as i16, tile_size, &format!("  {}  ", text));
 
                 x += tile_size + padding;
             }
@@ -86,11 +85,11 @@ impl<F: ApplicationFramework> Application for NumbersGame<F> {
             y += tile_size + padding;
         }
 
-        self.os_mut().framework.display_mut().print_at(10, 285, &format!("{}{}", self.score, if self.game_over {
+        self.os_mut().display_sprite.print_at(10, 285, &format!("{}{}", self.score, if self.game_over {
             " | [EXE] Restart"
         } else { "" }));
 
-        self.os_mut().framework.display_mut().draw();
+        self.os_mut().draw();
 
         if let Some(input) = self.os_mut().input() {
             if input == OSInput::Button(ButtonInput::Exe) {

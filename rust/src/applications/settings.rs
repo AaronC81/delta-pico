@@ -34,11 +34,11 @@ impl<F: ApplicationFramework> Application for SettingsApplication<F> {
     }
 
     fn tick(&mut self) {
-        self.os_mut().framework.display_mut().fill_screen(Colour::BLACK);
+        self.os_mut().display_sprite.fill(Colour::BLACK);
         self.os_mut().ui_draw_title("Settings");
 
         self.menu.draw();
-        self.os_mut().framework.display_mut().draw();
+        self.os_mut().draw();
 
         if let Some(btn) = self.os_mut().input() {
             match btn {
@@ -132,24 +132,24 @@ impl<F: ApplicationFramework> SettingsApplication<F> {
         for _ in 0..50 {
             // Clear the screen
             fill_timer.start();
-            self.os_mut().framework.display_mut().fill_screen(Colour::BLACK);
+            self.os_mut().display_sprite.fill(Colour::BLACK);
             fill_timer.stop();
 
             // Draw some rectangles
             rectangles_timer.start();
-            self.os_mut().framework.display_mut().draw_rect(
+            self.os_mut().display_sprite.draw_rect(
                 20, 20, 60, 60, Colour::ORANGE,
                 ShapeFill::Filled, 0
             );
-            self.os_mut().framework.display_mut().draw_rect(
+            self.os_mut().display_sprite.draw_rect(
                 80, 20, 60, 60, Colour::BLUE,
                 ShapeFill::Filled, 11
             );
-            self.os_mut().framework.display_mut().draw_rect(
+            self.os_mut().display_sprite.draw_rect(
                 20, 80, 60, 60, Colour::WHITE,
                 ShapeFill::Hollow, 0
             );
-            self.os_mut().framework.display_mut().draw_rect(
+            self.os_mut().display_sprite.draw_rect(
                 80, 80, 60, 60, Colour::RED,
                 ShapeFill::Hollow, 11
             );
@@ -157,13 +157,13 @@ impl<F: ApplicationFramework> SettingsApplication<F> {
 
             // Draw some text
             text_timer.start();
-            self.os_mut().framework.display_mut().print_at(30, 50, "Hello, world!\nHello again.");
-            self.os_mut().framework.display_mut().print_at(30, 110, "Another line...\nOne final line.");
+            self.os_mut().display_sprite.print_at(30, 50, "Hello, world!\nHello again.");
+            self.os_mut().display_sprite.print_at(30, 110, "Another line...\nOne final line.");
             text_timer.stop();
 
             // Draw to screen
             draw_timer.start();
-            self.os_mut().framework.display_mut().draw();
+            self.os_mut().draw();
             draw_timer.stop();
         }
 
@@ -174,18 +174,18 @@ impl<F: ApplicationFramework> SettingsApplication<F> {
             + draw_timer.elapsed;
 
         // Present the results
-        self.os_mut().framework.display_mut().fill_screen(Colour::BLACK);
+        self.os_mut().display_sprite.fill(Colour::BLACK);
         self.os_mut().ui_draw_title("Results");
 
-        self.os_mut().framework.display_mut().print_at(0, 40, &format!(
+        self.os_mut().display_sprite.print_at(0, 40, &format!(
             "Total: {}\n\n{}{}{}{}\n(Lower is faster)",
             total, fill_timer, rectangles_timer, text_timer, draw_timer
         ));
 
-        self.os_mut().framework.display_mut().print_centred(
+        self.os_mut().display_sprite.print_centred(
             0, 290, self.os().framework.display().width(), "[EXE]: Close"
         );
-        self.os_mut().framework.display_mut().draw();
+        self.os_mut().draw();
 
         // Wait until EXE press
         loop {

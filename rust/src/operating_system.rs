@@ -5,7 +5,7 @@ use core::{cmp::max, mem, slice, marker::PhantomData, cell::{RefCell, RefMut}, b
 use crate::{
     applications::{Application, ApplicationList, menu::MenuApplication},
     // filesystem::{CalculationHistory, ChunkTable, Filesystem, RawStorage, Settings, FatInterface},
-    interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, SettingsValues},
+    interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, SettingsValues}, graphics::Sprite,
     // multi_tap::MultiTapState,
     // rbop_impl::RbopContext,
     // c_allocator::{MEMORY_USAGE, EXTERNAL_MEMORY_USAGE, MAX_MEMORY_USAGE, MAX_EXTERNAL_MEMORY_USAGE}
@@ -29,12 +29,17 @@ pub struct OperatingSystem<F: ApplicationFramework + 'static> {
 
     pub text_mode: bool,
     pub multi_tap: MultiTapState,
+
+    pub display_sprite: Sprite,
 }
 
 impl<F: ApplicationFramework> OperatingSystem<F> {
     pub const TITLE_BAR_HEIGHT: u16 = 30;
     
     pub fn new(mut framework: F) -> Self {
+        let display_width = framework.display().width();
+        let display_height = framework.display().height();
+
         Self {
             framework,
 
@@ -65,6 +70,8 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
 
             text_mode: false,
             multi_tap: MultiTapState::new(),
+
+            display_sprite: Sprite::new(display_width, display_height),
         }
     }
 
@@ -112,6 +119,11 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         }
     }
 
+    /// Draws the display sprite, updating the (physical) display after a set of drawing operations.
+    pub fn draw(&mut self) {
+        self.framework.display_mut().draw_display_sprite(&self.display_sprite)
+    }
+
     /// Toggles whether the global menu is currently being shown.
     pub fn toggle_menu(&mut self) {
         self.showing_menu = !self.showing_menu;
@@ -121,11 +133,11 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
     /// until it is either ejected or the user presses DEL.
     /// Temporary, can be removed when driver interacts directly with storage.
     pub fn save_usb_mass_storage(&mut self) {
-        self.framework.display_mut().fill_screen(Colour::BLACK);
+        self.display_sprite.fill(Colour::BLACK);
         self.ui_draw_title("USB Mass Storage");
         let width = self.framework.display().width();
-        self.framework.display_mut().print_centred(0, 100, width, "Saving...");
-        self.framework.display_mut().draw();
+        self.display_sprite.print_centred(0, 100, width, "Saving...");
+        self.draw();
 
         // TODO
         // unsafe {
@@ -138,9 +150,8 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
 
     /// Draws a title bar to the top of the screen, with the text `s`.
     pub fn ui_draw_title(&mut self, s: &str) {
-        let width = self.framework.display().width();
-        self.framework.display_mut().draw_rect(
-            0, 0, width, Self::TITLE_BAR_HEIGHT,
+        self.display_sprite.draw_rect(
+            0, 0, self.display_sprite.width, Self::TITLE_BAR_HEIGHT,
             Colour::ORANGE, ShapeFill::Filled, 0
         );
 
@@ -152,7 +163,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
             s.to_string()
         };
 
-        self.framework.display_mut().print_at(5, 7, &s);
+        self.display_sprite.print_at(5, 7, &s);
 
         // Draw charge indicator
         // let charge_status = (framework().charge_status)();
@@ -161,11 +172,11 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
 
         // Draw text indicator
         if self.text_mode {
-            self.framework.display_mut().draw_rect(145, 4, 50, 24, Colour::WHITE, ShapeFill::Hollow, 5);
+            self.display_sprite.draw_rect(145, 4, 50, 24, Colour::WHITE, ShapeFill::Hollow, 5);
             if self.multi_tap.shift {
-                self.framework.display_mut().print_at(149, 6, "TEXT");
+                self.display_sprite.print_at(149, 6, "TEXT");
             } else {
-                self.framework.display_mut().print_at(153, 6, "text");
+                self.display_sprite.print_at(153, 6, "text");
             }
         }
     }
@@ -182,25 +193,25 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         loop {
             // Draw background
             let mut y = self.framework.display().height() as i16 - ITEM_GAP * items.len() as i16 - 10;
-            self.framework.display_mut().draw_rect(0, y, 240, 400, Colour::GREY, ShapeFill::Filled, 10);
-            self.framework.display_mut().draw_rect(0, y, 240, 400, Colour::WHITE, ShapeFill::Hollow, 10);
+            self.display_sprite.draw_rect(0, y, 240, 400, Colour::GREY, ShapeFill::Filled, 10);
+            self.display_sprite.draw_rect(0, y, 240, 400, Colour::WHITE, ShapeFill::Hollow, 10);
 
             // Draw items
             y += 10;
             for (i, item) in items.iter().enumerate() {
                 if i == selected_index {
                     let width = self.framework.display().width();
-                    self.framework.display_mut().draw_rect(
+                    self.display_sprite.draw_rect(
                         5, y as i16, width - 5 * 2, 25,
                         Colour::BLUE, ShapeFill::Filled, 7
                     );
                 }
-                self.framework.display_mut().print_at(10, y + 4, item);
+                self.display_sprite.print_at(10, y + 4, item);
 
                 y += ITEM_GAP;
             }
 
-            self.framework.display_mut().draw();
+            self.draw();
 
             if let Some(btn) = self.input() {
                 match btn {
@@ -455,34 +466,34 @@ impl<F: ApplicationFramework> UIMenu<F> {
 
         // Bail early if no items
         if self.items.is_empty() {
-            self.os_mut().framework.display_mut().print_at(75, y, "No items");
+            self.os_mut().display_sprite.print_at(75, y, "No items");
             return;
         }
 
         for (i, item) in self.items.iter().enumerate().skip(self.page_scroll_offset).take(Self::ITEMS_PER_PAGE) {
             // Work out whether we need to wrap
             // TODO: not an exact width
-            let (lines, _, _) = self.os_mut().framework.display_mut().wrap_text(&item.title, 120);
+            let (lines, _, _) = self.os_mut().display_sprite.wrap_text(&item.title, 120);
 
             if i == self.selected_index {
-                self.os_mut().framework.display_mut().draw_rect(
+                self.os_mut().display_sprite.draw_rect(
                     5, y, self.os().framework.display().width() - 5 * 2 - 8, 54,
                     Colour::BLUE, ShapeFill::Filled, 7
                 );
             }
 
             if lines.len() == 1 {
-                self.os_mut().framework.display_mut().print_at(65, y + 18, &lines[0]);
+                self.os_mut().display_sprite.print_at(65, y + 18, &lines[0]);
             } else {
-                self.os_mut().framework.display_mut().print_at(65, y + 7, &lines[0]);
-                self.os_mut().framework.display_mut().print_at(65, y + 28 , &lines[1]);
+                self.os_mut().display_sprite.print_at(65, y + 7, &lines[0]);
+                self.os_mut().display_sprite.print_at(65, y + 28 , &lines[1]);
             }
-            self.os_mut().framework.display_mut().draw_bitmap(7, y + 2, &item.icon);
+            self.os_mut().display_sprite.draw_bitmap(7, y + 2, &item.icon);
 
             // Draw toggle, if necessary
             if let Some(toggle_position) = item.toggle {
                 let toggle_bitmap_name = if toggle_position { "toggle_on" } else { "toggle_off" };
-                self.os_mut().framework.display_mut().draw_bitmap(195, y + 20, toggle_bitmap_name);
+                self.os_mut().display_sprite.draw_bitmap(195, y + 20, toggle_bitmap_name);
             }
 
             y += 54;
@@ -494,8 +505,8 @@ impl<F: ApplicationFramework> UIMenu<F> {
         let scroll_indicator_bar_offset = scroll_indicator_bar_height_per_item * self.page_scroll_offset;
         let scroll_indicator_bar_height = scroll_indicator_bar_height_per_item * core::cmp::min(Self::ITEMS_PER_PAGE, self.items.len());
 
-        self.os_mut().framework.display_mut().draw_rect(
-            self.os_mut().framework.display().width() as i16 - 8, 40 + scroll_indicator_bar_offset as i16,
+        self.os_mut().display_sprite.draw_rect(
+            self.os_mut().display_sprite.width as i16 - 8, 40 + scroll_indicator_bar_offset as i16,
             4, scroll_indicator_bar_height as u16, Colour::DARK_BLUE, ShapeFill::Filled, 2
         );
     }

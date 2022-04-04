@@ -35,8 +35,8 @@ pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: 
     let mut os = OperatingSystem::new(framework);
     os.second_init();
     
-    os.framework.display_mut().fill_screen(Colour(0xFFFF));
-    os.framework.display_mut().draw();
+    os.display_sprite.fill(Colour(0xFFFF));
+    os.draw();
 
     // os().application_list.add::<applications::calculator::CalculatorApplication>();
     // os().application_list.add::<applications::graph::GraphApplication>();
@@ -52,9 +52,9 @@ pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: 
     }
 
     // Show a splash screen while we load storage
-    os.framework.display_mut().fill_screen(Colour::BLACK);
-    os.framework.display_mut().draw_bitmap(60, 80, "splash");
-    os.framework.display_mut().draw();
+    os.display_sprite.fill(Colour::BLACK);
+    os.display_sprite.draw_bitmap(60, 80, "splash");
+    os.draw();
 
     // Temporary
     // framework().storage.with_priority(|| {
@@ -76,22 +76,21 @@ pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: 
         PANIC_HANDLER = Some(Box::new(|info| {
             let os = (PANIC_OS_POINTER as *mut OperatingSystem<F>).as_mut().unwrap();
 
-            os.framework.display_mut().switch_to_screen();
-            os.framework.display_mut().fill_screen(Colour::BLACK);
+            os.display_sprite.fill(Colour::BLACK);
         
             // Draw panic title bar
             let width = os.framework.display().width();
-            os.framework.display_mut().draw_rect(
+            os.display_sprite.draw_rect(
                 0, 0, width, 30,
                 Colour::RED, interface::ShapeFill::Filled, 0,
             );
-            os.framework.display_mut().print_at(5, 7, "Panic   :(");
+            os.display_sprite.print_at(5, 7, "Panic   :(");
         
             // Draw error text
             let (lines, line_height, _) =
-                os.framework.display_mut().wrap_text(&format!("{}", info), width - 20);
+                os.display_sprite.wrap_text(&format!("{}", info), width - 20);
             for (i, line) in lines.iter().enumerate() {
-                os.framework.display_mut().print_at(
+                os.display_sprite.print_at(
                     10, 30 + 5 + line_height * i as i16,
                     line
                 );
@@ -99,11 +98,11 @@ pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: 
         
             // Draw keys
             let height = os.framework.display().height();
-            os.framework.display_mut().print_at(
+            os.display_sprite.print_at(
                 0, height as i16 - 50, "Restart the device, or use\n[EXE] to enter bootloader"
             );
             
-            os.framework.display_mut().draw();
+            os.draw();
         
             loop {
                 if let Some(OSInput::Button(ButtonInput::Exe)) = os.input() {

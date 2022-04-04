@@ -28,7 +28,7 @@ impl<F: ApplicationFramework> Application for MenuApplication<F> {
     }
 
     fn tick(&mut self) {
-        self.os_mut().framework.display_mut().fill_screen(Colour::BLACK);
+        self.os_mut().display_sprite.fill(Colour::BLACK);
         self.os_mut().ui_draw_title("Menu");
 
         // Doesn't work to assign during `new` for some reason, so do this instead
@@ -41,7 +41,7 @@ impl<F: ApplicationFramework> Application for MenuApplication<F> {
             })
             .collect::<Vec<_>>();
         self.menu.draw();
-        self.os_mut().framework.display_mut().draw();
+        self.os_mut().draw();
 
         if let Some(OSInput::Button(btn)) = self.os_mut().input() {
             match btn {
