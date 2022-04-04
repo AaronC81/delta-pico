@@ -1,12 +1,12 @@
 use alloc::{vec, vec::Vec};
 use rbop::{Number, UnstructuredNodeList, node::unstructured::{Serializable, UnstructuredNodeRoot}, error::{NodeError, MathsError}};
 
-use crate::{filesystem::chunk_table::ChunkIndex, interface::framework};
+use crate::{filesystem::chunk_table::ChunkIndex, interface::ApplicationFramework};
 
 use super::chunk_table::{ChunkAddress, ChunkTable};
 
-pub struct CalculationHistory<'a> {
-    pub table: ChunkTable<'a>,
+pub struct CalculationHistory<F: ApplicationFramework + 'static> {
+    pub table: ChunkTable<F>,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -67,26 +67,26 @@ impl Serializable for Calculation {
     }
 }
 
-impl<'a> CalculationHistory<'a> {
-    pub fn read_calculations(&self) -> Option<Vec<Calculation>> {
-        framework().storage.with_priority(|| {
-            let mut idx = ChunkIndex(0);
-            let mut result = vec![];
-            while let Some(calc) = self.read_calculation_at_index(idx) {
-                result.push(calc);
-                idx.0 += 1;
-            }
+// TODO: all of these operations used priority in old framework
 
-            Some(result)
-        })
+impl<F: ApplicationFramework> CalculationHistory<F> {
+    pub fn read_calculations(&mut self) -> Option<Vec<Calculation>> {        
+        let mut idx = ChunkIndex(0);
+        let mut result = vec![];
+        while let Some(calc) = self.read_calculation_at_index(idx) {
+            result.push(calc);
+            idx.0 += 1;
+        }
+
+        Some(result)
     }
 
-    pub fn read_calculation_at_index(&self, idx: ChunkIndex) -> Option<Calculation> {
+    pub fn read_calculation_at_index(&mut self, idx: ChunkIndex) -> Option<Calculation> {
         let chunk = self.table.chunk_for_index(idx)?;        
         Calculation::deserialize(&mut self.table.iter_bytes(chunk))
     }
 
-    fn calculation_area_at_index(&self, idx: ChunkIndex) -> Option<(ChunkAddress, u16)> {
+    fn calculation_area_at_index(&mut self, idx: ChunkIndex) -> Option<(ChunkAddress, u16)> {
         // TODO: deduplicate
         let chunk = self.table.chunk_for_index(idx)?;
         let mut iterator = self.table.iter_bytes(chunk);
@@ -102,25 +102,23 @@ impl<'a> CalculationHistory<'a> {
         idx: ChunkIndex,
         calc: Calculation,
     ) -> Option<()> {
-        framework().storage.with_priority(|| {
-            // If this index was already allocated, free the heap space
-            if let Some((address, length)) = self.calculation_area_at_index(idx) {
-                self.table.free_chunks(address, length);
-            }
+        // If this index was already allocated, free the heap space
+        if let Some((address, length)) = self.calculation_area_at_index(idx) {
+            self.table.free_chunks(address, length);
+        }
 
-            // Serialize new value
-            let bytes = calc.serialize();
-            
-            // Allocate
-            let address = self.table.allocate_chunks(self.table.chunks_required_for_bytes(bytes.len()))?;
+        // Serialize new value
+        let bytes = calc.serialize();
         
-            // Set index
-            self.table.set_chunk_for_index(idx, address)?;
+        // Allocate
+        let address = self.table.allocate_chunks(self.table.chunks_required_for_bytes(bytes.len()))?;
+    
+        // Set index
+        self.table.set_chunk_for_index(idx, address)?;
 
-            // Write
-            self.table.write_bytes(address, bytes)?;
+        // Write
+        self.table.write_bytes(address, bytes)?;
 
-            Some(())
-        })
+        Some(())
     }
 }

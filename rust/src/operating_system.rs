@@ -6,7 +6,7 @@ use core::{cmp::max, mem, slice, marker::PhantomData, cell::{RefCell, RefMut}, b
 use crate::{
     applications::{Application, ApplicationList, menu::MenuApplication},
     // filesystem::{CalculationHistory, ChunkTable, Filesystem, RawStorage, Settings, FatInterface},
-    interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, SettingsValues}, graphics::Sprite, rbop_impl::RbopContext,
+    interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, SettingsValues, CHUNK_SIZE, CHUNK_ADDRESS_SIZE, ChunkTable, CalculationHistory}, graphics::Sprite, rbop_impl::RbopContext,
     // multi_tap::MultiTapState,
     // rbop_impl::RbopContext,
     // c_allocator::{MEMORY_USAGE, EXTERNAL_MEMORY_USAGE, MAX_MEMORY_USAGE, MAX_EXTERNAL_MEMORY_USAGE}
@@ -58,15 +58,23 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
                         start_address: 0,
                         length: Settings::<F>::MINIMUM_STORAGE_SIZE,
                     }
-                )
-                // settings: Settings {
-                //     storage: RawStorage {
-                //         os: core::ptr::null_mut(),
-                //         start_address: 0,
-                //         length: Settings::<F>::MINIMUM_STORAGE_SIZE,
-                //     },
-                //     values: SettingsValues::default(),
-                // }
+                ),
+                
+                calculations: CalculationHistory {
+                    table: ChunkTable {
+                        start_address: 0x1000,
+                        chunks: 1024,
+                        storage: RawStorage {
+                            os: core::ptr::null_mut(),
+                            start_address: 0x1000,
+
+                            length:
+                                CHUNK_SIZE * 1024
+                                + 1024 / 8
+                                + CHUNK_ADDRESS_SIZE * 1024,
+                        },
+                    }
+                },
             },
 
             text_mode: false,
@@ -83,6 +91,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         let ptr = self as *mut _;
         self.application_list.os = ptr;
         self.filesystem.settings.storage.os = ptr;
+        self.filesystem.calculations.table.storage.os = ptr;
 
         // Load storage values
         self.filesystem.settings.load_into_self();

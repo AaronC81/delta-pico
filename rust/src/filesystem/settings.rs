@@ -49,7 +49,6 @@ impl<F: ApplicationFramework> Settings<F> {
     /// if storage is inaccessible. Despite taking `mut self` due to use of the I2C bus, this does
     /// not mutate any values.
     pub fn load(&mut self) -> Option<SettingsValues> {
-        // TODO: fails because no OS pointer yet
         let default = SettingsValues::default();
         Some(SettingsValues {
             // TODO: index 0 should be a storage version
