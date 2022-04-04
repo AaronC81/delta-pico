@@ -5,8 +5,6 @@ use embedded_hal::{digital::v2::OutputPin, blocking::delay::DelayMs};
 use rp_pico::hal::{Spi, spi::SpiDevice, spi, gpio::{Pin, PinId, Output, PushPull}};
 use nb::{self, block};
 
-use crate::util::saturating_into::SaturatingInto;
-
 pub struct Enabled;
 pub struct Disabled;
 pub trait State {}

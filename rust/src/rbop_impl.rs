@@ -1,10 +1,13 @@
 use alloc::{string::ToString, vec};
 use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{UnstructuredNodeRoot, MoveResult}, render::{Area, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility, SizedGlyph}};
-use crate::{interface::{ApplicationFrameworkInterface, Colour, ShapeFill, framework, FontSize}, operating_system::{OSInput, os}};
+use crate::{interface::{Colour, ShapeFill, FontSize, ButtonInput, ApplicationFramework}, operating_system::{OSInput, OperatingSystem}, graphics::Sprite, util::SaturatingInto};
 
 use core::cmp::max;
 
-pub struct RbopContext {
+pub struct RbopContext<'a, F: ApplicationFramework + 'static> {
+    os: *mut OperatingSystem<F>,
+    sprite: &'a mut Sprite,
+
     pub root: UnstructuredNodeRoot,
     pub nav_path: NavPath,
     pub viewport: Option<Viewport>,
@@ -12,9 +15,15 @@ pub struct RbopContext {
     pub input_shift: bool,
 }
 
-impl RbopContext {
-    pub fn new() -> RbopContext {
+impl<'a, F: ApplicationFramework> RbopContext<'a, F> {
+    // Can't use os_accessor! because we have an extra lifetime
+    fn os(&self) -> &OperatingSystem<F> { unsafe { &*self.os } }
+    fn os_mut(&self) -> &mut OperatingSystem<F> { unsafe { &mut *self.os } }
+
+    pub fn new(os: *mut OperatingSystem<F>, sprite: &'a mut Sprite) -> RbopContext<F> {
         RbopContext {
+            os,
+            sprite,
             root: UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![] } },
             nav_path: NavPath::new(vec![0]),
             viewport: None,
@@ -23,83 +32,83 @@ impl RbopContext {
     }
 
     pub fn input(&mut self, input: OSInput) -> Option<(MoveVerticalDirection, MoveResult)> {
-        let renderer = framework();
-
         let node_to_insert = if !self.input_shift {
             match input {        
-                OSInput::MoveLeft => {
-                    self.root.move_left(&mut self.nav_path, renderer, self.viewport.as_mut());
+                OSInput::Button(ButtonInput::MoveLeft) => {
+                    self.root.move_left(&mut self.nav_path, &mut self.sprite, self.viewport.as_mut());
                     None
                 }
-                OSInput::MoveRight => {
-                    self.root.move_right(&mut self.nav_path, renderer, self.viewport.as_mut());
+                OSInput::Button(ButtonInput::MoveRight) => {
+                    self.root.move_right(&mut self.nav_path, &mut self.sprite, self.viewport.as_mut());
                     None
                 }
-                OSInput::MoveUp => {
+                OSInput::Button(ButtonInput::MoveUp) => {
                     return Some((
                         MoveVerticalDirection::Up,
-                        self.root.move_up(&mut self.nav_path, renderer, self.viewport.as_mut())
+                        self.root.move_up(&mut self.nav_path, &mut self.sprite, self.viewport.as_mut())
                     ));
                 }
-                OSInput::MoveDown => {
+                OSInput::Button(ButtonInput::MoveDown) => {
                     return Some((
                         MoveVerticalDirection::Down,
-                        self.root.move_down(&mut self.nav_path, renderer, self.viewport.as_mut())
+                        self.root.move_down(&mut self.nav_path, &mut self.sprite, self.viewport.as_mut())
                     ));
                 }
-                OSInput::Delete => {
-                    self.root.delete(&mut self.nav_path, renderer, self.viewport.as_mut());
+                OSInput::Button(ButtonInput::Delete) => {
+                    self.root.delete(&mut self.nav_path, &mut self.sprite, self.viewport.as_mut());
                     None
                 }
-                OSInput::Clear => {
-                    self.root.clear(&mut self.nav_path, renderer, self.viewport.as_mut());
+                OSInput::Button(ButtonInput::Clear) => {
+                    self.root.clear(&mut self.nav_path, &mut self.sprite, self.viewport.as_mut());
                     None
                 }
         
-                OSInput::Digit(d) => Some(UnstructuredNode::Token(Token::Digit(d))),
+                OSInput::Button(ButtonInput::Digit(d)) => Some(UnstructuredNode::Token(Token::Digit(d))),
         
-                OSInput::Point => Some(UnstructuredNode::Token(Token::Point)),
-                OSInput::Parentheses => Some(UnstructuredNode::Parentheses(
+                OSInput::Button(ButtonInput::Point) => Some(UnstructuredNode::Token(Token::Point)),
+                OSInput::Button(ButtonInput::Parentheses) => Some(UnstructuredNode::Parentheses(
                     UnstructuredNodeList { items: vec![] },
                 )),
         
-                OSInput::Add => Some(UnstructuredNode::Token(Token::Add)),
-                OSInput::Subtract => Some(UnstructuredNode::Token(Token::Subtract)),
-                OSInput::Multiply => Some(UnstructuredNode::Token(Token::Multiply)),
-                OSInput::Fraction => Some(UnstructuredNode::Fraction(
+                OSInput::Button(ButtonInput::Add) => Some(UnstructuredNode::Token(Token::Add)),
+                OSInput::Button(ButtonInput::Subtract) => Some(UnstructuredNode::Token(Token::Subtract)),
+                OSInput::Button(ButtonInput::Multiply) => Some(UnstructuredNode::Token(Token::Multiply)),
+                OSInput::Button(ButtonInput::Fraction) => Some(UnstructuredNode::Fraction(
                     UnstructuredNodeList { items: vec![] },
                     UnstructuredNodeList { items: vec![] },
                 )),
-                OSInput::Power => Some(UnstructuredNode::Power(
+                OSInput::Button(ButtonInput::Power) => Some(UnstructuredNode::Power(
                     UnstructuredNodeList { items: vec![] },
                 )),
 
                 OSInput::TextMultiTapNew(c) => Some(UnstructuredNode::Token(Token::Variable(c))),
                 OSInput::TextMultiTapCycle(c) => {
-                    self.root.delete(&mut self.nav_path, renderer, self.viewport.as_mut());
+                    self.root.delete(&mut self.nav_path, &mut self.sprite, self.viewport.as_mut());
                     Some(UnstructuredNode::Token(Token::Variable(c)))
                 }
 
-                OSInput::Exe => return None,
-                OSInput::List => return None,
-                OSInput::Shift => {
+                OSInput::Button(ButtonInput::Exe) => return None,
+                OSInput::Button(ButtonInput::List) => return None,
+                OSInput::Button(ButtonInput::Shift) => {
                     // TODO: should there just be one shift?
-                    if os().text_mode {
-                        os().multi_tap.shift = true;
+                    if self.os().text_mode {
+                        self.os_mut().multi_tap.shift = true;
                     } else {
                         self.input_shift = true;
                     }
                     None
                 }
+
+                _ => todo!(),
             }
         } else {
             let mut input_pressed = true;
             let node = match input {
-                OSInput::Shift => {
+                OSInput::Button(ButtonInput::Shift) => {
                     self.input_shift = false;
                     None
                 }
-                OSInput::Digit(0) => Some(UnstructuredNode::Token(Token::Variable('x'))),
+                OSInput::Button(ButtonInput::Digit(0)) => Some(UnstructuredNode::Token(Token::Variable('x'))),
 
                 _ => {
                     input_pressed = false;
@@ -115,7 +124,7 @@ impl RbopContext {
         };
     
         if let Some(node) = node_to_insert {
-            self.root.insert(&mut self.nav_path, renderer, self.viewport.as_mut(), node);
+            self.root.insert(&mut self.nav_path, &mut self.sprite, self.viewport.as_mut(), node);
         }
 
         None
@@ -124,17 +133,16 @@ impl RbopContext {
 
 const MINIMUM_PAREN_HEIGHT: u64 = 16;
 
-impl Renderer for ApplicationFrameworkInterface {
+impl Renderer for &mut Sprite {
     fn size(&mut self, glyph: Glyph, size_reduction_level: u32) -> Area {
         // If there is any size reduction level, recurse using a smaller font
         if size_reduction_level > 0 {
-            return framework().display.with_font_size(FontSize::Small, ||
-                self.size(glyph, 0)
-            )
+            // TODO: set font size
+            self.size(glyph, 0);
         }
 
         // Calculate an average character size
-        let (text_character_width, text_character_height) = framework().display.string_size("0");
+        let (text_character_width, text_character_height) = self.string_size("0");
         let text_character_size = Area {
             width: text_character_width as u64,
             height: text_character_height as u64,
@@ -146,7 +154,7 @@ impl Renderer for ApplicationFrameworkInterface {
 
             Glyph::Digit { .. } => text_character_size,
             Glyph::Variable { name } => {
-                let (width, height) = framework().display.string_size(&name.to_string());
+                let (width, height) = self.string_size(&name.to_string());
                 Area {
                     width: width as u64,
                     height: height as u64,
@@ -169,25 +177,18 @@ impl Renderer for ApplicationFrameworkInterface {
 
     fn init(&mut self, _size: Area) {}
 
-    fn draw(&mut self, glyph: ViewportGlyph) {
+    fn draw(&mut self, mut glyph: ViewportGlyph) {
         // If there is any size reduction level, recurse using a smaller font
         if glyph.glyph.size_reduction_level > 0 {
-            return framework().display.with_font_size(FontSize::Small, ||
-                self.draw(ViewportGlyph {
-                    glyph: SizedGlyph {
-                        size_reduction_level: 0,
-                        ..glyph.glyph
-                    },
-                    ..glyph
-                })
-            )
+            // TODO: set font size
+            self.draw(ViewportGlyph {
+                glyph: SizedGlyph {
+                    size_reduction_level: 0,
+                    ..glyph.glyph
+                },
+                ..glyph
+            })
         }
-
-        // Apply padding
-        let mut glyph = ViewportGlyph {
-            point: glyph.point.dx(self.rbop_location_x).dy(self.rbop_location_y),
-            ..glyph
-        };
 
         match glyph.visibility {
             ViewportVisibility::Clipped { invisible, .. } if invisible => return,
@@ -216,47 +217,48 @@ impl Renderer for ApplicationFrameworkInterface {
         }
 
         let point = glyph.point;
+        let (x, y) = (point.x.saturating_into(), point.y.saturating_into());
 
         match glyph.glyph.glyph {
-            Glyph::Digit { number } => self.display.draw_char(point.x, point.y, (number + b'0') as char),
-            Glyph::Point => self.display.draw_char(point.x, point.y, '.'),
-            Glyph::Variable { name } => self.display.draw_char(point.x, point.y, name),
-            Glyph::Add => self.display.draw_char(point.x, point.y, '+'),
-            Glyph::Subtract => self.display.draw_char(point.x, point.y, '-'),
-            Glyph::Multiply => self.display.draw_char(point.x, point.y, '*'),
-            Glyph::Divide => self.display.draw_char(point.x, point.y, '/'),
+            Glyph::Digit { number } => self.draw_char_at(x, y, (number + b'0') as char),
+            Glyph::Point => self.draw_char_at(x, y, '.'),
+            Glyph::Variable { name } => self.draw_char_at(x, y, name),
+            Glyph::Add => self.draw_char_at(x, y, '+'),
+            Glyph::Subtract => self.draw_char_at(x, y, '-'),
+            Glyph::Multiply => self.draw_char_at(x, y, '*'),
+            Glyph::Divide => self.draw_char_at(x, y, '/'),
             
             Glyph::Fraction { inner_width } =>
-                self.display.draw_line(point.x, point.y, point.x + inner_width as i64, point.y, Colour::WHITE),
+                self.draw_line(point.x, point.y, point.x + inner_width as i64, point.y, Colour::WHITE),
             
             Glyph::Cursor { height } =>
-                self.display.draw_line(point.x, point.y, point.x, point.y + height as i64, Colour::WHITE),
+                self.draw_line(point.x, point.y, point.x, point.y + height as i64, Colour::WHITE),
 
-            Glyph::Placeholder => self.display.draw_rect(
-                point.x + 4, point.y + 5, 6, 6, Colour::GREY, ShapeFill::Filled, 0
+            Glyph::Placeholder => self.draw_rect(
+                x, y, 6, 6, Colour::GREY, ShapeFill::Filled, 0
             ),
 
             Glyph::LeftParenthesis { inner_height } => {
                 let inner_height = max(MINIMUM_PAREN_HEIGHT, inner_height) as i64;
                 
-                self.display.draw_line(point.x + 3, point.y, point.x + 3, point.y + 1, Colour::WHITE);
-                self.display.draw_line(point.x + 2, point.y + 2, point.x + 2, point.y + 6, Colour::WHITE);
+                self.draw_line(point.x + 3, point.y, point.x + 3, point.y + 1, Colour::WHITE);
+                self.draw_line(point.x + 2, point.y + 2, point.x + 2, point.y + 6, Colour::WHITE);
 
-                self.display.draw_line(point.x + 1, point.y + 7, point.x + 1, point.y + inner_height - 8, Colour::WHITE);
+                self.draw_line(point.x + 1, point.y + 7, point.x + 1, point.y + inner_height - 8, Colour::WHITE);
 
-                self.display.draw_line(point.x + 3, point.y + inner_height - 2, point.x + 3, point.y + inner_height - 1, Colour::WHITE);
-                self.display.draw_line(point.x + 2, point.y + inner_height - 7, point.x + 2, point.y + inner_height - 3, Colour::WHITE);
+                self.draw_line(point.x + 3, point.y + inner_height - 2, point.x + 3, point.y + inner_height - 1, Colour::WHITE);
+                self.draw_line(point.x + 2, point.y + inner_height - 7, point.x + 2, point.y + inner_height - 3, Colour::WHITE);
             }
             Glyph::RightParenthesis { inner_height } => {
                 let inner_height = max(MINIMUM_PAREN_HEIGHT, inner_height) as i64;
                 
-                self.display.draw_line(point.x + 1, point.y, point.x + 1, point.y + 1, Colour::WHITE);
-                self.display.draw_line(point.x + 2, point.y + 2, point.x + 2, point.y + 6, Colour::WHITE);
+                self.draw_line(point.x + 1, point.y, point.x + 1, point.y + 1, Colour::WHITE);
+                self.draw_line(point.x + 2, point.y + 2, point.x + 2, point.y + 6, Colour::WHITE);
 
-                self.display.draw_line(point.x + 3, point.y + 7, point.x + 3, point.y + inner_height - 8, Colour::WHITE);
+                self.draw_line(point.x + 3, point.y + 7, point.x + 3, point.y + inner_height - 8, Colour::WHITE);
 
-                self.display.draw_line(point.x + 1, point.y + inner_height - 2, point.x + 1, point.y + inner_height - 1, Colour::WHITE);
-                self.display.draw_line(point.x + 2, point.y + inner_height - 7, point.x + 2, point.y + inner_height - 3, Colour::WHITE);
+                self.draw_line(point.x + 1, point.y + inner_height - 2, point.x + 1, point.y + inner_height - 1, Colour::WHITE);
+                self.draw_line(point.x + 2, point.y + inner_height - 7, point.x + 2, point.y + inner_height - 3, Colour::WHITE);
             }
 
             Glyph::Sqrt { .. } => unimplemented!(),

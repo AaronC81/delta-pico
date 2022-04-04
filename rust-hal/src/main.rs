@@ -11,7 +11,6 @@ mod ili9341;
 mod pcf8574;
 mod cat24c;
 mod button_matrix;
-mod util;
 mod rev;
 
 use core::{alloc::Layout, panic::PanicInfo};
@@ -40,7 +39,6 @@ use bsp::{hal::{
     spi::{Spi, Enabled, SpiDevice}, gpio::{FunctionSpi, Pin, PinId, Output, PushPull, bank0::{Gpio25, Gpio20, Gpio21}, FunctionI2C}, I2C, i2c::Controller, Timer,
 }, pac::I2C0};
 use shared_bus::{BusManagerSimple, I2cProxy, NullMutex, BusManager};
-use util::saturating_into::SaturatingInto;
 
 #[global_allocator]
 static ALLOCATOR: CortexMHeap = CortexMHeap::empty();

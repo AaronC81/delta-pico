@@ -40,6 +40,10 @@ impl Sprite {
         self.data.fill(colour);
     }
 
+    pub fn draw_line(&self, x1: i64, y1: i64, x2: i64, y2: i64, colour: Colour) {
+        // TODO
+    }
+
     pub fn draw_rect(&mut self, x: i16, y: i16, mut w: u16, mut h: u16, colour: Colour, filled: ShapeFill, radius: u16) {
         // TODO: radius
         
@@ -91,16 +95,21 @@ impl Sprite {
         }
     }
 
-    pub fn draw_char(&mut self, character: u8) {
+    pub fn draw_char_at(&mut self, x: i16, y: i16, character: char) {
+        self.set_cursor(x, y);
+        self.draw_char(character);
+    }
+
+    pub fn draw_char(&mut self, character: char) {
         let (x, y) = self.get_cursor();
 
-        if character == '\n' as u8 {
+        if character == '\n' {
             self.cursor_x = 0;
             self.cursor_y += crate::font_data::droid_sans_20::droid_sans_20_lookup('A' as u8).unwrap()[1] as i16;
             return;
         }
 
-        let character_bitmap = crate::font_data::droid_sans_20::droid_sans_20_lookup(character);
+        let character_bitmap = crate::font_data::droid_sans_20::droid_sans_20_lookup(character as u8);
         if character_bitmap.is_none() { return; }
         let character_bitmap = character_bitmap.unwrap();
 
@@ -184,8 +193,8 @@ impl Sprite {
     }
     
     pub fn print(&mut self, s: &str) {
-        for c in s.as_bytes() {
-            self.draw_char(*c);
+        for c in s.chars() {
+            self.draw_char(c);
         }
     }
 
@@ -307,5 +316,14 @@ impl Sprite {
         (lines, char_height, y + char_height)
     }
 
-    // TODO: FontSize
+    // TODO: actual FontSize implementation
+    pub fn with_font_size<T, F>(&self, size: FontSize, func: F) -> T where F : FnOnce() -> T {
+        // let original_size = self.get_font_size();
+        // self.set_font_size(size);
+        // let result = func();
+        // self.set_font_size(original_size);
+        // result
+
+        self.with_font_size(size, func)
+    }
 }
