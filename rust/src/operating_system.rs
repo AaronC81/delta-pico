@@ -237,7 +237,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
 
     /// Opens an rbop input box with the given `title` and optionally starts the node tree at the
     /// given `root`. When the user presses EXE, returns the current node tree.
-    pub fn ui_input_expression(&mut self, title: impl Into<String>, root: Option<UnstructuredNodeRoot>) -> UnstructuredNodeRoot {
+    pub fn ui_input_expression(&mut self, title: &str, root: Option<UnstructuredNodeRoot>) -> UnstructuredNodeRoot {
         const PADDING: i16 = 10;
         
         let mut expression_sprite = Sprite::empty();
@@ -252,8 +252,6 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         if let Some(unr) = root {
             rbop_ctx.root = unr;
         }
-
-        let title = title.into();
 
         // Don't let the box get any shorter than the maximum height it has achieved, or you'll get
         // ghost boxes if the height reduces since we don't redraw the whole frame
@@ -285,7 +283,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
             self.display_sprite.draw_rect(0, y.saturating_as::<i16>(), 240, 400, Colour::WHITE, ShapeFill::Hollow, 10);      
             
             // Draw title
-            self.display_sprite.print_at(PADDING, y.saturating_as::<i16>() + PADDING, &title.clone());
+            self.display_sprite.print_at(PADDING, y.saturating_as::<i16>() + PADDING, &title);
 
             // Draw background and expression to sprite
             rbop_ctx.sprite.fill(Colour::GREY);
@@ -318,34 +316,33 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
     /// will be called each time before displaying the input prompt (including the first time).
     pub fn ui_input_expression_and_evaluate(
         &mut self,
-        title: impl Into<String>,
+        title: &str,
         root: Option<UnstructuredNodeRoot>,
         mut redraw: impl FnMut(),
     ) -> Number {
-        todo!()
-        // let title = title.into();
-        // let mut unr = root;
-        // loop {
-        //     redraw();
-        //     unr = Some(os().ui_input_expression(title.clone(), unr));
-        //     match unr
-        //         .as_ref()
-        //         .unwrap()
-        //         .upgrade()
-        //         .map_err(|e| format!("{:?}", e))
-        //         .and_then(|sn| sn
-        //             .evaluate()
-        //             .map_err(|e| format!("{:?}", e))) {
+        let title = title.into();
+        let mut unr = root;
+        loop {
+            redraw();
+            unr = Some(self.ui_input_expression(title, unr));
+            match unr
+                .as_ref()
+                .unwrap()
+                .upgrade()
+                .map_err(|e| format!("{:?}", e))
+                .and_then(|sn| sn
+                    .evaluate()
+                    .map_err(|e| format!("{:?}", e))) {
                 
-        //         Ok(d) => {
-        //             return d;
-        //         }
-        //         Err(s) => {
-        //             redraw();
-        //             os().ui_text_dialog(&s);
-        //         }
-        //     }
-        // }
+                Ok(d) => {
+                    return d;
+                }
+                Err(s) => {
+                    redraw();
+                    self.ui_text_dialog(&s);
+                }
+            }
+        }
     }
 
     /// Opens a text dialog in the centre of the screen which can be dismissed with EXE.
