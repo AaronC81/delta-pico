@@ -1,6 +1,6 @@
 use alloc::{string::ToString, vec};
 use az::SaturatingAs;
-use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{UnstructuredNodeRoot, MoveResult}, render::{Area, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility, SizedGlyph, LayoutComputationProperties}};
+use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{UnstructuredNodeRoot, MoveResult}, render::{Area, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility, SizedGlyph, LayoutComputationProperties, Layoutable}};
 use crate::{interface::{Colour, ShapeFill, FontSize, ButtonInput, ApplicationFramework}, operating_system::{OSInput, OperatingSystem}, graphics::Sprite};
 
 use core::cmp::max;
@@ -142,12 +142,31 @@ impl RbopSpriteRenderer {
     }
 
     pub fn draw_context_to_sprite<F: ApplicationFramework>(rbop_ctx: &mut RbopContext<F>, background_colour: Colour) -> Sprite {
+        Self::draw_to_sprite::<F, UnstructuredNodeRoot>(
+            &mut rbop_ctx.root,
+            Some(&mut rbop_ctx.nav_path),
+            rbop_ctx.viewport.as_ref(),
+            background_colour
+        )
+    }
+
+    pub fn draw_to_sprite<F: ApplicationFramework, N: Layoutable>(
+        node: &mut N,
+        mut nav_path: Option<&mut NavPath>,
+        viewport: Option<&Viewport>,
+        background_colour: Colour
+    ) -> Sprite {
         let mut renderer = Self::new();
 
         // Calculate layout in advance so we know size
+        let mut navigator = if let Some(ref mut nav_path) = nav_path {
+            Some(nav_path.to_navigator())
+        } else {
+            None
+        };
         let layout = renderer.layout(
-            &rbop_ctx.root,
-            Some(&mut rbop_ctx.nav_path.to_navigator()),
+            node,
+            navigator.as_mut(),
             LayoutComputationProperties::default(),
         );
         let height: u16 = layout.area.height.saturating_as::<u16>();
@@ -161,10 +180,15 @@ impl RbopSpriteRenderer {
         renderer.sprite = Some(sprite);
         
         // Draw background and expression to sprite
+        let mut navigator = if let Some(ref mut nav_path) = nav_path {
+            Some(nav_path.to_navigator())
+        } else {
+            None
+        };
         renderer.draw_all(
-            &rbop_ctx.root, 
-            Some(&mut rbop_ctx.nav_path.to_navigator()),
-            rbop_ctx.viewport.as_ref(),
+            node, 
+            navigator.as_mut(),
+            viewport,
         );
 
         renderer.sprite.unwrap()
