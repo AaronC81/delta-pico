@@ -6,7 +6,7 @@ use core::{cmp::max, mem, slice, marker::PhantomData, cell::{RefCell, RefMut}, b
 use crate::{
     applications::{Application, ApplicationList, menu::MenuApplication},
     // filesystem::{CalculationHistory, ChunkTable, Filesystem, RawStorage, Settings, FatInterface},
-    interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, SettingsValues, CHUNK_SIZE, CHUNK_ADDRESS_SIZE, ChunkTable, CalculationHistory}, graphics::Sprite, rbop_impl::RbopContext,
+    interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, SettingsValues, CHUNK_SIZE, CHUNK_ADDRESS_SIZE, ChunkTable, CalculationHistory}, graphics::Sprite, rbop_impl::{RbopContext, RbopSpriteRenderer},
     // multi_tap::MultiTapState,
     // rbop_impl::RbopContext,
     // c_allocator::{MEMORY_USAGE, EXTERNAL_MEMORY_USAGE, MAX_MEMORY_USAGE, MAX_EXTERNAL_MEMORY_USAGE}
@@ -249,13 +249,12 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
     pub fn ui_input_expression(&mut self, title: &str, root: Option<UnstructuredNodeRoot>) -> UnstructuredNodeRoot {
         const PADDING: i16 = 10;
         
-        let mut expression_sprite = Sprite::empty();
         let mut rbop_ctx = RbopContext {
             viewport: Some(Viewport::new(Area::new(
                 (self.display_sprite.width - PADDING as u16 * 2).into(),
                 (self.display_sprite.height - PADDING as u16 * 2).into(),
             ))),
-            ..RbopContext::new(self as *mut _, &mut expression_sprite)
+            ..RbopContext::new(self as *mut _)
         };
 
         if let Some(unr) = root {
@@ -265,29 +264,18 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         // Don't let the box get any shorter than the maximum height it has achieved, or you'll get
         // ghost boxes if the height reduces since we don't redraw the whole frame
         let mut minimum_height = 0u16;
-        
+    
         loop {
-            // Calculate layout in advance so we know size
-            let layout = rbop_ctx.sprite.layout(
-                &rbop_ctx.root,
-                Some(&mut rbop_ctx.nav_path.to_navigator()),
-                LayoutComputationProperties::default(),
-            );
-            let height: u16 = max(layout.area.height, minimum_height.into()).saturating_as::<u16>();
-            let width = layout.area.width.saturating_as::<u16>();
-
-            if height > minimum_height {
-                minimum_height = height;
+            // Draw expression to sprite
+            let mut sprite = RbopSpriteRenderer::draw_context_to_sprite(&mut rbop_ctx, Colour::GREY);
+            
+            if sprite.height > minimum_height {
+                minimum_height = sprite.height;
             }
-
-            // Resize the sprite now that we know the size
-            // 1 larger to account for the possibility that the cursor is at the end - we told rbop
-            // that the cursor has a width of 0, so it won't account for it in the layout size
-            rbop_ctx.sprite.resize(width + 1, height + 1);
 
             // Draw background of dialog
             let y = self.display_sprite.height
-                - height
+                - minimum_height
                 - 30
                 - PADDING as u16 * 2;
             self.display_sprite.draw_rect(0, y.saturating_as::<i16>(), 240, 400, Colour::GREY, ShapeFill::Filled, 10);
@@ -296,16 +284,8 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
             // Draw title
             self.display_sprite.print_at(PADDING, y.saturating_as::<i16>() + PADDING, &title);
 
-            // Draw background and expression to sprite
-            rbop_ctx.sprite.fill(Colour::GREY);
-            rbop_ctx.sprite.draw_all(
-                &rbop_ctx.root, 
-                Some(&mut rbop_ctx.nav_path.to_navigator()),
-                rbop_ctx.viewport.as_ref(),
-            );
-
-            // Draw sprite to screen
-            self.display_sprite.draw_sprite(PADDING, y as i16 + 30 + PADDING, &mut rbop_ctx.sprite);
+            // Draw expression sprite to display
+            self.display_sprite.draw_sprite(PADDING, y as i16 + 30 + PADDING, &mut sprite);
 
             // Update screen
             self.draw();

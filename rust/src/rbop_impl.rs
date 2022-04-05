@@ -1,13 +1,12 @@
 use alloc::{string::ToString, vec};
 use az::SaturatingAs;
-use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{UnstructuredNodeRoot, MoveResult}, render::{Area, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility, SizedGlyph}};
+use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{UnstructuredNodeRoot, MoveResult}, render::{Area, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility, SizedGlyph, LayoutComputationProperties}};
 use crate::{interface::{Colour, ShapeFill, FontSize, ButtonInput, ApplicationFramework}, operating_system::{OSInput, OperatingSystem}, graphics::Sprite};
 
 use core::cmp::max;
 
-pub struct RbopContext<'a, F: ApplicationFramework + 'static> {
+pub struct RbopContext<F: ApplicationFramework + 'static> {
     pub os: *mut OperatingSystem<F>,
-    pub sprite: &'a mut Sprite,
 
     pub root: UnstructuredNodeRoot,
     pub nav_path: NavPath,
@@ -16,15 +15,14 @@ pub struct RbopContext<'a, F: ApplicationFramework + 'static> {
     pub input_shift: bool,
 }
 
-impl<'a, F: ApplicationFramework> RbopContext<'a, F> {
+impl<F: ApplicationFramework> RbopContext<F> {
     // Can't use os_accessor! because we have an extra lifetime
     fn os(&self) -> &OperatingSystem<F> { unsafe { &*self.os } }
     fn os_mut(&self) -> &mut OperatingSystem<F> { unsafe { &mut *self.os } }
 
-    pub fn new(os: *mut OperatingSystem<F>, sprite: &'a mut Sprite) -> RbopContext<F> {
+    pub fn new(os: *mut OperatingSystem<F>) -> RbopContext<F> {
         RbopContext {
             os,
-            sprite,
             root: UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![] } },
             nav_path: NavPath::new(vec![0]),
             viewport: None,
@@ -33,34 +31,36 @@ impl<'a, F: ApplicationFramework> RbopContext<'a, F> {
     }
 
     pub fn input(&mut self, input: OSInput) -> Option<(MoveVerticalDirection, MoveResult)> {
+        let mut renderer = RbopSpriteRenderer::new();
+
         let node_to_insert = if !self.input_shift {
             match input {        
                 OSInput::Button(ButtonInput::MoveLeft) => {
-                    self.root.move_left(&mut self.nav_path, &mut self.sprite, self.viewport.as_mut());
+                    self.root.move_left(&mut self.nav_path, &mut renderer, self.viewport.as_mut());
                     None
                 }
                 OSInput::Button(ButtonInput::MoveRight) => {
-                    self.root.move_right(&mut self.nav_path, &mut self.sprite, self.viewport.as_mut());
+                    self.root.move_right(&mut self.nav_path, &mut renderer, self.viewport.as_mut());
                     None
                 }
                 OSInput::Button(ButtonInput::MoveUp) => {
                     return Some((
                         MoveVerticalDirection::Up,
-                        self.root.move_up(&mut self.nav_path, &mut self.sprite, self.viewport.as_mut())
+                        self.root.move_up(&mut self.nav_path, &mut renderer, self.viewport.as_mut())
                     ));
                 }
                 OSInput::Button(ButtonInput::MoveDown) => {
                     return Some((
                         MoveVerticalDirection::Down,
-                        self.root.move_down(&mut self.nav_path, &mut self.sprite, self.viewport.as_mut())
+                        self.root.move_down(&mut self.nav_path, &mut renderer, self.viewport.as_mut())
                     ));
                 }
                 OSInput::Button(ButtonInput::Delete) => {
-                    self.root.delete(&mut self.nav_path, &mut self.sprite, self.viewport.as_mut());
+                    self.root.delete(&mut self.nav_path, &mut renderer, self.viewport.as_mut());
                     None
                 }
                 OSInput::Button(ButtonInput::Clear) => {
-                    self.root.clear(&mut self.nav_path, &mut self.sprite, self.viewport.as_mut());
+                    self.root.clear(&mut self.nav_path, &mut renderer, self.viewport.as_mut());
                     None
                 }
         
@@ -84,7 +84,7 @@ impl<'a, F: ApplicationFramework> RbopContext<'a, F> {
 
                 OSInput::TextMultiTapNew(c) => Some(UnstructuredNode::Token(Token::Variable(c))),
                 OSInput::TextMultiTapCycle(c) => {
-                    self.root.delete(&mut self.nav_path, &mut self.sprite, self.viewport.as_mut());
+                    self.root.delete(&mut self.nav_path, &mut renderer, self.viewport.as_mut());
                     Some(UnstructuredNode::Token(Token::Variable(c)))
                 }
 
@@ -125,25 +125,69 @@ impl<'a, F: ApplicationFramework> RbopContext<'a, F> {
         };
     
         if let Some(node) = node_to_insert {
-            self.root.insert(&mut self.nav_path, &mut self.sprite, self.viewport.as_mut(), node);
+            self.root.insert(&mut self.nav_path, &mut renderer, self.viewport.as_mut(), node);
         }
 
         None
     }
 }
 
+pub struct RbopSpriteRenderer {
+    sprite: Option<Sprite>,
+}
+
+impl RbopSpriteRenderer {
+    fn new() -> Self {
+        RbopSpriteRenderer { sprite: None }
+    }
+
+    pub fn draw_context_to_sprite<F: ApplicationFramework>(rbop_ctx: &mut RbopContext<F>, background_colour: Colour) -> Sprite {
+        let mut renderer = Self::new();
+
+        // Calculate layout in advance so we know size
+        let layout = renderer.layout(
+            &rbop_ctx.root,
+            Some(&mut rbop_ctx.nav_path.to_navigator()),
+            LayoutComputationProperties::default(),
+        );
+        let height: u16 = layout.area.height.saturating_as::<u16>();
+        let width = layout.area.width.saturating_as::<u16>();
+
+        // Create sprite now that we know the size, and draw its background
+        // 1 larger to account for the possibility that the cursor is at the end - we told rbop
+        // that the cursor has a width of 0, so it won't account for it in the layout size
+        let mut sprite = Sprite::new(width + 1, height + 1);
+        sprite.fill(background_colour);
+        renderer.sprite = Some(sprite);
+        
+        // Draw background and expression to sprite
+        renderer.draw_all(
+            &rbop_ctx.root, 
+            Some(&mut rbop_ctx.nav_path.to_navigator()),
+            rbop_ctx.viewport.as_ref(),
+        );
+
+        renderer.sprite.unwrap()
+    }
+}
+
 const MINIMUM_PAREN_HEIGHT: u64 = 16;
 
-impl Renderer for &mut Sprite {
+impl Renderer for RbopSpriteRenderer {
     fn size(&mut self, glyph: Glyph, size_reduction_level: u32) -> Area {
         // If there is any size reduction level, recurse using a smaller font
         if size_reduction_level > 0 {
             // TODO: set font size
             self.size(glyph, 0);
         }
+        
+        // Size calculation doesn't need an actual sprite to draw on, so if one hasn't been supplied
+        // yet, just use a blank one
+        let mut blank_sprite = Sprite::new(0, 0);
+        let mut sprite = self.sprite.as_mut().unwrap_or(&mut blank_sprite);
 
         // Calculate an average character size
-        let (text_character_width, text_character_height) = self.string_size("0");
+        let (text_character_width, text_character_height) = sprite.string_size("0");
         let text_character_size = Area {
             width: text_character_width as u64,
             height: text_character_height as u64,
@@ -155,7 +199,7 @@ impl Renderer for &mut Sprite {
 
             Glyph::Digit { .. } => text_character_size,
             Glyph::Variable { name } => {
-                let (width, height) = self.string_size(&name.to_string());
+                let (width, height) = sprite.string_size(&name.to_string());
                 Area {
                     width: width as u64,
                     height: height as u64,
@@ -190,7 +234,7 @@ impl Renderer for &mut Sprite {
                 ..glyph
             })
         }
-
+        
         match glyph.visibility {
             ViewportVisibility::Clipped { invisible, .. } if invisible => return,
             ViewportVisibility::Clipped { left_clip, right_clip, .. } => {
@@ -220,46 +264,49 @@ impl Renderer for &mut Sprite {
         let point = glyph.point;
         let (x, y) = (point.x.saturating_as::<i16>(), point.y.saturating_as::<i16>());
 
+        // Drawing does need a sprite, so panic if we don't have one
+        let sprite = self.sprite.as_mut().expect("RbopSpriteRenderer missing a sprite");
+
         match glyph.glyph.glyph {
-            Glyph::Digit { number } => self.draw_char_at(x, y, (number + b'0') as char),
-            Glyph::Point => self.draw_char_at(x, y, '.'),
-            Glyph::Variable { name } => self.draw_char_at(x, y, name),
-            Glyph::Add => self.draw_char_at(x, y, '+'),
-            Glyph::Subtract => self.draw_char_at(x, y, '-'),
-            Glyph::Multiply => self.draw_char_at(x, y, '*'),
-            Glyph::Divide => self.draw_char_at(x, y, '/'),
+            Glyph::Digit { number } => sprite.draw_char_at(x, y, (number + b'0') as char),
+            Glyph::Point => sprite.draw_char_at(x, y, '.'),
+            Glyph::Variable { name } => sprite.draw_char_at(x, y, name),
+            Glyph::Add => sprite.draw_char_at(x, y, '+'),
+            Glyph::Subtract => sprite.draw_char_at(x, y, '-'),
+            Glyph::Multiply => sprite.draw_char_at(x, y, '*'),
+            Glyph::Divide => sprite.draw_char_at(x, y, '/'),
             
             Glyph::Fraction { inner_width } =>
-                self.draw_line(x, y, x + inner_width.saturating_as::<i16>(), y, Colour::WHITE),
+                sprite.draw_line(x, y, x + inner_width.saturating_as::<i16>(), y, Colour::WHITE),
             
             Glyph::Cursor { height } =>
-                self.draw_line(x, y, x, y + height.saturating_as::<i16>(), Colour::WHITE),
+                sprite.draw_line(x, y, x, y + height.saturating_as::<i16>(), Colour::WHITE),
 
-            Glyph::Placeholder => self.draw_rect(
+            Glyph::Placeholder => sprite.draw_rect(
                 x, y, 6, 6, Colour::GREY, ShapeFill::Filled, 0
             ),
 
             Glyph::LeftParenthesis { inner_height } => {
                 let inner_height = max(MINIMUM_PAREN_HEIGHT, inner_height).saturating_as::<i16>();
                 
-                self.draw_line(x + 3, y, x + 3, y + 1, Colour::WHITE);
-                self.draw_line(x + 2, y + 2, x + 2, y + 6, Colour::WHITE);
+                sprite.draw_line(x + 3, y, x + 3, y + 1, Colour::WHITE);
+                sprite.draw_line(x + 2, y + 2, x + 2, y + 6, Colour::WHITE);
 
-                self.draw_line(x + 1, y + 7, x + 1, y + inner_height - 8, Colour::WHITE);
+                sprite.draw_line(x + 1, y + 7, x + 1, y + inner_height - 8, Colour::WHITE);
 
-                self.draw_line(x + 3, y + inner_height - 2, x + 3, y + inner_height - 1, Colour::WHITE);
-                self.draw_line(x + 2, y + inner_height - 7, x + 2, y + inner_height - 3, Colour::WHITE);
+                sprite.draw_line(x + 3, y + inner_height - 2, x + 3, y + inner_height - 1, Colour::WHITE);
+                sprite.draw_line(x + 2, y + inner_height - 7, x + 2, y + inner_height - 3, Colour::WHITE);
             }
             Glyph::RightParenthesis { inner_height } => {
                 let inner_height = max(MINIMUM_PAREN_HEIGHT, inner_height).saturating_as::<i16>();
                 
-                self.draw_line(x + 1, y, x + 1, y + 1, Colour::WHITE);
-                self.draw_line(x + 2, y + 2, x + 2, y + 6, Colour::WHITE);
+                sprite.draw_line(x + 1, y, x + 1, y + 1, Colour::WHITE);
+                sprite.draw_line(x + 2, y + 2, x + 2, y + 6, Colour::WHITE);
 
-                self.draw_line(x + 3, y + 7, x + 3, y + inner_height - 8, Colour::WHITE);
+                sprite.draw_line(x + 3, y + 7, x + 3, y + inner_height - 8, Colour::WHITE);
 
-                self.draw_line(x + 1, y + inner_height - 2, x + 1, y + inner_height - 1, Colour::WHITE);
-                self.draw_line(x + 2, y + inner_height - 7, x + 2, y + inner_height - 3, Colour::WHITE);
+                sprite.draw_line(x + 1, y + inner_height - 2, x + 1, y + inner_height - 1, Colour::WHITE);
+                sprite.draw_line(x + 2, y + inner_height - 7, x + 2, y + inner_height - 3, Colour::WHITE);
             }
 
             Glyph::Sqrt { .. } => unimplemented!(),
