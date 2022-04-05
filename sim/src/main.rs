@@ -3,9 +3,12 @@ use std::{process::exit, time::SystemTime};
 use delta_pico_rust::{interface::{ApplicationFramework, DisplayInterface, Colour, ButtonsInterface, ButtonEvent, StorageInterface, ButtonInput}, graphics::Sprite, delta_pico_main};
 use minifb::{Window, WindowOptions, Scale, InputCallback, Key, KeyRepeat};
 
+const STORAGE_SIZE: usize = 65536;
+
 struct FrameworkImpl {
     window: Window,
     start_time: SystemTime,
+    storage: [u8; STORAGE_SIZE],
 }
 
 impl ApplicationFramework for FrameworkImpl {
@@ -118,17 +121,16 @@ impl ButtonsInterface for FrameworkImpl {
 }
 
 impl StorageInterface for FrameworkImpl {
-    fn is_connected(&mut self) -> bool { false }
-
-    fn is_busy(&mut self) -> bool { true }
+    fn is_connected(&mut self) -> bool { true }
+    fn is_busy(&mut self) -> bool { false }
 
     fn write(&mut self, address: u16, bytes: &[u8]) -> Option<()> {
-        // TODO
+        self.storage[(address as usize)..(address as usize + bytes.len())].copy_from_slice(bytes);
         Some(())
     }
 
     fn read(&mut self, address: u16, bytes: &mut [u8]) -> Option<()> {
-        // TODO
+        bytes.copy_from_slice(&self.storage[(address as usize)..(address as usize + bytes.len())]);
         Some(())
     }
 
@@ -149,6 +151,7 @@ fn main() {
             },
         ).unwrap(),
         start_time: SystemTime::now(),
+        storage: [0; STORAGE_SIZE],
     };
 
     delta_pico_main(framework);
