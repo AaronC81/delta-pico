@@ -16,3 +16,7 @@ az = "1.2.0"
 
 # crates.io latest version is very out-of-date and doesn't build
 fatfs = { git = "https://github.com/rafalh/rust-fatfs", version = "0.4.0", default-features = false }
+
+[features]
+default = ["display_panic_handler"]
+display_panic_handler = []

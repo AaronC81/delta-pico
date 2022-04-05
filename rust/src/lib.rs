@@ -118,6 +118,7 @@ pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: 
     }
 }
 
+#[cfg(display_panic_handler)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     unsafe {
