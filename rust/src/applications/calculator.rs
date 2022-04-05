@@ -112,8 +112,6 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
         // Clear screen
         self.os_mut().display_sprite.fill(Colour::BLACK);
 
-        let _result_string_height = self.os_mut().display_sprite.string_size("A").1;
-
         // We draw the history vec in reverse, starting with the last item. To make this easier, we
         // also draw the screen from bottom to top. 
         let mut next_calculation_highest_y = self.starting_y;
@@ -408,30 +406,10 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
                 self.os().display_sprite.height as u64 - PADDING * 2,
             ))),
             root: self.calculations[self.current_calculation_idx].root.clone(),
-            // TODO: also a rubbish place to put a sprite
             ..RbopContext::new(self.os)
         };
     }
     
-
-    // fn result_height(&self, result: &CalculationResult) -> u64 {
-    //     // If there isn't a result, just imagine that there's a decimal
-    //     let number = if let CalculationResult::Ok(result) = result {
-    //         *result
-    //     } else {
-    //         Number::Decimal(Decimal::zero())
-    //     };
-
-    //     // Convert the result number into a structured node
-    //     let result_node = StructuredNode::Number(number);
-
-    //     // Compute a layout for it, so that we know its width and can therefore right-align it
-    //     let result_layout = framework().layout(&result_node, None, LayoutComputationProperties::default());
-
-    //     // Return the height it will be when drawn, plus padding
-    //     PADDING * 3 + result_layout.area.height
-    // }
-
     fn draw_result(&mut self, y: i16, result_sprite: &mut Sprite) {
         // Draw a line
         self.os_mut().display_sprite.draw_line(
