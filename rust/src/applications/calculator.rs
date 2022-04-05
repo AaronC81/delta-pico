@@ -1,15 +1,14 @@
 use core::{ptr::null_mut, cmp::max};
 use alloc::{format, vec, vec::Vec, string::{String, ToString}};
-use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
+use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable, UnstructuredNodeRoot}}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 use rust_decimal::{Decimal, prelude::Zero};
 
-use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, Sprite}, operating_system::{OSInput, OperatingSystemInterface, os}, rbop_impl::RbopContext, timer::Timer};
+use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput}, operating_system::{OSInput, OperatingSystem, os_accessor}, rbop_impl::{RbopContext, RbopSpriteRenderer}, timer::Timer, graphics::Sprite};
 use super::{Application, ApplicationInfo};
-use crate::interface::framework;
 
 const PADDING: u64 = 10;
 
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 /// An entry into the sprite cache.
 enum SpriteCacheEntry {
     /// The sprite cache has been cleared, and this item hasn't been recomputed yet.
@@ -21,13 +20,15 @@ enum SpriteCacheEntry {
 
     /// This item has been recomputing since the sprite cache was last cleared, and is at least
     /// partially visible on the screen.
-    Entry { area: Area, sprite: Sprite },
+    Entry { sprite: Sprite },
 }
 
-pub struct CalculatorApplication {
+pub struct CalculatorApplication<F: ApplicationFramework + 'static> {
+    os: *mut OperatingSystem<F>,
+
     calculations: Vec<Calculation>,
     current_calculation_idx: usize,
-    rbop_ctx: RbopContext,
+    rbop_ctx: RbopContext<F>,
 
     /// The sprite cache is an optimization technique which sacrifices memory in order to gain a
     /// significant performance boost. Computing and drawing an rbop layout is relatively expensive,
@@ -46,15 +47,17 @@ pub struct CalculatorApplication {
     ///      - Every subsequent `tick` draws 3 sprites (negligible time) and 1 rbop layout.
     sprite_cache: Vec<SpriteCacheEntry>,
 
-    show_timing: bool,
-
     /// The Y which we starting drawing calculations decreasing from (that is, drawing them up the
     /// screen.) A non-scrolled screen should have a starting_y of the screen's height, since we'll
     /// begin drawing up from the bottom of the screen.
-    starting_y: i64,
+    starting_y: i16,
 }
 
-impl Application for CalculatorApplication {
+os_accessor!(CalculatorApplication<F>);
+
+impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
+    type Framework = F;
+
     fn info() -> ApplicationInfo {
         ApplicationInfo {
             name: "Calculator".into(),
@@ -62,11 +65,13 @@ impl Application for CalculatorApplication {
         }
     }
 
-    fn new() -> Self {
-        let mut calculations = if let Some(c) = os().filesystem.calculations.read_calculations() {
+    fn new(os: *mut OperatingSystem<F>) -> Self {
+        // We need our OS reference early to do some setup!
+        let os_ref = unsafe { os.as_mut().unwrap() };
+        let mut calculations = if let Some(c) = os_ref.filesystem.calculations.read_calculations() {
             c
         } else {
-            os().ui_text_dialog("Failed to load calculation history.");
+            os_ref.ui_text_dialog("Failed to load calculation history.");
             vec![]
         };
         
@@ -85,19 +90,19 @@ impl Application for CalculatorApplication {
         let root = calculations[current_calculation_idx].root.clone();
         
         let mut result = Self {
+            os,
             rbop_ctx: RbopContext {
                 viewport: Some(Viewport::new(Area::new(
-                    framework().display.width - PADDING * 2,
-                    framework().display.height - PADDING * 2,
+                    (os_ref.display_sprite.width - PADDING as u16 * 2).into(),
+                    (os_ref.display_sprite.height - PADDING as u16 * 2).into(),
                 ))),
                 root,
-                ..RbopContext::new()
+                ..RbopContext::new(os)
             },
             calculations,
             current_calculation_idx,
             sprite_cache: vec![],
-            show_timing: false,
-            starting_y: framework().display.height as i64,
+            starting_y: os_ref.framework.display().height() as i16,
         };
         result.clear_sprite_cache();
         result
@@ -105,19 +110,9 @@ impl Application for CalculatorApplication {
 
     fn tick(&mut self) {
         // Clear screen
-        framework().display.fill_screen(Colour::BLACK);
+        self.os_mut().display_sprite.fill(Colour::BLACK);
 
-        let _result_string_height = framework().display.string_size("A").1;
-
-        let mut top_level_timer = Timer::new("Tick");
-        top_level_timer.start();
-        let height_timer = top_level_timer.new_subtimer("Height");
-        let layout_timer = height_timer.borrow_mut().new_subtimer("Layout");
-        let eval_timer = height_timer.borrow_mut().new_subtimer("Eval");
-        let area_timer = height_timer.borrow_mut().new_subtimer("Area calc");
-
-        let draw_node_timer = top_level_timer.new_subtimer("Draw node");
-        let draw_result_timer = top_level_timer.new_subtimer("Draw result");
+        let _result_string_height = self.os_mut().display_sprite.string_size("A").1;
 
         // We draw the history vec in reverse, starting with the last item. To make this easier, we
         // also draw the screen from bottom to top. 
@@ -134,62 +129,53 @@ impl Application for CalculatorApplication {
             }
 
             // Fetch this from the sprite cache
-            let (cached_sprite_area, cached_sprite) = match self.sprite_cache_entry(i) {
+            self.ensure_sprite_cache_entry_exists(i);
+            let mut calculation_sprite = match self.sprite_cache_entry(i) {
                 Some(x) => x,
                 // If clipped, we don't need to draw this
                 None => continue,
             };
 
-            height_timer.borrow_mut().start();
-
-            // Lay out this note, so we can work out height
+            // Lay out this node, so we can work out height
             // We'll also calculate a result here since we might as well
-            let navigator = &mut self.rbop_ctx.nav_path.to_navigator();
-            let mut current_layout = None;
-            let result = if self.current_calculation_idx == i {
+            let result;
+            let mut new_calculation_sprite; // In case we need to allocate a new sprite
+            
+            if self.current_calculation_idx == i {
                 // If this is the calculation currently being edited, there is a possibly edited
-                // version in the rbop context, so use that for layout and such
-                layout_timer.borrow_mut().start();
-                let layout = framework().layout(&self.rbop_ctx.root, Some(navigator), LayoutComputationProperties::default());
-                layout_timer.borrow_mut().stop();
-                eval_timer.borrow_mut().start();
-                let result =  match self.rbop_ctx.root.upgrade() {
+                // version in the rbop context, so use that instead of the cached sprite and result
+                result = match self.rbop_ctx.root.upgrade() {
                     Ok(structured) => match structured.evaluate() {
                         Ok(evaluation_result) => CalculationResult::Ok(evaluation_result),
                         Err(err) => CalculationResult::MathsError(err),
                     },
                     Err(err) => CalculationResult::NodeError(err),
                 };
-                eval_timer.borrow_mut().stop();
 
-                current_layout = Some(layout);
-
-                result
+                new_calculation_sprite = RbopSpriteRenderer::draw_context_to_sprite(&mut self.rbop_ctx, Colour::BLACK);
+                calculation_sprite = &mut new_calculation_sprite;
             } else {
-                self.calculations[i].result.clone()
+                result = self.calculations[i].result.clone()
             };
+
+            // Draw sprite for result
+            let mut result_sprite = Self::draw_result_to_sprite(&result);
+            let result_height = PADDING as u16 * 3 + result_sprite.height;
 
             // Work out Y position to draw everything from. Since we draw from bottom to top, we
             // need to subtract the height of what we're drawing from base Y
-            let node_height = if let Some(ref l) = current_layout {
-                l.area.height
-            } else {
-                cached_sprite_area.height
-            };
-            let result_height = self.result_height(&result);
-            area_timer.borrow_mut().start();
+            let node_height = calculation_sprite.height;
             let this_calculation_lowest_y =
                 // Global start
                 next_calculation_highest_y - (
                     // Node
-                    node_height + PADDING +
+                    node_height + PADDING as u16 +
                     // Result
                     result_height
-                ) as i64;
-            area_timer.borrow_mut().stop();
+                ) as i16;
 
             // If the lowest Y is off the top of the screen (it could still be partially visible)...
-            if this_calculation_lowest_y < OperatingSystemInterface::TITLE_BAR_HEIGHT {
+            if this_calculation_lowest_y < OperatingSystem::<F>::TITLE_BAR_HEIGHT as i16 {
                 // Then everything else is off the screen
                 rest_are_clipped = true;
 
@@ -205,7 +191,7 @@ impl Application for CalculatorApplication {
                     self.starting_y += this_calculation_lowest_y.abs();
 
                     // But we also need to account for that title bar!
-                    self.starting_y += OperatingSystemInterface::TITLE_BAR_HEIGHT;
+                    self.starting_y += OperatingSystem::<F>::TITLE_BAR_HEIGHT as i16;
 
                     // Redraw
                     self.tick();
@@ -215,12 +201,12 @@ impl Application for CalculatorApplication {
 
             // If the greatest Y is off the bottom of the screen (again, maybe still partially
             // visible) and this is the calculation we're currently editing...
-            if next_calculation_highest_y > framework().display.height as i64
+            if next_calculation_highest_y > self.os().display_sprite.height as i16
                 && self.current_calculation_idx == i
             {
                 // We need to scroll down by the different between the height of the display and the
                 // highest Y
-                self.starting_y -= next_calculation_highest_y - framework().display.height as i64;
+                self.starting_y -= next_calculation_highest_y - self.os().display_sprite.height as i16;
                 
                 // Redraw
                 self.tick();
@@ -231,87 +217,51 @@ impl Application for CalculatorApplication {
             // the lowest Y of this equation, minus one so they don't overlap
             next_calculation_highest_y = this_calculation_lowest_y - 1;
             
-            height_timer.borrow_mut().stop();
-
             // If the lowest Y is off the bottom of the screen, then this is fully clipped and can
             // be skipped
-            if this_calculation_lowest_y > framework().display.height as i64 {
-                // HACK: We can't just mark as clipped, because that doesn't encode an area, but we
-                // do actually need one for correct Y values of future items
-                // Instead, just silently deallocate the sprite and cross our fingers we never try
-                // to draw it
-                // This saves a ton of memory since we don't need to cache sprites clipped off the
-                // bottom, but I now fear that Ferris is going to find me
-                if let SpriteCacheEntry::Entry { sprite, .. } = &mut self.sprite_cache[i] {
-                    if !sprite.0.is_null() {
-                        framework().display.free_sprite(cached_sprite);
-                        sprite.0 = null_mut();
-                    }
-                }
+            if this_calculation_lowest_y > self.os().display_sprite.height as i16 {
+                // TODO: The old framework used a hack here to deallocate sprites which were clipped
+                // off the screen, but no-fun Ferris probably won't let me do that
+                // At some point, modify to deallocate in a sane way
+
                 continue;
             }
-
-            draw_node_timer.borrow_mut().start();
             
-            // Set up rbop location
-            framework().rbop_location_x = PADDING as i64;
-            framework().rbop_location_y = this_calculation_lowest_y + PADDING as i64;
-            
-            // Is this item being edited?
-            if self.current_calculation_idx == i {
-                // Draw active nodes
-                framework().draw_all_by_layout(
-                    &current_layout.unwrap(),
-                    self.rbop_ctx.viewport.as_ref(),
-                );
-            } else {
-                // Draw stored nodes
-                framework().display.draw_sprite(
-                    framework().rbop_location_x,
-                    framework().rbop_location_y,
-                    &cached_sprite,
-                )
-            }
+            // Draw calculation sprite
+            self.os_mut().display_sprite.draw_sprite(
+                PADDING as i16, 
+                this_calculation_lowest_y + PADDING as i16,
+                &calculation_sprite,
+            );
 
             // As we draw different components of the calculation, we'll add to the current Y
             // accordingly.
             let mut this_calculation_current_y = this_calculation_lowest_y;
-            this_calculation_current_y += (node_height + PADDING) as i64;
-
-            draw_node_timer.borrow_mut().stop();
-            draw_result_timer.borrow_mut().start();
+            this_calculation_current_y += calculation_sprite.height as i16 + PADDING as i16;
             
             // Draw result
-            self.draw_result(this_calculation_current_y, &result);
-            this_calculation_current_y += result_height as i64;
+            self.draw_result(this_calculation_current_y, &mut result_sprite);
+            this_calculation_current_y += result_height as i16;
 
             // Draw a big line, unless this is the last item
             if i != calculation_count - 1 {
-                framework().display.draw_line(
-                    0, this_calculation_current_y as i64,
-                    framework().display.width as i64, this_calculation_current_y as i64,
+                self.os_mut().display_sprite.draw_line(
+                    0, this_calculation_current_y,
+                    self.os().display_sprite.width as i16, this_calculation_current_y,
                     Colour::WHITE,
                 )
             }
-
-            draw_result_timer.borrow_mut().stop();
         }
 
         // Write title
-        os().ui_draw_title("Calculator");
-
-        // Show timings
-        if self.show_timing {
-            top_level_timer.stop();
-            framework().display.print_at(0, 35, &format!("{}", top_level_timer));
-        }
+        self.os_mut().ui_draw_title("Calculator");
 
         // Push to screen
-        framework().display.draw();
+        self.os_mut().draw();
 
         // Poll for input
-        if let Some(input) = framework().buttons.wait_press() {
-            if input == OSInput::Exe {
+        if let Some(input) = self.os_mut().input() {
+            if input == OSInput::Button(ButtonInput::Exe) {
                 // Save whatever we're editing
                 self.save_current();
 
@@ -328,15 +278,14 @@ impl Application for CalculatorApplication {
 
                 // Clear the sprite cache
                 self.clear_sprite_cache();
-            } else if input == OSInput::List {
-                match os().ui_open_menu(&["Toggle timing stats".into(), "Clear history".into()], true) {
-                    Some(0) => self.show_timing = !self.show_timing,
-                    Some(1) => {
+            } else if input == OSInput::Button(ButtonInput::List) {
+                match self.os_mut().ui_open_menu(&["Clear history".into()], true) {
+                    Some(0) => {
                         // Delete from storage
-                        os().filesystem.calculations.table.clear(false);
+                        self.os_mut().filesystem.calculations.table.clear(false);
                         
                         // There are too many things to reload manually, just restart the app
-                        os().restart_application();
+                        self.os_mut().restart_application();
                     }
                     Some(_) => unreachable!(),
                     None => (),
@@ -376,16 +325,12 @@ impl Application for CalculatorApplication {
     }
 }
 
-impl CalculatorApplication {
+impl<F: ApplicationFramework> CalculatorApplication<F> {
     /// Completely clears the sprite cache and frees any allocated sprites. All sprite cache slots
     /// become `Blank` after this.
     fn clear_sprite_cache(&mut self) {
-        // Free the sprite cache
-        for item in &self.sprite_cache {
-            if let &SpriteCacheEntry::Entry { sprite, .. } = item {
-                framework().display.free_sprite(sprite);
-            }
-        }
+        // Clear the sprite cache
+        self.sprite_cache.clear();
 
         // Fill with "Blank"
         self.sprite_cache = Vec::with_capacity(self.calculations.len());
@@ -394,41 +339,34 @@ impl CalculatorApplication {
         }
     }
 
-    /// Retrieves an index in the sprite cache, or computes it if the entry is blank. Returns the
-    /// area and sprite pointer if the sprite is has not been marked as clipped, otherwise returns
-    /// None.
-    fn sprite_cache_entry(&mut self, index: usize) -> Option<(Area, Sprite)> {
+    fn ensure_sprite_cache_entry_exists(&mut self, index: usize) {
         if self.sprite_cache[index] == SpriteCacheEntry::Blank {
             // This entry does not exist
             // Grab calculation
-            let root = &self.calculations[index].root;
+            let root = &mut self.calculations[index].root;
 
-            // Compute layout
-            let layout = framework().layout(root, None, LayoutComputationProperties::default());
-
-            // Draw layout onto a new sprite
-            let sprite = framework().display.new_sprite(
-                layout.area.width as u16,
-
-                // This was off-by-one after switching to my own ILI9341 library
-                // No idea why!!
-                layout.area.height as u16 + 1
+            // Draw onto sprite, but with:
+            //   - No viewport needed since it's not on the screen
+            //   - No navpath, so no cursor shows up
+            let sprite = RbopSpriteRenderer::draw_to_sprite::<F, _>(
+                root,
+                None,
+                None,
+                Colour::BLACK,
             );
-            framework().display.switch_to_sprite(&sprite);
-            framework().rbop_location_x = 0;
-            framework().rbop_location_y = 0;
-            framework().draw_all_by_layout(&layout, None);
-            framework().display.switch_to_screen();
 
             self.sprite_cache[index] = SpriteCacheEntry::Entry {
-                area: layout.area,
                 sprite
             }
         }
+    }
 
-        match self.sprite_cache[index] {
-            SpriteCacheEntry::Entry { area, sprite } =>
-                Some((area, sprite)),
+    /// Retrieves an index in the sprite cache, or computes it if the entry is blank. Returns the
+    /// area and sprite pointer if the sprite is has not been marked as clipped, otherwise returns
+    /// None.
+    fn sprite_cache_entry(&self, index: usize) -> Option<&Sprite> {
+        match &self.sprite_cache[index] {
+            SpriteCacheEntry::Entry { sprite } => Some(sprite),
             SpriteCacheEntry::Clipped => None,
             SpriteCacheEntry::Blank => panic!("sprite cache miss"),
         }
@@ -456,7 +394,7 @@ impl CalculatorApplication {
         self.calculations[self.current_calculation_idx].result = result;
 
         // Save to storage
-        os().filesystem.calculations.write_calculation_at_index(
+        self.os_mut().filesystem.calculations.write_calculation_at_index(
             ChunkIndex(self.current_calculation_idx as u16),
             self.calculations[self.current_calculation_idx].clone()
         );
@@ -466,77 +404,93 @@ impl CalculatorApplication {
         // Reset rbop context
         self.rbop_ctx = RbopContext {
             viewport: Some(Viewport::new(Area::new(
-                framework().display.width - PADDING * 2,
-                framework().display.height - PADDING * 2,
+                self.os().display_sprite.width as u64 - PADDING * 2,
+                self.os().display_sprite.height as u64 - PADDING * 2,
             ))),
             root: self.calculations[self.current_calculation_idx].root.clone(),
-            ..RbopContext::new()
+            // TODO: also a rubbish place to put a sprite
+            ..RbopContext::new(self.os)
         };
     }
     
 
-    fn result_height(&self, result: &CalculationResult) -> u64 {
-        // If there isn't a result, just imagine that there's a decimal
-        let number = if let CalculationResult::Ok(result) = result {
-            *result
-        } else {
-            Number::Decimal(Decimal::zero())
-        };
+    // fn result_height(&self, result: &CalculationResult) -> u64 {
+    //     // If there isn't a result, just imagine that there's a decimal
+    //     let number = if let CalculationResult::Ok(result) = result {
+    //         *result
+    //     } else {
+    //         Number::Decimal(Decimal::zero())
+    //     };
 
-        // Convert the result number into a structured node
-        let result_node = StructuredNode::Number(number);
+    //     // Convert the result number into a structured node
+    //     let result_node = StructuredNode::Number(number);
 
-        // Compute a layout for it, so that we know its width and can therefore right-align it
-        let result_layout = framework().layout(&result_node, None, LayoutComputationProperties::default());
+    //     // Compute a layout for it, so that we know its width and can therefore right-align it
+    //     let result_layout = framework().layout(&result_node, None, LayoutComputationProperties::default());
 
-        // Return the height it will be when drawn, plus padding
-        PADDING * 3 + result_layout.area.height
-    }
+    //     // Return the height it will be when drawn, plus padding
+    //     PADDING * 3 + result_layout.area.height
+    // }
 
-    fn draw_result(&self, y: i64, result: &CalculationResult) {
+    fn draw_result(&mut self, y: i16, result_sprite: &mut Sprite) {
         // Draw a line
-        framework().display.draw_line(
-            PADDING as i64, y + PADDING as i64,
-            (framework().display.width - PADDING) as i64, y + PADDING as i64,
+        self.os_mut().display_sprite.draw_line(
+            PADDING as i16, y + PADDING as i16,
+            self.os_mut().display_sprite.width as i16 - PADDING as i16, y + PADDING as i16,
             Colour::GREY
         );
 
+        // Draw the result sprite right-aligned
+        self.os_mut().display_sprite.draw_sprite(
+            max((self.os().display_sprite.width as i16 - PADDING as i16) - result_sprite.width as i16, PADDING as i16),
+            y + PADDING as i16 * 2,
+            result_sprite,
+        );
+
+        // Don't print an error string
+        return;
+    }
+
+    fn draw_result_to_sprite(result: &CalculationResult) -> Sprite {        
         let error_string = match result {
             CalculationResult::Ok(number) => {
                 // Convert the result number into a structured node
-                let result_node = StructuredNode::Number(*number);
+                let mut result_node = StructuredNode::Number(*number);
 
-                // Compute a layout for it, so that we know its width and can therefore right-align it
-                let result_layout = framework().layout(&result_node, None, LayoutComputationProperties::default());
-
-                // Set up layout location
-                framework().rbop_location_x = max((framework().display.width - PADDING) as i64 - result_layout.area.width as i64, PADDING as i64);
-                framework().rbop_location_y = y + PADDING as i64 * 2;
-
-                // Draw
-                framework().draw_all_by_layout(&result_layout, None);
-
-                // Don't print an error string
-                return;
+                // Render this node to a sprite
+                return RbopSpriteRenderer::draw_to_sprite::<F, _>(
+                    &mut result_node,
+                    None,
+                    None,
+                    Colour::BLACK
+                );
             },
 
             CalculationResult::MathsError(err) => format!("{}", err),
             CalculationResult::NodeError(err) => format!("{}", err),
 
-            CalculationResult::None => return,
+            CalculationResult::None => return Sprite::empty(),
         };
 
-        // That `match` didn't return, print an error string
-        let (error_string_width, _) = framework().display.string_size(&error_string);
+        // That `match` didn't return, create a sprite with an error string
+        let (width, _) = Sprite::empty().string_size(&error_string);
 
-        let x = (framework().display.width - PADDING) as i64 - error_string_width;
-        let y = y + PADDING as i64 * 2;
+        // We'll use the same height as a digit to avoid wobble when the result is flickering
+        // between a number and an error
+        let mut renderer = RbopSpriteRenderer::new();
+        let height = renderer.layout(
+            &StructuredNode::Number(Number::Rational(6, 1)),
+            None,
+            LayoutComputationProperties::default()
+        ).area.height + 1;
 
-        framework().display.print_at(x, y, &error_string);
+        let mut sprite = Sprite::new(width as u16, height as u16);
+        sprite.print_at(0, 0, &error_string);
+        sprite
     }
 
     fn reset_scroll(&mut self) {
-        self.starting_y = framework().display.height as i64;
+        self.starting_y = self.os().display_sprite.height as i16;
     }
 }
 

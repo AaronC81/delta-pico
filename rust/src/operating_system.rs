@@ -254,7 +254,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
                 (self.display_sprite.width - PADDING as u16 * 2).into(),
                 (self.display_sprite.height - PADDING as u16 * 2).into(),
             ))),
-            ..RbopContext::new(self as *mut _)
+            ..RbopContext::<F>::new(self as *mut _)
         };
 
         if let Some(unr) = root {

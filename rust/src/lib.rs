@@ -39,7 +39,7 @@ pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: 
     os.display_sprite.fill(Colour(0xFFFF));
     os.draw();
 
-    // os().application_list.add::<applications::calculator::CalculatorApplication>();
+    os.application_list.add::<applications::calculator::CalculatorApplication<F>>();
     // os().application_list.add::<applications::graph::GraphApplication>();
     os.application_list.add::<applications::numbers_game::NumbersGame<F>>();
     // os().application_list.add::<applications::files::FilesApplication>();

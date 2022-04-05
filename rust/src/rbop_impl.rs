@@ -137,7 +137,7 @@ pub struct RbopSpriteRenderer {
 }
 
 impl RbopSpriteRenderer {
-    fn new() -> Self {
+    pub fn new() -> Self {
         RbopSpriteRenderer { sprite: None }
     }
 

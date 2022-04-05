@@ -40,8 +40,14 @@ impl Sprite {
         &mut self.data[y as usize * self.width as usize + x as usize]
     }
 
+    pub fn pixel_immutable(&self, x: u16, y: u16) -> Colour {
+        self.data[y as usize * self.width as usize + x as usize]
+    }
+
     pub fn try_pixel(&mut self, x: i16, y: i16) -> Option<&mut Colour> {
-        if y as usize * self.width as usize + x as usize >= self.data.len() {
+        let index = y as isize * self.width as isize + x as isize;
+
+        if index < 0 || index as usize >= self.data.len() {
             None
         } else {
             Some(self.pixel(x as u16, y as u16))
@@ -178,13 +184,13 @@ impl Sprite {
         self.cursor_x += Into::<i16>::into(character_bitmap[0]) - 1;
     } 
 
-    pub fn draw_sprite(&mut self, x: i16, y: i16, sprite: &mut Sprite) {
+    pub fn draw_sprite(&mut self, x: i16, y: i16, sprite: &Sprite) {
         for x_offset in 0..sprite.width {
             for y_offset in 0..sprite.height {
                 self.draw_pixel(
                     x + x_offset.saturating_as::<i16>(),
                     y + y_offset.saturating_as::<i16>(),
-                    *sprite.pixel(x_offset, y_offset)
+                    sprite.pixel_immutable(x_offset, y_offset)
                 );
             }
         }

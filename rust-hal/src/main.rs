@@ -42,7 +42,7 @@ use shared_bus::{BusManagerSimple, I2cProxy, NullMutex, BusManager};
 
 #[global_allocator]
 static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
-const HEAP_SIZE: usize = 200_000;
+const HEAP_SIZE: usize = 240_000;
 
 static mut LED_PIN: Option<Pin<Gpio25, Output<PushPull>>> = None;
 static mut DELAY: Option<Delay> = None;
