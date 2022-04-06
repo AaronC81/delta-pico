@@ -1,8 +1,8 @@
-use core::{convert::Infallible, fmt::Debug};
+use core::{fmt::Debug};
 
 use alloc::{vec, vec::Vec, string::{String, ToString}};
 use az::SaturatingAs;
-use crate::{interface::{Colour, FontSize, ShapeFill}};
+use crate::{interface::{Colour, ShapeFill}};
 
 #[derive(Debug, Clone)]
 pub struct Sprite {
@@ -95,7 +95,7 @@ impl Sprite {
         }
     }
 
-    pub fn draw_rect(&mut self, x: i16, y: i16, mut w: u16, mut h: u16, colour: Colour, filled: ShapeFill, radius: u16) {
+    pub fn draw_rect(&mut self, x: i16, y: i16, mut w: u16, mut h: u16, colour: Colour, filled: ShapeFill, _radius: u16) {
         // TODO: radius
         
         // If the rectangle spills over the left, adjust width and X origin so we still start
@@ -127,7 +127,6 @@ impl Sprite {
 
         // Draw line-by-line
         for curr_y in y..(y + h as usize) {
-            if curr_y < 0 { continue; }
             let curr_y = curr_y as usize;
 
             if filled == ShapeFill::Filled {

@@ -13,16 +13,16 @@ mod cat24c;
 mod button_matrix;
 mod rev;
 
-use core::{alloc::Layout, panic::PanicInfo};
+use core::alloc::Layout;
 
 use alloc::string::{String, ToString};
 use alloc_cortex_m::CortexMHeap;
 use button_matrix::{RawButtonEvent, ButtonMatrix};
 use cat24c::Cat24C;
-use cortex_m::{prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_spi_FullDuplex, _embedded_hal_blocking_delay_DelayMs}, delay::Delay};
+use cortex_m::delay::Delay;
 use cortex_m_rt::entry;
-use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, Colour, ButtonsInterface, ButtonEvent, ButtonInput, StorageInterface, ShapeFill}, delta_pico_main, graphics::Sprite};
-use embedded_hal::{digital::v2::OutputPin, spi::MODE_0, blocking::delay::DelayMs, can::Frame, blocking::i2c::{Write, Read}};
+use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, ButtonsInterface, ButtonEvent, StorageInterface}, delta_pico_main, graphics::Sprite};
+use embedded_hal::{digital::v2::OutputPin, spi::MODE_0, blocking::delay::DelayMs, blocking::i2c::{Write, Read}};
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
 
 use ili9341::Ili9341;
@@ -36,9 +36,9 @@ use bsp::{hal::{
     pac,
     sio::Sio,
     watchdog::Watchdog,
-    spi::{Spi, Enabled, SpiDevice}, gpio::{FunctionSpi, Pin, PinId, Output, PushPull, bank0::{Gpio25, Gpio20, Gpio21}, FunctionI2C}, I2C, i2c::Controller, Timer,
+    spi::{Spi, SpiDevice}, gpio::{FunctionSpi, Pin, PinId, Output, PushPull, bank0::{Gpio25, Gpio20, Gpio21}, FunctionI2C}, I2C, i2c::Controller, Timer,
 }, pac::I2C0};
-use shared_bus::{BusManagerSimple, I2cProxy, NullMutex, BusManager};
+use shared_bus::{BusManagerSimple, NullMutex, BusManager};
 
 #[global_allocator]
 static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
@@ -102,7 +102,7 @@ fn main() -> ! {
 
     // Set up SPI and pins
     let spi = Spi::<_, _, 8>::new(pac.SPI0);
-    let mut spi = spi.init(
+    let spi = spi.init(
         &mut pac.RESETS,
         clocks.peripheral_clock.freq(),
         70_000_000.Hz(),
@@ -120,10 +120,10 @@ fn main() -> ! {
     unsafe { DELAY.as_mut().unwrap() }.delay_ms(50);
 
     // DC pin
-    let mut dc_pin = pins.gpio5.into_push_pull_output();
+    let dc_pin = pins.gpio5.into_push_pull_output();
 
     // Construct ILI9341 instance
-    let mut ili = ili9341::Ili9341::new(
+    let ili = ili9341::Ili9341::new(
         240, 320,
         spi,
         dc_pin,
@@ -132,9 +132,9 @@ fn main() -> ! {
     ).init().unwrap();
 
     // Construct PCF8574 instances
-    let mut sda_pin = pins.gpio20.into_mode::<FunctionI2C>();
-    let mut scl_pin = pins.gpio21.into_mode::<FunctionI2C>();
-    let mut i2c = I2C::i2c0(
+    let sda_pin = pins.gpio20.into_mode::<FunctionI2C>();
+    let scl_pin = pins.gpio21.into_mode::<FunctionI2C>();
+    let i2c = I2C::i2c0(
         pac.I2C0,
         sda_pin,
         scl_pin,
@@ -149,7 +149,7 @@ fn main() -> ! {
     let row_pcf = pcf8574::Pcf8574::new(0x3E, unsafe { SHARED_I2C.as_mut().unwrap().acquire_i2c() });
 
     // Init button matrix and wait for key
-    let mut buttons = ButtonMatrix::new(
+    let buttons = ButtonMatrix::new(
         row_pcf,
         col_pcf, 
         // TODO: This is not "clever" or "I know better" usage of `unsafe`, this is literally just

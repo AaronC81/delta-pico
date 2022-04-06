@@ -1,5 +1,3 @@
-use crate::operating_system::OSInput;
-
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum ButtonInput {
     None,

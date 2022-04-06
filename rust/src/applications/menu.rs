@@ -1,6 +1,6 @@
 use alloc::{vec, vec::Vec};
 
-use crate::{interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput}, operating_system::{OSInput, UIMenu, UIMenuItem, OperatingSystem, os_accessor}};
+use crate::{interface::{Colour, ApplicationFramework, ButtonInput}, operating_system::{OSInput, UIMenu, UIMenuItem, OperatingSystem, os_accessor}};
 use super::{Application, ApplicationInfo};
 
 pub struct MenuApplication<F: ApplicationFramework + 'static> {

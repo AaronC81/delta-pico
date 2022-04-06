@@ -29,8 +29,6 @@ impl<
     Delay: DelayMs<u8>,
 > ButtonMatrix<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay> {
     const ROWS: u8 = 7;
-    const COLS: u8 = 7;
-
     const DEBOUNCE_MS: u8 = 20;
 
     // The row/col wiring doesn't exactly correspond to PCF8574 pin numbers.

@@ -1,16 +1,8 @@
-use alloc::{boxed::Box, format, string::{String, ToString}, vec::Vec, rc::Rc};
+use alloc::{boxed::Box, format, string::{String, ToString}, vec::Vec};
 use az::SaturatingAs;
-use rbop::{Number, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
-use core::{cmp::max, mem, slice, marker::PhantomData, cell::{RefCell, RefMut}, borrow::{Borrow, BorrowMut}};
+use rbop::{Number, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Viewport}};
 
-use crate::{
-    applications::{Application, ApplicationList, menu::MenuApplication},
-    // filesystem::{CalculationHistory, ChunkTable, Filesystem, RawStorage, Settings, FatInterface},
-    interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, SettingsValues, CHUNK_SIZE, CHUNK_ADDRESS_SIZE, ChunkTable, CalculationHistory}, graphics::Sprite, rbop_impl::{RbopContext, RbopSpriteRenderer},
-    // multi_tap::MultiTapState,
-    // rbop_impl::RbopContext,
-    // c_allocator::{MEMORY_USAGE, EXTERNAL_MEMORY_USAGE, MAX_MEMORY_USAGE, MAX_EXTERNAL_MEMORY_USAGE}
-};
+use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, CHUNK_SIZE, CHUNK_ADDRESS_SIZE, ChunkTable, CalculationHistory}, graphics::Sprite, rbop_impl::{RbopContext, RbopSpriteRenderer}};
 
 pub struct OperatingSystem<F: ApplicationFramework + 'static> {
     pub framework: F,
@@ -37,7 +29,7 @@ pub struct OperatingSystem<F: ApplicationFramework + 'static> {
 impl<F: ApplicationFramework> OperatingSystem<F> {
     pub const TITLE_BAR_HEIGHT: u16 = 30;
     
-    pub fn new(mut framework: F) -> Self {
+    pub fn new(framework: F) -> Self {
         let display_width = framework.display().width();
         let display_height = framework.display().height();
 

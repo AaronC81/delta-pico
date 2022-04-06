@@ -1,7 +1,7 @@
 use alloc::format;
 use rust_decimal::prelude::ToPrimitive;
 
-use crate::{interface::{Colour, ApplicationFramework, DisplayInterface, StorageInterface, ButtonInput}, operating_system::{OSInput, OperatingSystem, os_accessor}};
+use crate::{interface::{Colour, ApplicationFramework, StorageInterface, ButtonInput}, operating_system::{OSInput, OperatingSystem, os_accessor}};
 use super::{Application, ApplicationInfo};
 
 const SHOW_BYTES: u16 = 64;

@@ -1,7 +1,6 @@
-mod display;
-use core::{str::from_utf8, slice};
+use alloc::string::String;
 
-use alloc::{string::String, boxed::Box};
+mod display;
 pub use display::*;
 
 mod buttons;

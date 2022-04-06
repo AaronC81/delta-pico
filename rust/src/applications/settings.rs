@@ -1,5 +1,3 @@
-use core::alloc::{GlobalAlloc, Layout};
-
 use alloc::{vec, format};
 
 use crate::{interface::{Colour, ShapeFill, ApplicationFramework, ButtonInput, DisplayInterface}, operating_system::{OSInput, UIMenu, UIMenuItem, os_accessor, OperatingSystem}, timer::Timer};

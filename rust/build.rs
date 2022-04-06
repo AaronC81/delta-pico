@@ -1,8 +1,7 @@
 use std::collections::HashSet;
 use std::env::{self, current_dir};
 use std::ffi::OsStr;
-use std::fs::{File, self};
-use std::io::Write;
+use std::fs;
 use std::path::{PathBuf, Path};
 use std::process::Command;
 use std::str::from_utf8;

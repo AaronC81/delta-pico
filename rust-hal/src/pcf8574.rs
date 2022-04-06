@@ -1,4 +1,3 @@
-use cortex_m::prelude::{_embedded_hal_blocking_i2c_Write, _embedded_hal_blocking_i2c_Read};
 use embedded_hal::blocking::i2c::{Write, Read};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

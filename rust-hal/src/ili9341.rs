@@ -210,6 +210,7 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<E
     }
 
     /// Immediately fills the screen with the given colour.
+    #[allow(unused)]
     pub fn fill(&mut self, colour: Colour) -> Result<(), Ili9341Error> {
         // Set drawing area to cover screen
         let pixels = self.set_pixel_drawing_area(0, self.width - 1, 0, self.height - 1)?;

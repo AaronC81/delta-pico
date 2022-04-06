@@ -9,7 +9,7 @@ pub use raw_storage::*;
 pub use calculation_history::*;
 pub use settings::*;
 
-use crate::{interface::{ApplicationFramework, StorageInterface}, operating_system::{OperatingSystem, os_accessor}};
+use crate::interface::ApplicationFramework;
 // pub use fat_interface::*;
 
 pub struct Filesystem<F: ApplicationFramework + 'static> {
@@ -22,6 +22,5 @@ impl<F: ApplicationFramework> Filesystem<F> {
     pub fn clear(&mut self) -> Option<()> {
         // TODO
         todo!();
-        Some(())
     }
 }

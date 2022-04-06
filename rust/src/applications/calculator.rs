@@ -1,9 +1,8 @@
-use core::{ptr::null_mut, cmp::max};
+use core::cmp::max;
 use alloc::{format, vec, vec::Vec, string::{String, ToString}};
-use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable, UnstructuredNodeRoot}}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
-use rust_decimal::{Decimal, prelude::Zero};
+use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 
-use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput}, operating_system::{OSInput, OperatingSystem, os_accessor}, rbop_impl::{RbopContext, RbopSpriteRenderer}, timer::Timer, graphics::Sprite};
+use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput}, operating_system::{OSInput, OperatingSystem, os_accessor}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite};
 use super::{Application, ApplicationInfo};
 
 const PADDING: u64 = 10;

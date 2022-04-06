@@ -1,5 +1,4 @@
-use alloc::{vec, vec::Vec};
-use cortex_m::prelude::{_embedded_hal_blocking_i2c_Write, _embedded_hal_blocking_i2c_Read};
+use alloc::vec;
 use embedded_hal::blocking::{i2c::{Write, Read}, delay::DelayMs};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

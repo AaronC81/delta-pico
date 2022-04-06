@@ -1,5 +1,4 @@
-use crate::{interface::{StorageInterface, ApplicationFramework}, operating_system::{OperatingSystem, os_accessor}};
-
+use crate::interface::ApplicationFramework;
 use super::{RawStorage, RawStorageAddress};
 
 pub struct Settings<F: ApplicationFramework + 'static> {

@@ -1,5 +1,5 @@
 use alloc::vec::Vec;
-use rbop::{Number, StructuredNode, node::unstructured::{Upgradable}, render::{Area, Renderer, Viewport}};
+use rbop::{Number, StructuredNode, node::unstructured::{Upgradable}, render::{Area, Viewport}};
 use rust_decimal::prelude::{One, ToPrimitive, Zero};
 
 use crate::{interface::{Colour, ApplicationFramework, ButtonInput}, operating_system::{OSInput, OperatingSystem, os_accessor}, rbop_impl::{RbopContext, RbopSpriteRenderer}};
@@ -147,7 +147,7 @@ impl<F: ApplicationFramework> GraphApplication<F> {
             self.os_mut().ui_draw_title("Graph");
 
             // Draw rbop input
-            let mut sprite = RbopSpriteRenderer::draw_context_to_sprite(&mut self.rbop_ctx, Colour::BLACK);
+            let sprite = RbopSpriteRenderer::draw_context_to_sprite(&mut self.rbop_ctx, Colour::BLACK);
             self.os_mut().display_sprite.draw_sprite(PADDING as i16 + 30, PADDING as i16 + 30, &sprite);
 
             // TODO: Drawing "y=" in line with the baseline would be nice, but we don't actually

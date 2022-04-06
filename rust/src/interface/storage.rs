@@ -1,5 +1,3 @@
-use alloc::{vec, vec::Vec};
-
 pub trait StorageInterface {
     fn is_connected(&mut self) -> bool;
     fn is_busy(&mut self) -> bool;

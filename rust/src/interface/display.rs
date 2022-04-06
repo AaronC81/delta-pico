@@ -1,7 +1,5 @@
 use core::fmt::Debug;
 
-use alloc::{string::{String, ToString}, vec, vec::Vec};
-
 use crate::graphics::Sprite;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]

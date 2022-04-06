@@ -2,7 +2,7 @@ use core::convert::TryInto;
 
 use alloc::{vec, vec::Vec};
 
-use crate::interface::{StorageInterface, ApplicationFramework};
+use crate::interface::ApplicationFramework;
 
 use super::{RawStorage, RawStorageAddress};
 

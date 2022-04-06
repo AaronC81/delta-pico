@@ -1,6 +1,5 @@
 #![no_std]
 #![feature(default_alloc_error_handler)]
-#![feature(generic_const_exprs)]
 
 extern crate alloc;
 
@@ -8,12 +7,9 @@ extern crate alloc;
 include!(concat!(env!("OUT_DIR"), "/font_data.rs"));
 include!(concat!(env!("OUT_DIR"), "/bitmap_data.rs"));
 
-mod c_allocator;
-
-use core::{panic::PanicInfo, cell::RefCell};
-use alloc::{format, string::String, rc::Rc, boxed::Box};
-use applications::{about::{AboutApplication, self}, Application};
-use c_allocator::CAllocator;
+use core::panic::PanicInfo;
+use alloc::{format, boxed::Box};
+use applications::Application;
 
 pub mod interface;
 pub mod operating_system;
