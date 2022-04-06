@@ -191,6 +191,7 @@ fn colour_8888_to_565(colour: Rgba<u8>) -> Option<u16> {
 fn bitmap_lookup_rust_source(constant_names: &[String]) -> TokenStream {
     let cases = constant_names.iter().map(|name| {
         let name_as_ident = Ident::new(name, Span::call_site());
+        let name = name.to_lowercase();
         quote! {
             #name => & #name_as_ident [..]
         }
