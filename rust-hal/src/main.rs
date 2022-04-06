@@ -159,7 +159,11 @@ fn main() -> ! {
     );
 
     // Init flash storage
-    let flash = Cat24C::new(0x50, unsafe { SHARED_I2C.as_mut().unwrap().acquire_i2c() });
+    let flash = Cat24C::new(
+        0x50, 
+        unsafe { SHARED_I2C.as_mut().unwrap().acquire_i2c() },
+        unsafe { DELAY.as_mut().unwrap() },
+    );
 
     let framework = FrameworkImpl {
         display: DisplayImpl { ili },
@@ -231,14 +235,16 @@ impl<
 struct StorageImpl<
     StorageI2CDevice: Write<Error = StorageError> + Read<Error = StorageError>,
     StorageError,
+    Delay: DelayMs<u8> + 'static,
 > {
-    flash: Cat24C<StorageI2CDevice, StorageError>,
+    flash: Cat24C<StorageI2CDevice, StorageError, Delay>,
 }
 
 impl<
     StorageI2CDevice: Write<Error = StorageError> + Read<Error = StorageError>,
     StorageError,
-> StorageInterface for StorageImpl<StorageI2CDevice, StorageError> {
+    Delay: DelayMs<u8> + 'static,
+> StorageInterface for StorageImpl<StorageI2CDevice, StorageError, Delay> {
     fn is_connected(&mut self) -> bool { self.flash.is_connected() }
     fn is_busy(&mut self) -> bool { self.flash.is_busy() }
 
@@ -271,7 +277,7 @@ struct FrameworkImpl<
 > {
     display: DisplayImpl<SpiD, DcPin, RstPin, Delay>,
     buttons: ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay>,
-    storage: StorageImpl<StorageI2CDevice, StorageError>,
+    storage: StorageImpl<StorageI2CDevice, StorageError, Delay>,
     timer: Timer,
 }
 
@@ -291,7 +297,7 @@ impl<
 > ApplicationFramework for FrameworkImpl<SpiD, DcPin, RstPin, Delay, RowI2CDevice, RowError, ColI2CDevice, ColError, StorageI2CDevice, StorageError> {
     type DisplayI = DisplayImpl<SpiD, DcPin, RstPin, Delay>;
     type ButtonsI = ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay>;
-    type StorageI = StorageImpl<StorageI2CDevice, StorageError>;
+    type StorageI = StorageImpl<StorageI2CDevice, StorageError, Delay>;
 
     fn display(&self) -> &Self::DisplayI { &self.display }
     fn display_mut(&mut self) -> &mut Self::DisplayI { &mut self.display }

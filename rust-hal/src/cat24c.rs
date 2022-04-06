@@ -1,23 +1,25 @@
 use alloc::{vec, vec::Vec};
 use cortex_m::prelude::{_embedded_hal_blocking_i2c_Write, _embedded_hal_blocking_i2c_Read};
-use embedded_hal::blocking::i2c::{Write, Read};
+use embedded_hal::blocking::{i2c::{Write, Read}, delay::DelayMs};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Cat24CError {
     I2CError,
 }
 
-pub struct Cat24C<I2CDevice: Write<Error = E> + Read<Error = E>, E> {
+pub struct Cat24C<I2CDevice: Write<Error = E> + Read<Error = E>, E, Delay: DelayMs<u8> + 'static> {
     address: u8,
     i2c: I2CDevice,
+    delay: &'static mut Delay,
 }
 
-impl<E, I2CDevice: Write<Error = E> + Read<Error = E>> Cat24C<I2CDevice, E> {
+impl<E, I2CDevice: Write<Error = E> + Read<Error = E>, Delay: DelayMs<u8> + 'static> Cat24C<I2CDevice, E, Delay> {
     pub fn new(
         address: u8,
         i2c: I2CDevice,
+        delay: &'static mut Delay,
     ) -> Self {
-        Cat24C { address, i2c }
+        Cat24C { address, i2c, delay }
     }
 
     pub fn is_connected(&mut self) -> bool {
@@ -66,7 +68,9 @@ impl<E, I2CDevice: Write<Error = E> + Read<Error = E>> Cat24C<I2CDevice, E> {
 
             // See if EEPROM is available or still writing a previous request
             // TODO: Might want to give the bus a breather with a delay
-            while self.is_busy() {} //Poll device
+            while self.is_busy() {
+                self.delay.delay_ms(1);
+            }
 
             let mut write_buffer = vec![0; bytes.len() + 2];
             write_buffer[0] = ((address as usize + recorded) >> 8) as u8;
@@ -77,6 +81,8 @@ impl<E, I2CDevice: Write<Error = E> + Read<Error = E>> Cat24C<I2CDevice, E> {
                 .map_err(|_| Cat24CError::I2CError)?;
 
             recorded += amt_to_write;
+
+            self.delay.delay_ms(5);
         }
 
         Ok(())
