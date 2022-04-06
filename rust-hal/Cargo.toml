@@ -1,8 +1,10 @@
+# Derived from rp-rs template
+
 [package]
-authors = ["the rp-rs team"]
+authors = ["Aaron Christiansen"]
 edition = "2018"
 readme = "README.md"
-name = "rp2040-project-template"
+name = "delta-pico-hal"
 version = "0.1.0"
 resolver = "2"
 
