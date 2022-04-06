@@ -46,7 +46,9 @@ const HEAP_SIZE: usize = 240_000;
 
 static mut LED_PIN: Option<Pin<Gpio25, Output<PushPull>>> = None;
 static mut DELAY: Option<Delay> = None;
-static mut SHARED_I2C: Option<BusManager<NullMutex<I2C<I2C0, (Pin<Gpio20, FunctionI2C>, Pin<Gpio21, FunctionI2C>), Controller>>>> = None;
+
+type DeltaPicoI2C = I2C<I2C0, (Pin<Gpio20, FunctionI2C>, Pin<Gpio21, FunctionI2C>), Controller>;
+static mut SHARED_I2C: Option<BusManager<NullMutex<DeltaPicoI2C>>> = None;
 
 #[entry]
 fn main() -> ! {
@@ -55,7 +57,7 @@ fn main() -> ! {
         use core::mem::MaybeUninit;
         static mut HEAP: [MaybeUninit<u8>; HEAP_SIZE] = [MaybeUninit::uninit(); HEAP_SIZE];
         unsafe {
-            ALLOCATOR.init((&mut HEAP).as_ptr() as usize, HEAP_SIZE)
+            ALLOCATOR.init(HEAP.as_ptr() as usize, HEAP_SIZE)
         }
     }
 

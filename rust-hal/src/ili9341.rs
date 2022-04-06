@@ -13,9 +13,9 @@ impl State for Disabled {}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Ili9341Error {
-    GpioError,
-    SpiError,
-    BoundsError,
+    Gpio,
+    Spi,
+    Bounds,
 }
 
 pub struct Ili9341<
@@ -60,9 +60,9 @@ impl<S: State, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>>
     }
 
     pub fn hardware_reset(mut self) -> Result<Ili9341<Disabled, SpiD, DcPin, RstPin, Delay>, Ili9341Error> {
-        self.rst.set_low().map_err(|_| Ili9341Error::GpioError)?;
+        self.rst.set_low().map_err(|_| Ili9341Error::Gpio)?;
         self.delay.delay_ms(50);
-        self.rst.set_high().map_err(|_| Ili9341Error::GpioError)?;
+        self.rst.set_high().map_err(|_| Ili9341Error::Gpio)?;
         self.delay.delay_ms(50);
 
         Ok(self.change_state::<Disabled>())
@@ -107,15 +107,15 @@ impl<S: State, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>>
     pub fn send_command(&mut self, byte: u8) -> Result<(), Ili9341Error> {
         self.delay.delay_ms(1);
 
-        self.dc.set_low().map_err(|_| Ili9341Error::GpioError)?;
-        block!(self.spi.send(byte)).map_err(|_| Ili9341Error::SpiError)
+        self.dc.set_low().map_err(|_| Ili9341Error::Gpio)?;
+        block!(self.spi.send(byte)).map_err(|_| Ili9341Error::Spi)
     }
 
     pub fn send_data(&mut self, byte: u8) -> Result<(), Ili9341Error> {
         self.delay.delay_ms(1);
 
-        self.dc.set_high().map_err(|_| Ili9341Error::GpioError)?;
-        block!(self.spi.send(byte)).map_err(|_| Ili9341Error::SpiError)
+        self.dc.set_high().map_err(|_| Ili9341Error::Gpio)?;
+        block!(self.spi.send(byte)).map_err(|_| Ili9341Error::Spi)
     }
 
     pub fn send_packet(&mut self, command: u8, data: &[u8]) -> Result<(), Ili9341Error> {
@@ -167,8 +167,8 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<E
     /// TODO: This seems to be broken beyond drawing to the entire screen - but that's all we need,
     /// so should be fine for now
     pub fn set_pixel_drawing_area(&mut self, x1: u16, x2: u16, y1: u16, y2: u16) -> Result<u32, Ili9341Error> {
-        if x2 < x1 { return Err(Ili9341Error::BoundsError) }
-        if y2 < y1 { return Err(Ili9341Error::BoundsError) }
+        if x2 < x1 { return Err(Ili9341Error::Bounds) }
+        if y2 < y1 { return Err(Ili9341Error::Bounds) }
 
         // CASET
         self.send_packet(0x2A, &[
@@ -202,10 +202,10 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<E
     /// By the power of the borrow checker, the writer will prevent any methods from being called
     /// on `self` while it is alive. This stops any other methods messing up the DC pin and breaking
     /// the data stream.
-    pub fn fast_data_write<'a>(&'a mut self) -> Result<Ili9341FastDataWriter<'a, SpiD, DcPin, RstPin, Delay>, Ili9341Error> {
+    pub fn fast_data_write(&mut self) -> Result<Ili9341FastDataWriter<SpiD, DcPin, RstPin, Delay>, Ili9341Error> {
         self.delay.delay_ms(1);
 
-        self.dc.set_high().map_err(|_| Ili9341Error::GpioError)?;
+        self.dc.set_high().map_err(|_| Ili9341Error::Gpio)?;
         Ok(Ili9341FastDataWriter { ili9341: self })
     }
 
@@ -248,6 +248,6 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<E
 
 impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341FastDataWriter<'a, SpiD, DcPin, RstPin, Delay> {
     pub fn send(&mut self, byte: u8) -> Result<(), Ili9341Error> {
-        nb::block!(self.ili9341.spi.send(byte)).map_err(|_| Ili9341Error::SpiError)
+        nb::block!(self.ili9341.spi.send(byte)).map_err(|_| Ili9341Error::Spi)
     }
 }

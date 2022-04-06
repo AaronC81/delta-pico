@@ -128,6 +128,6 @@ impl<
         }
     
         // Nothing happened
-        return Ok(None);
+        Ok(None)
     }
 }

@@ -3,7 +3,7 @@ use embedded_hal::blocking::{i2c::{Write, Read}, delay::DelayMs};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Cat24CError {
-    I2CError,
+    I2C,
 }
 
 pub struct Cat24C<I2CDevice: Write<Error = E> + Read<Error = E>, E, Delay: DelayMs<u8> + 'static> {
@@ -21,12 +21,14 @@ impl<E, I2CDevice: Write<Error = E> + Read<Error = E>, Delay: DelayMs<u8> + 'sta
         Cat24C { address, i2c, delay }
     }
 
+    #[allow(clippy::wrong_self_convention)] // &mut self required for SPI transmission
     pub fn is_connected(&mut self) -> bool {
         // TODO: Untested - I didn't have a Rev.1 to hand while writing this
         let mut buffer = [0; 1];
         self.i2c.read(self.address, &mut buffer[..]).is_ok()
     }
 
+    #[allow(clippy::wrong_self_convention)] // &mut self required for SPI transmission
     pub fn is_busy(&mut self) -> bool {
         // When busy, the device essentially falls off the bus
         !self.is_connected()
@@ -35,10 +37,10 @@ impl<E, I2CDevice: Write<Error = E> + Read<Error = E>, Delay: DelayMs<u8> + 'sta
     pub fn read(&mut self, address: u16, bytes: &mut [u8]) -> Result<(), Cat24CError> {
         // Write the address we'd like to read from
         self.i2c.write(self.address, &[(address >> 8) as u8, (address & 0xFF) as u8])
-            .map_err(|_| Cat24CError::I2CError)?;
+            .map_err(|_| Cat24CError::I2C)?;
 
         // Read the desired number of bytes
-        self.i2c.read(self.address, bytes).map_err(|_| Cat24CError::I2CError)?;
+        self.i2c.read(self.address, bytes).map_err(|_| Cat24CError::I2C)?;
 
         Ok(())
     }
@@ -77,7 +79,7 @@ impl<E, I2CDevice: Write<Error = E> + Read<Error = E>, Delay: DelayMs<u8> + 'sta
             write_buffer[2..].copy_from_slice(bytes);
 
             self.i2c.write(self.address, &write_buffer[..])
-                .map_err(|_| Cat24CError::I2CError)?;
+                .map_err(|_| Cat24CError::I2C)?;
 
             recorded += amt_to_write;
 
