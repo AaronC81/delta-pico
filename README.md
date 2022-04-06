@@ -17,27 +17,16 @@ mathematical engine, for gorgeous textbook-style input.
 ![A hand holding the Delta Pico calculator, while it shows a calculation on the
 display.](img/holding.jpg)
 
-Most of the Delta Pico's software is written in Rust, with a small layer of C++
-to glue it together with Arduino libraries.
+The Delta Pico's software is written in Rust. The hardware abstraction layer is
+separate to the user software, theoretically allowing the operating system to
+run on other hardware which supports embedded Rust!
 
 ![Ferris, the Rust mascot, a crab, sitting on top of the Delta
 Pico](img/ferris.jpg)
 
 ## Building
 
-This repository is a Pico SDK project, with a separate Cargo project in
-the `rust` directory. The Cargo project is compiled automatically by CMake, so
-to build and flash this to your Pico:
-
-```
-mkdir build
-cd build
-cmake ..
-make
-
-picotool load delta-pico.bin
-picotool reboot
-```
+### Dependencies
 
 You will likely need a bleeding-edge checkout of rbop, so you should check this
 out too and adjust the path in `rust/Cargo.toml` accordingly.
@@ -48,6 +37,20 @@ environment variable to point to its included `ffpython` executable. If you've
 done this right, you should be able to run `$DELTA_PICO_FFPYTHON` in your 
 terminal (or `%DELTA_PICO_FFPYTHON%` on Windows) and get a Python interactive
 prompt.
+
+The build script also uses [elf2uf2-rs](https://github.com/JoNil/elf2uf2-rs) to
+flash software to the Pico, so be sure to install this.
+
+### Building and Flashing
+
+With all of the above dependencies sorted, cd into `rust-hal` and run:
+
+```
+cargo run
+```
+
+With a Pico connected in bootloader mode, this should build the project and
+flash it onto your Pico.
 
 ## Hardware
 
