@@ -2,11 +2,14 @@ use alloc::vec::Vec;
 use rbop::{Number, StructuredNode, node::unstructured::{Upgradable}, render::{Area, Renderer, Viewport}};
 use rust_decimal::prelude::{One, ToPrimitive, Zero};
 
-use crate::{interface::{Colour}, operating_system::{OSInput, os}, rbop_impl::{RbopContext}};
+use crate::{interface::{Colour, ApplicationFramework, ButtonInput}, operating_system::{OSInput, OperatingSystem, os_accessor}, rbop_impl::{RbopContext, RbopSpriteRenderer}};
 use super::{Application, ApplicationInfo};
-use crate::interface::framework;
 
-const PADDING: u64 = 10;
+const PADDING: u16 = 10;
+
+// TODO: Deduplicate
+const DISPLAY_WIDTH: u16 = 240;
+const DISPLAY_HEIGHT: u16 = 240;
 
 pub struct ViewWindow {
     pan_x: Number,
@@ -25,7 +28,7 @@ impl ViewWindow {
         }
     }
 
-    fn axis_screen_coords(&self) -> (i64, i64) {
+    fn axis_screen_coords(&self) -> (i16, i16) {
         (
             self.x_to_screen(Number::zero()),
             self.y_to_screen(Number::zero())
@@ -40,16 +43,16 @@ impl ViewWindow {
         let x_delta = Number::one() / self.scale_x;
 
         let x_start = (Number::from(
-            framework().display.width as i64 / -2
+            DISPLAY_WIDTH as i64 / -2
         ) - self.pan_x) * x_delta;
 
-        (0..framework().display.width)
+        (0..DISPLAY_WIDTH)
             .map(|i| x_start + Number::from(i as i64) * x_delta)
             .collect::<Vec<_>>()
     }
 
     /// Given a X value in the graph space, returns a X value on the screen.
-    fn x_to_screen(&self, mut x: Number) -> i64 {
+    fn x_to_screen(&self, mut x: Number) -> i16 {
         // Apply scale
         x *= self.scale_x;
 
@@ -58,11 +61,11 @@ impl ViewWindow {
 
         // Squash into an integer, and pan so that (0, 0) is in the middle of
         // the screen
-        x.to_decimal().to_i64().unwrap() + framework().display.width as i64 / 2
+        x.to_decimal().to_i16().unwrap() + DISPLAY_WIDTH as i16 / 2
     }
 
     /// Given a Y value in the graph space, returns a Y value on the screen.
-    fn y_to_screen(&self, mut y: Number) -> i64 {
+    fn y_to_screen(&self, mut y: Number) -> i16 {
         // Apply scale
         y *= self.scale_y;
 
@@ -71,18 +74,23 @@ impl ViewWindow {
 
         // Squash into an integer, flip around the bottom of the screen, and
         // pan so that (0, 0) is in the middle of the screen
-        (framework().display.height as i64 + -y.to_decimal().to_i64().unwrap())
-            - framework().display.height as i64 / 2
+        (DISPLAY_HEIGHT as i16 + -y.to_decimal().to_i16().unwrap())
+            - DISPLAY_HEIGHT as i16 / 2
     }
 }
 
-pub struct GraphApplication {
-    rbop_ctx: RbopContext,
+pub struct GraphApplication<F: ApplicationFramework + 'static> {
+    os: *mut OperatingSystem<F>,
+    rbop_ctx: RbopContext<F>,
     view_window: ViewWindow,
     edit_mode: bool,
 }
 
-impl Application for GraphApplication {
+os_accessor!(GraphApplication<F>);
+
+impl<F: ApplicationFramework> Application for GraphApplication<F> {
+    type Framework = F;
+
     fn info() -> ApplicationInfo {
         ApplicationInfo {
             name: "Graph".into(),
@@ -90,14 +98,15 @@ impl Application for GraphApplication {
         }
     }
 
-    fn new() -> Self {
+    fn new(os: *mut OperatingSystem<F>) -> Self {
         Self {
+            os,
             rbop_ctx: RbopContext {
                 viewport: Some(Viewport::new(Area::new(
-                    framework().display.width - PADDING * 2 - 30,
-                    framework().display.height - PADDING * 2,
+                    (DISPLAY_WIDTH - PADDING * 2 - 30).into(),
+                    (DISPLAY_HEIGHT - PADDING * 2).into(),
                 ))),
-                ..RbopContext::new()
+                ..RbopContext::new(os)
             },
             view_window: ViewWindow::new(),
             edit_mode: true,
@@ -108,20 +117,20 @@ impl Application for GraphApplication {
         self.draw();
 
         // Poll for input
-        if let Some(input) = framework().buttons.wait_press() {
-            if input == OSInput::Exe {
+        if let Some(input) = self.os_mut().input() {
+            if input == OSInput::Button(ButtonInput::Exe) {
                 self.edit_mode = !self.edit_mode;        
             } else if self.edit_mode {
                 self.rbop_ctx.input(input);
             } else {
                 let ten = Number::from(10);
                 match input {
-                    OSInput::MoveLeft => self.view_window.pan_x += ten,
-                    OSInput::MoveRight => self.view_window.pan_x -= ten,
-                    OSInput::MoveUp => self.view_window.pan_y -= ten,
-                    OSInput::MoveDown => self.view_window.pan_y += ten,
+                    OSInput::Button(ButtonInput::MoveLeft) => self.view_window.pan_x += ten,
+                    OSInput::Button(ButtonInput::MoveRight) => self.view_window.pan_x -= ten,
+                    OSInput::Button(ButtonInput::MoveUp) => self.view_window.pan_y -= ten,
+                    OSInput::Button(ButtonInput::MoveDown) => self.view_window.pan_y += ten,
 
-                    OSInput::List => self.open_menu(),
+                    OSInput::Button(ButtonInput::List) => self.open_menu(),
 
                     _ => (),
                 }
@@ -130,34 +139,30 @@ impl Application for GraphApplication {
     }
 }
 
-impl GraphApplication {
+impl<F: ApplicationFramework> GraphApplication<F> {
     fn draw(&mut self) {
-        framework().display.fill_screen(Colour::BLACK);
+        self.os_mut().display_sprite.fill(Colour::BLACK);
 
         if self.edit_mode {
-            os().ui_draw_title("Graph");
+            self.os_mut().ui_draw_title("Graph");
 
             // Draw rbop input
-            framework().rbop_location_x = PADDING as i64 + 30;
-            framework().rbop_location_y = PADDING as i64 + 30;
-            let block = framework().draw_all(
-                &self.rbop_ctx.root, 
-                Some(&mut self.rbop_ctx.nav_path.to_navigator()),
-                self.rbop_ctx.viewport.as_ref(),
-            );
+            let mut sprite = RbopSpriteRenderer::draw_context_to_sprite(&mut self.rbop_ctx, Colour::BLACK);
+            self.os_mut().display_sprite.draw_sprite(PADDING as i16 + 30, PADDING as i16 + 30, &sprite);
 
-            // Draw "y="
-            framework().display.print_at(
-                PADDING as i64, PADDING as i64 + 30 + block.baseline as i64 - 8,
+            // TODO: Drawing "y=" in line with the baseline would be nice, but we don't actually
+            // get given our layout
+            self.os_mut().display_sprite.print_at(
+                PADDING as i16, PADDING as i16 + 30 - 8,
                 "y="
             );
 
-            framework().display.print_at(23, 290, "EXE: Toggle edit/view");
+            self.os_mut().display_sprite.print_at(23, 290, "EXE: Toggle edit/view");
         } else {
             // Draw axes
             let (x_axis, y_axis) = self.view_window.axis_screen_coords();
-            framework().display.draw_line(x_axis, 0, x_axis, framework().display.height as i64, Colour::BLUE);
-            framework().display.draw_line(0, y_axis, framework().display.width as i64, y_axis, Colour::BLUE);
+            self.os_mut().display_sprite.draw_line(x_axis, 0, x_axis, DISPLAY_HEIGHT as i16, Colour::BLUE);
+            self.os_mut().display_sprite.draw_line(0, y_axis, DISPLAY_WIDTH as i16, y_axis, Colour::BLUE);
 
             // Upgrade, substitute, and draw graph
             if let Ok(sn) = self.rbop_ctx.root.upgrade() {
@@ -178,10 +183,10 @@ impl GraphApplication {
                     if let Ok(this_y) = values[this_x] {
                         let next_y = values[next_x].as_ref().unwrap_or(&this_y);
             
-                        framework().display.draw_line(
-                            this_x as i64, self.view_window.y_to_screen(this_y),
+                        self.os_mut().display_sprite.draw_line(
+                            this_x as i16, self.view_window.y_to_screen(this_y),
                             // TODO: use next_x when draw_line supports it
-                            this_x as i64, self.view_window.y_to_screen(*next_y),
+                            this_x as i16, self.view_window.y_to_screen(*next_y),
                             Colour::WHITE
                         );
                     }
@@ -190,35 +195,36 @@ impl GraphApplication {
         }
 
         // Push to screen
-        framework().display.draw();
+        self.os_mut().draw();
     }
 
     fn open_menu(&mut self) {
-        let idx = os().ui_open_menu(&[
+        let idx = self.os_mut().ui_open_menu(&[
             "View window".into(),
         ], true);
         self.draw();
 
         match idx {
             Some(0) => {
-                let idx = os().ui_open_menu(&[
+                let idx = self.os_mut().ui_open_menu(&[
                     "X scale".into(),
                     "Y scale".into(),
                 ], true);
 
                 match idx {
+                    // TODO: Doesn't redraw because Ferris was angry at me
                     Some(0) => {
-                        self.view_window.scale_x = os().ui_input_expression_and_evaluate(
+                        self.view_window.scale_x = self.os_mut().ui_input_expression_and_evaluate(
                             "X scale:",
                             None,
-                            || self.draw(),
+                            || (),
                         );
                     }
                     Some(1) => {
-                        self.view_window.scale_y = os().ui_input_expression_and_evaluate(
+                        self.view_window.scale_y = self.os_mut().ui_input_expression_and_evaluate(
                             "Y scale:",
                             None,
-                            || self.draw(),
+                            || (),
                         );
                     }
                     None => (),
