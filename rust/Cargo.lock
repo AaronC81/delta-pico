@@ -145,9 +145,12 @@ dependencies = [
  "fatfs",
  "image",
  "num-traits",
+ "proc-macro2",
+ "quote",
  "rand",
  "rbop",
  "rust_decimal",
+ "syn",
 ]
 
 [[package]]

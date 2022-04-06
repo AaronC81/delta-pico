@@ -7,6 +7,8 @@ use std::process::Command;
 use std::str::from_utf8;
 
 use image::{GenericImageView, Rgba};
+use proc_macro2::{Span, Ident, TokenStream};
+use quote::quote;
 
 fn main() {    
     let out = &PathBuf::from(env::var_os("OUT_DIR").unwrap());
@@ -33,7 +35,7 @@ fn main() {
     ).unwrap();
 
     // Generate bitmap data from images
-    let mut bitmap_source = "pub mod bitmap_data {".to_string();
+    let mut bitmap_sources = vec![];
     let mut bitmap_constant_names = vec![];
     let images = fs::read_dir("../res")
         .unwrap()
@@ -41,16 +43,19 @@ fn main() {
         .map(|f| f.unwrap().path())
         .filter(|f| f.extension() == Some(OsStr::new("png")));
     for image in images {
-        bitmap_source.push_str(&bitmap_rust_source(&image));
-        bitmap_source.push('\n');
-
+        bitmap_sources.push(bitmap_rust_source(&image));
         bitmap_constant_names.push(bitmap_path_to_name(&image));
     }
-    bitmap_source.push_str(&bitmap_lookup_rust_source(&bitmap_constant_names[..]));
-    bitmap_source.push_str("}\n");
+    bitmap_sources.push(bitmap_lookup_rust_source(&bitmap_constant_names[..]));
+
+    let bitmap_source = quote! {
+        pub mod bitmap_data {
+            #( #bitmap_sources )*
+        }
+    };
 
     // Write bitmaps to file
-    fs::write(out.join("bitmap_data.rs"), bitmap_source).unwrap();
+    fs::write(out.join("bitmap_data.rs"), bitmap_source.to_string()).unwrap();
 
     // TODO: Rerun only if changed
 }
@@ -59,15 +64,15 @@ fn bitmap_path_to_name(image_path: &Path) -> String {
     image_path.file_stem().unwrap().to_ascii_uppercase().into_string().unwrap()
 }
 
-fn bitmap_rust_source(image_path: &Path) -> String {
+fn bitmap_rust_source(image_path: &Path) -> TokenStream {
     let data = bitmap_data(image_path);
 
-    format!(
-        "pub const {}: [u16; {}] = [{}];",
-        bitmap_path_to_name(image_path),
-        data.len(),
-        data.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", "),
-    )
+    let name = Ident::new(&bitmap_path_to_name(image_path), Span::call_site());
+    let length = data.len();
+
+    quote! {
+        pub const #name: [u16; #length] = [ #(#data),* ];
+    }
 }
 
 fn bitmap_data(image_path: &Path) -> Vec<u16> {
@@ -183,21 +188,21 @@ fn colour_8888_to_565(colour: Rgba<u8>) -> Option<u16> {
     }
 }
 
-fn bitmap_lookup_rust_source(constant_names: &[String]) -> String {
-    let mut result = "pub fn lookup(name: &str) -> &'static [u16] {\n".to_string();
-    result.push_str("    match name {\n");
+fn bitmap_lookup_rust_source(constant_names: &[String]) -> TokenStream {
+    let cases = constant_names.iter().map(|name| {
+        let name_as_ident = Ident::new(name, Span::call_site());
+        quote! {
+            #name => & #name_as_ident [..]
+        }
+    });
 
-    for name in constant_names {
-        result.push_str(&format!(
-            "        \"{}\" => &{}[..],\n",
-            name.to_ascii_lowercase(),
-            name,
-        ));
+    quote! {
+        pub fn lookup(name: &str) -> &'static [u16] {
+            match name {
+                #( #cases ),* ,
+
+                _ => panic!("unknown bitmap"),
+            }
+        }
     }
-
-    result.push_str("        _ => panic!(\"unknown bitmap\"),\n");
-    result.push_str("    }\n");
-    result.push_str("}\n");
-
-    result
 }
