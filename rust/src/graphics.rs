@@ -1,10 +1,10 @@
-use core::convert::Infallible;
+use core::{convert::Infallible, fmt::Debug};
 
 use alloc::{vec, vec::Vec, string::{String, ToString}};
 use az::SaturatingAs;
 use crate::{interface::{Colour, FontSize, ShapeFill}};
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Debug, Clone)]
 pub struct Sprite {
     pub width: u16,
     pub height: u16,
@@ -12,6 +12,7 @@ pub struct Sprite {
 
     pub cursor_x: i16,
     pub cursor_y: i16,
+    pub font: &'static dyn AsciiFont,
 }
 
 impl Sprite {
@@ -22,6 +23,7 @@ impl Sprite {
             data: vec![Colour::BLACK; width as usize * height as usize],
             cursor_x: 0,
             cursor_y: 0,
+            font: &crate::font_data::DroidSans20,
         }
     }
 
@@ -154,15 +156,13 @@ impl Sprite {
 
         if character == '\n' {
             self.cursor_x = 0;
-            self.cursor_y += crate::font_data::droid_sans_20::droid_sans_20_lookup('A' as u8).unwrap()[1] as i16;
+            self.cursor_y += self.font.char_data('A' as u8).unwrap()[1] as i16;
             return;
         }
 
-        let character_bitmap = crate::font_data::droid_sans_20::droid_sans_20_lookup(character as u8);
+        let character_bitmap = self.font.char_data(character as u8);
         if character_bitmap.is_none() { return; }
         let character_bitmap = character_bitmap.unwrap();
-
-        // TODO: font colour
 
         // Each character is 4bpp;, so we maintain a flip-flopping boolean of whether to read the
         // upper or lower byte
@@ -378,13 +378,15 @@ impl Sprite {
     }
 
     // TODO: actual FontSize implementation
-    pub fn with_font_size<T, F>(&self, size: FontSize, func: F) -> T where F : FnOnce() -> T {
-        // let original_size = self.get_font_size();
-        // self.set_font_size(size);
-        // let result = func();
-        // self.set_font_size(original_size);
-        // result
-
-        self.with_font_size(size, func)
+    pub fn with_font<T, F>(&mut self, font: &'static dyn AsciiFont, func: F) -> T where F : FnOnce(&mut Self) -> T {
+        let original_font = self.font;
+        self.font = font;
+        let result = func(self);
+        self.font = original_font;
+        result
     }
+}
+
+pub trait AsciiFont: Debug {
+    fn char_data(&self, c: u8) -> Option<&'static [u8]>;
 }

@@ -8,7 +8,7 @@ use super::{Application, ApplicationInfo};
 
 const PADDING: u64 = 10;
 
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(Clone, Debug)]
 /// An entry into the sprite cache.
 enum SpriteCacheEntry {
     /// The sprite cache has been cleared, and this item hasn't been recomputed yet.
@@ -21,6 +21,12 @@ enum SpriteCacheEntry {
     /// This item has been recomputing since the sprite cache was last cleared, and is at least
     /// partially visible on the screen.
     Entry { sprite: Sprite },
+}
+
+impl SpriteCacheEntry {
+    fn is_blank(&self) -> bool {
+        matches!(self, SpriteCacheEntry::Blank)
+    }
 }
 
 pub struct CalculatorApplication<F: ApplicationFramework + 'static> {
@@ -338,7 +344,7 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
     }
 
     fn ensure_sprite_cache_entry_exists(&mut self, index: usize) {
-        if self.sprite_cache[index] == SpriteCacheEntry::Blank {
+        if self.sprite_cache[index].is_blank() {
             // This entry does not exist
             // Grab calculation
             let root = &mut self.calculations[index].root;

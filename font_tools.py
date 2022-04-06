@@ -24,7 +24,7 @@ def generate_font_source(name, glyphs_path) -> str:
     from PIL import Image
 
     # Load the image with PIL and iterate over its pixels to build up a Rust array
-    result = f"pub mod {name} {{\n\n"
+    result = f"#[derive(PartialEq, Eq, Debug, Copy, Clone)] pub struct {name};\n\nimpl {name} {{\n\n"
     valid_ids = []
     for glyph in sorted(os.listdir(glyphs_path)):
         # Validate name (so we don't try to process a .DS_Store or something)
@@ -38,7 +38,7 @@ def generate_font_source(name, glyphs_path) -> str:
 
         glyph_image_file_path = os.path.join(glyphs_path, glyph)
         glyph_image = Image.open(glyph_image_file_path)
-        result += f"const {glyph_c_name}: [u8; {glyph_c_name}_LEN] = [{glyph_image.width}, {glyph_image.height}"
+        result += f"const {glyph_c_name}: [u8; Self::{glyph_c_name}_LEN] = [{glyph_image.width}, {glyph_image.height}"
         buffer = None
         length = 2
         for x in range(glyph_image.width):
@@ -68,13 +68,14 @@ def generate_font_source(name, glyphs_path) -> str:
         result += f"const {glyph_c_name}_LEN: usize = {length};\n"
 
     # Finally, generate a table to look up these glyph bitmaps
-    result += f"pub fn {name}_lookup(c: u8) -> Option<&'static [u8]> {{\n"
+    result += f"}}\n\nimpl crate::graphics::AsciiFont for {name} {{\n"
+    result += f"fn char_data(&self, c: u8) -> Option<&'static [u8]> {{\n"
     result +=  "    match c {\n"
 
     for glyph_id in range(256):
         if glyph_id in valid_ids:
             glyph_c_name = f"{name}_{glyph_id}".upper()
-            result += f"        {glyph_id} => Some(&{glyph_c_name}[..]),\n"
+            result += f"        {glyph_id} => Some(&Self::{glyph_c_name}[..]),\n"
         else:
             result += f"        {glyph_id} => None,\n"
 

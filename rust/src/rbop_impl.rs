@@ -198,17 +198,18 @@ impl RbopSpriteRenderer {
 const MINIMUM_PAREN_HEIGHT: u64 = 16;
 
 impl Renderer for RbopSpriteRenderer {
-    fn size(&mut self, glyph: Glyph, size_reduction_level: u32) -> Area {
-        // If there is any size reduction level, recurse using a smaller font
-        if size_reduction_level > 0 {
-            // TODO: set font size
-            self.size(glyph, 0);
-        }
-        
+    fn size(&mut self, glyph: Glyph, size_reduction_level: u32) -> Area {        
         // Size calculation doesn't need an actual sprite to draw on, so if one hasn't been supplied
         // yet, just use a blank one
         let mut blank_sprite = Sprite::new(0, 0);
         let mut sprite = self.sprite.as_mut().unwrap_or(&mut blank_sprite);
+
+        // If there is any size reduction level, set a smaller font
+        let mut restore_font = None;
+        if size_reduction_level > 0 {
+            restore_font = Some(sprite.font);
+            sprite.font = &crate::font_data::DroidSans14;
+        }
 
         // Calculate an average character size
         let (text_character_width, text_character_height) = sprite.string_size("0");
@@ -217,7 +218,7 @@ impl Renderer for RbopSpriteRenderer {
             height: text_character_height as u64,
         };
 
-        match glyph {
+        let result = match glyph {
             Glyph::Cursor { height } => Area { height, width: 0 },
             Glyph::Placeholder => text_character_size,
 
@@ -241,24 +242,18 @@ impl Renderer for RbopSpriteRenderer {
             Glyph::RightParenthesis { inner_height } => Area { width: 5, height: max(inner_height, MINIMUM_PAREN_HEIGHT) },
 
             Glyph::Sqrt { .. } => unimplemented!(),
+        };
+
+        if let Some(restore_font) = restore_font {
+            sprite.font = restore_font;
         }
+
+        result
     }
 
     fn init(&mut self, _size: Area) {}
 
-    fn draw(&mut self, mut glyph: ViewportGlyph) {
-        // If there is any size reduction level, recurse using a smaller font
-        if glyph.glyph.size_reduction_level > 0 {
-            // TODO: set font size
-            self.draw(ViewportGlyph {
-                glyph: SizedGlyph {
-                    size_reduction_level: 0,
-                    ..glyph.glyph
-                },
-                ..glyph
-            })
-        }
-        
+    fn draw(&mut self, mut glyph: ViewportGlyph) {        
         match glyph.visibility {
             ViewportVisibility::Clipped { invisible, .. } if invisible => return,
             ViewportVisibility::Clipped { left_clip, right_clip, .. } => {
@@ -287,9 +282,16 @@ impl Renderer for RbopSpriteRenderer {
 
         let point = glyph.point;
         let (x, y) = (point.x.saturating_as::<i16>(), point.y.saturating_as::<i16>());
-
+        
         // Drawing does need a sprite, so panic if we don't have one
         let sprite = self.sprite.as_mut().expect("RbopSpriteRenderer missing a sprite");
+
+        // If there is any size reduction level, set a smaller font
+        let mut restore_font = None;
+        if glyph.glyph.size_reduction_level > 0 {
+            restore_font = Some(sprite.font);
+            sprite.font = &crate::font_data::DroidSans14;
+        }
 
         match glyph.glyph.glyph {
             Glyph::Digit { number } => sprite.draw_char_at(x, y, (number + b'0') as char),
@@ -334,6 +336,10 @@ impl Renderer for RbopSpriteRenderer {
             }
 
             Glyph::Sqrt { .. } => unimplemented!(),
+        }
+
+        if let Some(restore_font) = restore_font {
+            sprite.font = restore_font;
         }
     }
 }
