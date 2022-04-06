@@ -54,6 +54,16 @@ impl Sprite {
         }
     }
 
+    pub fn try_pixel_immutable(&self, x: i16, y: i16) -> Option<Colour> {
+        let index = y as isize * self.width as isize + x as isize;
+
+        if index < 0 || index as usize >= self.data.len() {
+            None
+        } else {
+            Some(self.pixel_immutable(x as u16, y as u16))
+        }
+    }
+
     pub fn fill(&mut self, colour: Colour) {
         self.data.fill(colour);
     }
@@ -152,7 +162,6 @@ impl Sprite {
         if character_bitmap.is_none() { return; }
         let character_bitmap = character_bitmap.unwrap();
 
-        // TODO: anti-aliasing or any transparency
         // TODO: font colour
 
         // Each character is 4bpp;, so we maintain a flip-flopping boolean of whether to read the
@@ -175,8 +184,15 @@ impl Sprite {
                     (character_bitmap[index] & 0xF0) >> 4
                 };
 
-                if alpha_nibble > 0x8 {
-                    self.draw_pixel(x + ox as i16, y + oy as i16, Colour::WHITE);
+                // Don't need to draw if it's totally transparent
+                if alpha_nibble == 0 { continue; }
+
+                if let Some(background) = self.try_pixel_immutable(x + ox as i16, y + oy as i16) {
+                    self.draw_pixel(
+                        x + ox as i16,
+                        y + oy as i16, 
+                        background.clone().interpolate_with_nibble(Colour::WHITE, alpha_nibble),
+                    );
                 }
             }
         }
