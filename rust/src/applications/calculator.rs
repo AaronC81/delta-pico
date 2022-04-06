@@ -70,6 +70,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
         }
     }
 
+    #[allow(clippy::not_unsafe_ptr_arg_deref)] // Required to perform initialisation
     fn new(os: *mut OperatingSystem<F>) -> Self {
         // We need our OS reference early to do some setup!
         let os_ref = unsafe { os.as_mut().unwrap() };
@@ -234,7 +235,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
             self.os_mut().display_sprite.draw_sprite(
                 PADDING as i16, 
                 this_calculation_lowest_y + PADDING as i16,
-                &calculation_sprite,
+                calculation_sprite,
             );
 
             // As we draw different components of the calculation, we'll add to the current Y
@@ -429,9 +430,6 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
             y + PADDING as i16 * 2,
             result_sprite,
         );
-
-        // Don't print an error string
-        return;
     }
 
     fn draw_result_to_sprite(result: &CalculationResult) -> Sprite {        

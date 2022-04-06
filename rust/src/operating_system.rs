@@ -111,6 +111,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
 
     /// Returns a reference to the application which should be ticked. This is typically the running
     /// application, unless showing the menu, in which case it is the menu application itself.
+    #[allow(clippy::or_fun_call)] // Suggestion causes borrow checker issues
     pub fn application_to_tick(&mut self) -> &mut dyn Application<Framework = F> {
         if self.showing_menu {
             self.menu.as_mut().unwrap()
@@ -259,7 +260,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
     
         loop {
             // Draw expression to sprite
-            let mut sprite = RbopSpriteRenderer::draw_context_to_sprite(&mut rbop_ctx, Colour::GREY);
+            let sprite = RbopSpriteRenderer::draw_context_to_sprite(&mut rbop_ctx, Colour::GREY);
             
             if sprite.height > minimum_height {
                 minimum_height = sprite.height;
@@ -274,10 +275,10 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
             self.display_sprite.draw_rect(0, y.saturating_as::<i16>(), 240, 400, Colour::WHITE, ShapeFill::Hollow, 10);      
             
             // Draw title
-            self.display_sprite.print_at(PADDING, y.saturating_as::<i16>() + PADDING, &title);
+            self.display_sprite.print_at(PADDING, y.saturating_as::<i16>() + PADDING, title);
 
             // Draw expression sprite to display
-            self.display_sprite.draw_sprite(PADDING, y as i16 + 30 + PADDING, &mut sprite);
+            self.display_sprite.draw_sprite(PADDING, y as i16 + 30 + PADDING, &sprite);
 
             // Update screen
             self.draw();
@@ -303,7 +304,6 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         root: Option<UnstructuredNodeRoot>,
         mut redraw: impl FnMut(),
     ) -> Number {
-        let title = title.into();
         let mut unr = root;
         loop {
             redraw();
@@ -402,7 +402,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
             }
         }
 
-        return result
+        result
     }
 
     pub fn input(&mut self) -> Option<OSInput> {
@@ -534,10 +534,9 @@ impl<F: ApplicationFramework> UIMenu<F> {
             self.page_scroll_offset += 1;
         }
     }
-
-    fn os(&self) -> &OperatingSystem<F> { unsafe { &*self.os } }
-    fn os_mut(&self) -> &mut OperatingSystem<F> { unsafe { &mut *self.os } }
 }
+
+os_accessor!(UIMenu<F>);
 
 macro_rules! os_accessor {
     ($n:ty) => {
@@ -546,6 +545,7 @@ macro_rules! os_accessor {
             fn os(&self) -> &OperatingSystem<F> { unsafe { &*self.os } }
 
             #[allow(unused)]
+            #[allow(clippy::mut_from_ref)]
             fn os_mut(&self) -> &mut OperatingSystem<F> { unsafe { &mut *self.os } }        
         }
     };

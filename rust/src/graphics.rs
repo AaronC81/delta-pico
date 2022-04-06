@@ -95,6 +95,7 @@ impl Sprite {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn draw_rect(&mut self, x: i16, y: i16, mut w: u16, mut h: u16, colour: Colour, filled: ShapeFill, _radius: u16) {
         // TODO: radius
         
@@ -155,7 +156,7 @@ impl Sprite {
 
         if character == '\n' {
             self.cursor_x = 0;
-            self.cursor_y += self.font.char_data('A' as u8).unwrap()[1] as i16;
+            self.cursor_y += self.font.char_data(b'A').unwrap()[1] as i16;
             return;
         }
 
@@ -190,7 +191,7 @@ impl Sprite {
                     self.draw_pixel(
                         x + ox as i16,
                         y + oy as i16, 
-                        background.clone().interpolate_with_nibble(Colour::WHITE, alpha_nibble),
+                        background.interpolate_with_nibble(Colour::WHITE, alpha_nibble),
                     );
                 }
             }
@@ -240,7 +241,7 @@ impl Sprite {
                 } else {
                     let colour = bitmap[index];
                     if colour != transparency {
-                        self.draw_pixel(x + ox as i16, y + oy as i16, Colour(colour).into());
+                        self.draw_pixel(x + ox as i16, y + oy as i16, Colour(colour));
                     }
                     index += 1;
                 }

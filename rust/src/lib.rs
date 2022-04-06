@@ -26,7 +26,7 @@ use interface::{ApplicationFramework, DisplayInterface, ButtonInput, StorageInte
 use crate::{interface::Colour, operating_system::{OSInput, OperatingSystem}};
 
 static mut PANIC_OS_POINTER: *mut () = core::ptr::null_mut();
-static mut PANIC_HANDLER: Option<Box<dyn FnMut(&PanicInfo) -> ()>> = None;
+static mut PANIC_HANDLER: Option<Box<dyn FnMut(&PanicInfo)>> = None;
 
 pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: F) {
     let mut os = OperatingSystem::new(framework);

@@ -1,5 +1,8 @@
 pub trait StorageInterface {
+    #[allow(clippy::wrong_self_convention)] // &mut self required for SPI transmission
     fn is_connected(&mut self) -> bool;
+
+    #[allow(clippy::wrong_self_convention)] // &mut self required for SPI transmission
     fn is_busy(&mut self) -> bool;
 
     fn write(&mut self, address: u16, bytes: &[u8]) -> Option<()>;

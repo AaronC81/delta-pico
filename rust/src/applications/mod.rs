@@ -42,9 +42,11 @@ pub trait Application {
     }
 }
 
+type RegisteredApplication<F> = (ApplicationInfo, fn(*mut OperatingSystem<F>) -> Box<dyn Application<Framework = F>>);
+
 pub struct ApplicationList<F: ApplicationFramework + 'static> {
     pub os: *mut OperatingSystem<F>,
-    pub applications: Vec<(ApplicationInfo, fn(*mut OperatingSystem<F>) -> Box<dyn Application<Framework = F>>)>,
+    pub applications: Vec<RegisteredApplication<F>>,
 }
 
 impl<F: ApplicationFramework> ApplicationList<F> {
@@ -58,6 +60,12 @@ impl<F: ApplicationFramework> ApplicationList<F> {
     pub fn add<T>(&mut self) where T: Application<Framework = F> + 'static {
         let info = T::info();
         self.applications.push((info, T::new_dyn))
+    }
+}
+
+impl<F: ApplicationFramework> Default for ApplicationList<F> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

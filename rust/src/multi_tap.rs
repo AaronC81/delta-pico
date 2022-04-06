@@ -112,3 +112,9 @@ impl MultiTapState {
         self.shift = false;
     }
 }
+
+impl Default for MultiTapState {
+    fn default() -> Self {
+        Self::new()
+    }
+}

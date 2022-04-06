@@ -177,7 +177,7 @@ impl<F: ApplicationFramework + 'static> ChunkTable<F> {
     }
 
     /// Returns an iterator over the bytes in the heap, starting from the given chunk address.
-    pub fn iter_bytes<'a>(&'a mut self, address: ChunkAddress) -> ChunkTableByteIterator<'a, F> {
+    pub fn iter_bytes(&mut self, address: ChunkAddress) -> ChunkTableByteIterator<F> {
         ChunkTableByteIterator::new(self, address)
     }
     

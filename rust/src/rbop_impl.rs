@@ -1,7 +1,7 @@
 use alloc::{string::ToString, vec};
 use az::SaturatingAs;
 use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{UnstructuredNodeRoot, MoveResult}, render::{Area, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility, LayoutComputationProperties, Layoutable}};
-use crate::{interface::{Colour, ShapeFill, ButtonInput, ApplicationFramework}, operating_system::{OSInput, OperatingSystem}, graphics::Sprite};
+use crate::{interface::{Colour, ShapeFill, ButtonInput, ApplicationFramework}, operating_system::{OSInput, OperatingSystem, os_accessor}, graphics::Sprite};
 
 use core::cmp::max;
 
@@ -15,11 +15,9 @@ pub struct RbopContext<F: ApplicationFramework + 'static> {
     pub input_shift: bool,
 }
 
-impl<F: ApplicationFramework> RbopContext<F> {
-    // Can't use os_accessor! because we have an extra lifetime
-    fn os(&self) -> &OperatingSystem<F> { unsafe { &*self.os } }
-    fn os_mut(&self) -> &mut OperatingSystem<F> { unsafe { &mut *self.os } }
+os_accessor!(RbopContext<F>);
 
+impl<F: ApplicationFramework> RbopContext<F> {
     pub fn new(os: *mut OperatingSystem<F>) -> RbopContext<F> {
         RbopContext {
             os,
@@ -159,11 +157,7 @@ impl RbopSpriteRenderer {
         let mut renderer = Self::new();
 
         // Calculate layout in advance so we know size
-        let mut navigator = if let Some(ref mut nav_path) = nav_path {
-            Some(nav_path.to_navigator())
-        } else {
-            None
-        };
+        let mut navigator = nav_path.as_mut().map(|nav_path| nav_path.to_navigator());
         let layout = renderer.layout(
             node,
             navigator.as_mut(),
@@ -180,11 +174,7 @@ impl RbopSpriteRenderer {
         renderer.sprite = Some(sprite);
         
         // Draw background and expression to sprite
-        let mut navigator = if let Some(ref mut nav_path) = nav_path {
-            Some(nav_path.to_navigator())
-        } else {
-            None
-        };
+        let mut navigator = nav_path.as_mut().map(|nav_path| nav_path.to_navigator());
         renderer.draw_all(
             node, 
             navigator.as_mut(),
@@ -192,6 +182,12 @@ impl RbopSpriteRenderer {
         );
 
         renderer.sprite.unwrap()
+    }
+}
+
+impl Default for RbopSpriteRenderer {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
