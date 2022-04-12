@@ -232,7 +232,7 @@ impl Sprite {
 
                     if colour != transparency {
                         for i in 0..times {
-                            self.draw_pixel(x + ox as i16, y + oy as i16 + i as i16, Colour(colour));
+                            self.draw_pixel(x + ox as i16, y + oy as i16 + i as i16, Colour::from_rgb565(colour));
                         }
                     }
 
@@ -241,7 +241,7 @@ impl Sprite {
                 } else {
                     let colour = bitmap[index];
                     if colour != transparency {
-                        self.draw_pixel(x + ox as i16, y + oy as i16, Colour(colour));
+                        self.draw_pixel(x + ox as i16, y + oy as i16, Colour::from_rgb565(colour));
                     }
                     index += 1;
                 }

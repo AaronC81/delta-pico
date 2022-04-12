@@ -32,7 +32,7 @@ pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: 
     let mut os = OperatingSystem::new(framework);
     os.second_init();
     
-    os.display_sprite.fill(Colour(0xFFFF));
+    os.display_sprite.fill(Colour::WHITE);
     os.draw();
 
     os.application_list.add::<applications::calculator::CalculatorApplication<F>>();

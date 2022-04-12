@@ -216,8 +216,9 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<E
         let pixels = self.set_pixel_drawing_area(0, self.width - 1, 0, self.height - 1)?;
 
         // Write bytes
-        let high = ((colour.0 & 0xFF00) >> 8) as u8;
-        let low = (colour.0 & 0xFF) as u8;
+        let rgb565 = colour.to_rgb565();
+        let high = ((rgb565 & 0xFF00) >> 8) as u8;
+        let low = (rgb565 & 0xFF) as u8;
         let mut writer = self.fast_data_write()?;
         for _ in 0..pixels {
             writer.send(high)?;
@@ -238,8 +239,9 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<E
         self.set_pixel_drawing_area(0, self.width - 1, 0, self.height - 1)?;
         let mut writer = self.fast_data_write()?;
         for pixel in &sprite.data {
-            writer.send((pixel.0 >> 8) as u8)?;
-            writer.send((pixel.0 & 0xFF) as u8)?;
+            let rgb565 = pixel.to_rgb565();
+            writer.send((rgb565 >> 8) as u8)?;
+            writer.send((rgb565 & 0xFF) as u8)?;
         }
 
         Ok(())
