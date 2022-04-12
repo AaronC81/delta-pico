@@ -454,7 +454,7 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
         };
 
         // That `match` didn't return, create a sprite with an error string
-        let (width, _) = Sprite::empty().string_size(&error_string);
+        let (width, _) = Sprite::empty().font.string_size(&error_string);
 
         // We'll use the same height as a digit to avoid wobble when the result is flickering
         // between a number and an error

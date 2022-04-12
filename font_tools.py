@@ -38,9 +38,8 @@ def generate_font_source(name, glyphs_path) -> str:
 
         glyph_image_file_path = os.path.join(glyphs_path, glyph)
         glyph_image = Image.open(glyph_image_file_path)
-        result += f"const {glyph_c_name}: [u8; Self::{glyph_c_name}_LEN] = [{glyph_image.width}, {glyph_image.height}"
+        result += f"const {glyph_c_name}: crate::graphics::AsciiFontGlyph<'static> = crate::graphics::AsciiFontGlyph {{ width: {glyph_image.width}, height: {glyph_image.height}, data: &["
         buffer = None
-        length = 2
         for x in range(glyph_image.width):
             for y in range(glyph_image.height):
                 # All channels are the same, so just check the red one of each pixel
@@ -54,28 +53,24 @@ def generate_font_source(name, glyphs_path) -> str:
                     buffer = f"0x{hex(value)[-1]}"
                 else:
                     buffer += hex(value)[-1]
-                    result += f", {buffer}"
+                    result += f"{buffer}, "
                     buffer = None
-                    length += 1
 
         # In case of an odd number of pixels in a glyph, check the buffer and pop it
         if buffer is not None:
-            result += f", 0x{hex(value)[-1]}0"
-            length += 1
+            result += f"0x{hex(value)[-1]}0"
         
-        result += "];\n"
-
-        result += f"const {glyph_c_name}_LEN: usize = {length};\n"
+        result += "] };\n"
 
     # Finally, generate a table to look up these glyph bitmaps
     result += f"}}\n\nimpl crate::graphics::AsciiFont for {name} {{\n"
-    result += f"fn char_data(&self, c: u8) -> Option<&'static [u8]> {{\n"
+    result += f"fn char_data(&self, c: u8) -> Option<crate::graphics::AsciiFontGlyph<'static>> {{\n"
     result +=  "    match c {\n"
 
     for glyph_id in range(256):
         if glyph_id in valid_ids:
             glyph_c_name = f"{name}_{glyph_id}".upper()
-            result += f"        {glyph_id} => Some(&Self::{glyph_c_name}[..]),\n"
+            result += f"        {glyph_id} => Some(Self::{glyph_c_name}),\n"
         else:
             result += f"        {glyph_id} => None,\n"
 

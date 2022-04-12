@@ -208,7 +208,7 @@ impl Renderer for RbopSpriteRenderer {
         }
 
         // Calculate an average character size
-        let (text_character_width, text_character_height) = sprite.string_size("0");
+        let (text_character_width, text_character_height) = sprite.font.string_size("0");
         let text_character_size = Area {
             width: text_character_width as u64,
             height: text_character_height as u64,
@@ -220,7 +220,7 @@ impl Renderer for RbopSpriteRenderer {
 
             Glyph::Digit { .. } => text_character_size,
             Glyph::Variable { name } => {
-                let (width, height) = sprite.string_size(&name.to_string());
+                let (width, height) = sprite.font.string_size(&name.to_string());
                 Area {
                     width: width as u64,
                     height: height as u64,

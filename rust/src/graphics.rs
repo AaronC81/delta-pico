@@ -1,4 +1,4 @@
-use core::{fmt::Debug};
+use core::{fmt::Debug, convert::TryInto};
 
 use alloc::{vec, vec::Vec, string::{String, ToString}};
 use az::SaturatingAs;
@@ -156,7 +156,7 @@ impl Sprite {
 
         if character == '\n' {
             self.cursor_x = 0;
-            self.cursor_y += self.font.char_data(b'A').unwrap()[1] as i16;
+            self.cursor_y += self.font.char_data(b'A').unwrap().height as i16;
             return;
         }
 
@@ -167,21 +167,21 @@ impl Sprite {
         // Each character is 4bpp;, so we maintain a flip-flopping boolean of whether to read the
         // upper or lower byte
         let mut lower_byte = false;
-        let mut index = 2usize;
+        let mut index = 0usize;
 
-        let width = character_bitmap[0];
-        let height = character_bitmap[1];
+        let width = character_bitmap.width;
+        let height = character_bitmap.height;
 
         for ox in 0..width {
             for oy in 0..height {
                 let alpha_nibble = if lower_byte {
                     lower_byte = false;
-                    let x = character_bitmap[index] & 0xF;
+                    let x = character_bitmap.data[index] & 0xF;
                     index += 1;
                     x
                 } else {
                     lower_byte = true;
-                    (character_bitmap[index] & 0xF0) >> 4
+                    (character_bitmap.data[index] & 0xF0) >> 4
                 };
 
                 // Don't need to draw if it's totally transparent
@@ -197,7 +197,7 @@ impl Sprite {
             }
         }
 
-        self.cursor_x += Into::<i16>::into(character_bitmap[0]) - 1;
+        self.cursor_x += width as i16 - 1;
     } 
 
     pub fn draw_sprite(&mut self, x: i16, y: i16, sprite: &Sprite) {
@@ -274,29 +274,10 @@ impl Sprite {
     }
 
     pub fn print_centred(&mut self, x: i16, y: i16, w: u16, s: &str) {
-        let (text_width, _) = self.string_size(s);
+        let (text_width, _) = self.font.string_size(s);
 
         let x_offset = (w as i16 - text_width) / 2;
         self.print_at(x + x_offset, y, s);
-    }
-
-    /// Calculates the size of a SINGLE-LINE string, returning it in the form (width, height).
-    /// 
-    /// The implementation of this function is *very* dodgy, deliberately drawing out-of-bounds and
-    /// watching the cursor. It may not be portable depending on the HAL - if you start getting
-    /// panics when printing, start looking here!
-    pub fn string_size(&mut self, string: &str) -> (i16, i16) {
-        // Won't work for strings with newlines
-
-        // Draw the string off the screen and see how much the cursor moved
-        // HACK: This draws to a buffer, right? Could we be overwriting some random memory by
-        // writing out of bounds??
-        self.set_cursor(0, self.height as i16 + 100);
-        self.print(string);
-        let (x, _) = self.get_cursor();
-        self.print("\n");
-        let (_, y) = self.get_cursor();
-        (x, y - (self.height as i16 + 100))
     }
 
     /// Wraps a string by breaking it into lines on whitespace, so that it fits in a given width.
@@ -313,11 +294,11 @@ impl Sprite {
         let mut x = 0;
         let mut y = 0;
         let mut lines: Vec<String> = vec!["".into()];
-        let char_height = self.string_size("A").1;
+        let char_height = self.font.char_data(b'A').unwrap().height;
 
         for word in string.split_whitespace() {
             // Work out size of this word
-            let (this_char_x, this_char_y) = self.string_size(word);
+            let (this_char_x, this_char_y) = self.font.string_size(word);
 
             // Rare special case - what if this word will never fit on a single line?
             // I've only seen this in panic messages so far
@@ -338,7 +319,7 @@ impl Sprite {
                     
                     // If the word no longer fits on a line, insert buffer minus last character as
                     // a line, start new line, and reset buffer
-                    let (buffer_width, _) = self.string_size(&buffer);
+                    let (buffer_width, _) = self.font.string_size(&buffer);
                     if buffer_width > width as i16 {
                         buffer.remove(buffer.len() - 1);
                         lines.last_mut().unwrap().push_str(&buffer);
@@ -354,7 +335,7 @@ impl Sprite {
                 lines.last_mut().unwrap().push_str(&buffer);
                 lines.last_mut().unwrap().push(' ');
 
-                x = self.string_size(&buffer).0;
+                x = self.font.string_size(&buffer).0;
 
                 continue;
             }
@@ -374,7 +355,7 @@ impl Sprite {
         }
 
         // Factor in width of last line into height
-        (lines, char_height, y + char_height)
+        (lines, char_height.into(), y + char_height as i16)
     }
 
     // TODO: actual FontSize implementation
@@ -388,5 +369,38 @@ impl Sprite {
 }
 
 pub trait AsciiFont: Debug {
-    fn char_data(&self, c: u8) -> Option<&'static [u8]>;
+    fn char_data(&self, c: u8) -> Option<AsciiFontGlyph<'static>>;
+
+    fn string_size(&self, string: &str) -> (i16, i16) {
+        // Use 'A' as the height of a line
+        let line_height = self.char_data(b'A').unwrap().height;
+
+        let mut current_line_width = 0;
+        let mut longest_line_width = 0;
+        let mut height = line_height;
+
+        for c in string.chars() {
+            if c != '\n' {
+                if let Some(glyph) = self.char_data(c as u8) { // TODO: unsafe cast
+                    // Update line width
+                    current_line_width += glyph.width;
+                    if current_line_width > longest_line_width {
+                        longest_line_width = current_line_width;
+                    }
+                }
+            } else {
+                height += line_height;
+                current_line_width = 0;
+            }
+        }
+
+        (longest_line_width as i16, height as i16)
+    }
+}
+
+#[derive(Debug)]
+pub struct AsciiFontGlyph<'a> {
+    pub width: u8,
+    pub height: u8,
+    pub data: &'a [u8],
 }
