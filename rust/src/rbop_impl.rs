@@ -241,7 +241,7 @@ impl Renderer for RbopSpriteRenderer {
             Glyph::LeftParenthesis { inner_height } => Area { width: 5, height: max(inner_height, MINIMUM_PAREN_HEIGHT) },
             Glyph::RightParenthesis { inner_height } => Area { width: 5, height: max(inner_height, MINIMUM_PAREN_HEIGHT) },
 
-            Glyph::Sqrt { inner_area } => Area { width: inner_area.width + 10, height: inner_area.height + 5 },
+            Glyph::Sqrt { inner_area } => Area { width: inner_area.width + 14, height: inner_area.height + 5 },
         };
 
         if let Some(restore_font) = restore_font {
@@ -250,6 +250,8 @@ impl Renderer for RbopSpriteRenderer {
 
         result
     }
+
+    fn square_root_padding(&self) -> u64 { 5 }
 
     fn init(&mut self, _size: Area) {}
 
