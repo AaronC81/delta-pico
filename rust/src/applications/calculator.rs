@@ -28,11 +28,26 @@ impl SpriteCacheEntry {
     }
 }
 
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+enum Selection {
+    Expression(usize),
+    Result(usize),
+}
+
+impl Selection {
+    fn index(&self) -> usize {
+        match *self {
+            Selection::Expression(i) => i,
+            Selection::Result(i) => i,
+        }
+    }
+}
+
 pub struct CalculatorApplication<F: ApplicationFramework + 'static> {
     os: *mut OperatingSystem<F>,
 
     calculations: Vec<Calculation>,
-    current_calculation_idx: usize,
+    selection: Selection,
     rbop_ctx: RbopContext<F>,
 
     /// The sprite cache is an optimization technique which sacrifices memory in order to gain a
@@ -92,8 +107,8 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
             calculations.push(Calculation::blank());
         }
 
-        let current_calculation_idx = calculations.len() - 1;
-        let root = calculations[current_calculation_idx].root.clone();
+        let selection = Selection::Expression(calculations.len() - 1);
+        let root = calculations[selection.index()].root.clone();
         
         let mut result = Self {
             os,
@@ -106,7 +121,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
                 ..RbopContext::new(os)
             },
             calculations,
-            current_calculation_idx,
+            selection,
             sprite_cache: vec![],
             starting_y: os_ref.framework.display().height() as i16,
         };
@@ -145,7 +160,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
             let result;
             let mut new_calculation_sprite; // In case we need to allocate a new sprite
             
-            if self.current_calculation_idx == i {
+            if self.selection == Selection::Expression(i) {
                 // If this is the calculation currently being edited, there is a possibly edited
                 // version in the rbop context, so use that instead of the cached sprite and result
                 result = match self.rbop_ctx.root.upgrade() {
@@ -185,7 +200,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
 
                 // Is this the current calculation? If so, we've scrolled up but this was off the
                 // screen, and we need to adjust the starting Y to show this entire calculation 
-                if self.current_calculation_idx == i {
+                if self.selection == Selection::Expression(i) {
                     // TODO: this does a weirdly large scroll if the calculation at the top of the
                     // screen gets taller
 
@@ -206,7 +221,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
             // If the greatest Y is off the bottom of the screen (again, maybe still partially
             // visible) and this is the calculation we're currently editing...
             if next_calculation_highest_y > self.os().display_sprite.height as i16
-                && self.current_calculation_idx == i
+                && self.selection == Selection::Expression(i)
             {
                 // We need to scroll down by the different between the height of the display and the
                 // highest Y
@@ -273,7 +288,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
                 self.calculations.push(Calculation::blank());
 
                 // Move to it
-                self.current_calculation_idx = self.calculations.len() - 1;
+                self.selection = Selection::Expression(self.calculations.len() - 1);
                 self.reset_scroll();
 
                 // Reset the rbop context, and save the new calculation
@@ -299,15 +314,15 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
                 // Move calculations if needed
                 if let Some((dir, MoveResult::MovedOut)) = move_result {
                     match dir {
-                        MoveVerticalDirection::Up => if self.current_calculation_idx != 0 {
+                        MoveVerticalDirection::Up => if self.selection != Selection::Expression(0) {
                             self.save_current();
-                            self.current_calculation_idx -= 1;
+                            self.selection = Selection::Expression(self.selection.index() - 1);
                             self.load_current();
                             self.clear_sprite_cache();
                         },
-                        MoveVerticalDirection::Down => if self.current_calculation_idx != self.calculations.len() - 1 {
+                        MoveVerticalDirection::Down => if self.selection != Selection::Expression(self.calculations.len() - 1) {
                             self.save_current();
-                            self.current_calculation_idx += 1;
+                            self.selection = Selection::Expression(self.selection.index() + 1);
                             self.load_current();
                             self.clear_sprite_cache();
                         },
@@ -323,7 +338,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
 
     fn test_info(&self) -> Vec<String> {
         vec![
-            format!("{:?}", self.calculations[self.current_calculation_idx].result),
+            format!("{:?}", self.calculations[self.selection.index()].result),
             self.calculations.len().to_string(),
         ]
     }
@@ -394,13 +409,13 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
         };
 
         // Save into array
-        self.calculations[self.current_calculation_idx].root = self.rbop_ctx.root.clone();
-        self.calculations[self.current_calculation_idx].result = result;
+        self.calculations[self.selection.index()].root = self.rbop_ctx.root.clone();
+        self.calculations[self.selection.index()].result = result;
 
         // Save to storage
         self.os_mut().filesystem.calculations.write_calculation_at_index(
-            ChunkIndex(self.current_calculation_idx as u16),
-            self.calculations[self.current_calculation_idx].clone()
+            ChunkIndex(self.selection.index() as u16),
+            self.calculations[self.selection.index()].clone()
         );
     }
     
@@ -411,7 +426,7 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
                 self.os().display_sprite.width as u64 - PADDING * 2,
                 self.os().display_sprite.height as u64 - PADDING * 2,
             ))),
-            root: self.calculations[self.current_calculation_idx].root.clone(),
+            root: self.calculations[self.selection.index()].root.clone(),
             ..RbopContext::new(self.os)
         };
     }
