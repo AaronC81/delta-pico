@@ -1,7 +1,8 @@
-use core::{fmt::Debug, convert::TryInto};
+use core::{fmt::Debug, mem::swap};
 
 use alloc::{vec, vec::Vec, string::{String, ToString}};
 use az::SaturatingAs;
+use num_traits::float::FloatCore;
 use crate::{interface::{Colour, ShapeFill}};
 
 #[derive(Debug, Clone)]
@@ -76,22 +77,91 @@ impl Sprite {
         }
     }
 
-    pub fn draw_line(&mut self, mut x1: i16, mut y1: i16, mut x2: i16, mut y2: i16, colour: Colour) {
-        // We expect the 1s to be lower than the 2s - if not, swap them
-        if x1 > x2 { core::mem::swap(&mut x1, &mut x2); }
-        if y1 > y2 { core::mem::swap(&mut y1, &mut y2); }
-
-        // Only horizontal and vertical lines supported, but the OS doesn't need to draw anything else
+    pub fn draw_line(&mut self, mut x1: i16, mut y1: i16, mut x2: i16, mut y2: i16, colour: Colour) {        
+        // We can optimise if the line is horizontal or vertical
         if y1 == y2 {
             // Horizontal
+            if x1 > x2 { swap(&mut x1, &mut x2); }
             for x in x1..x2 {
                 self.draw_pixel(x, y1, colour);
             }
         } else if x1 == x2 {
             // Vertical
+            if y1 > y2 { swap(&mut y1, &mut y2); }
             for y in y1..y2 {
                 self.draw_pixel(x1, y, colour);
             }
+        } else {
+            // It's a slanty line!
+            // Employing Wu's algorithm, translated from Wikipedia
+            // https://en.wikipedia.org/wiki/Xiaolin_Wu%27s_line_algorithm
+            let steep = (y2 - y1).abs() > (x2 - x1).abs();
+
+            if steep {
+                swap(&mut x1, &mut y1);
+                swap(&mut x2, &mut y2);
+            }
+            if x1 > x2 {
+                swap(&mut x1, &mut x2);
+                swap(&mut y1, &mut y2);
+            }
+
+            let dx = x2 - x1;
+            let dy = y2 - y1;
+
+            let gradient = if dx == 0 {
+                1.0
+            } else {
+                dy as f32 / dx as f32
+            };
+
+            // First endpoint
+            let x_end = x1 as f32;
+            let y_end = y1 as f32 + gradient * (x_end - x1 as f32);
+            let x_gap = (1 - x1) as f32;
+            let x_pixel_1 = x_end;
+            let y_pixel_1 = y_end.trunc();
+            if steep {
+                self.draw_interpolated_pixel(y_pixel_1.floor() as i16, x_pixel_1.floor() as i16, colour, (1.0 - y_end.fract()) * x_gap);
+                self.draw_interpolated_pixel(y_pixel_1.floor() as i16 + 1, x_pixel_1.floor() as i16, colour, y_end.fract() * x_gap);
+            } else {
+                self.draw_interpolated_pixel(x_pixel_1.floor() as i16, y_pixel_1.floor() as i16, colour, (1.0 - y_end.fract()) * x_gap);
+                self.draw_interpolated_pixel(x_pixel_1.floor() as i16 + 1, y_pixel_1.floor() as i16, colour, y_end.fract() * x_gap);
+            }
+            let mut inter_y = y_end + gradient;
+
+            // Second endpoint
+            let x_end = x2 as f32;
+            let y_end = y2 as f32 + gradient * (x_end - x2 as f32);
+            let x_gap = (x1 as f32 + 0.5).fract();
+            let x_pixel_2 = x_end;
+            let y_pixel_2 = y_end.trunc();
+            if steep {
+                self.draw_interpolated_pixel(y_pixel_2.floor() as i16, x_pixel_2.floor() as i16, colour, (1.0 - y_end.fract()) * x_gap);
+                self.draw_interpolated_pixel(y_pixel_2.floor() as i16 + 1, x_pixel_2.floor() as i16, colour, y_end.fract() * x_gap);
+            } else {
+                self.draw_interpolated_pixel(x_pixel_2.floor() as i16, y_pixel_2.floor() as i16, colour, (1.0 - y_end.fract()) * x_gap);
+                self.draw_interpolated_pixel(x_pixel_2.floor() as i16 + 1, y_pixel_2.floor() as i16, colour, y_end.fract() * x_gap);
+            }
+
+            // Main loop
+            for x in (x_pixel_1 + 1.0).trunc() as i16 ..= (x_pixel_2 - 1.0).trunc() as i16 {
+                if steep {
+                    self.draw_interpolated_pixel(inter_y.trunc() as i16, x, colour, 1.0 - inter_y.fract());
+                    self.draw_interpolated_pixel(inter_y.trunc() as i16 + 1, x, colour, inter_y.fract());
+                } else {
+                    self.draw_interpolated_pixel(x, inter_y.trunc() as i16, colour, 1.0 - inter_y.fract());
+                    self.draw_interpolated_pixel(x, inter_y.trunc() as i16 + 1, colour, inter_y.fract());
+                }
+                inter_y += gradient;
+            }
+        }
+    }
+
+    pub fn draw_interpolated_pixel(&mut self, x: i16, y: i16, colour: Colour, ratio: f32) {
+        if let Some(background) = self.try_pixel_immutable(x, y) {
+            let pixel = background.interpolate_with_nibble(colour, (ratio * 15.0).ceil() as u8);
+            self.draw_pixel(x, y, pixel);
         }
     }
 
