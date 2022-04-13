@@ -11,7 +11,7 @@ impl Colour {
     pub const ORANGE: Self = Self::from_rgb565(0xD340);
     pub const BLUE: Self = Self::from_rgb565(0x0392);
     pub const DARK_BLUE: Self = Self::from_rgb565(0x024B);
-    pub const GREY: Self = Self::from_rgb565(0x31A6);
+    pub const GREY: Self = Self::from_rgb565(0x4208);
     pub const RED: Self = Self::from_rgb565(0xF800);
 
     /// Breaks this colour into its individual RGB332 components: (red, green, blue).
