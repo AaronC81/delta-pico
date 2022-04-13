@@ -50,7 +50,7 @@ impl Sprite {
     pub fn try_pixel(&mut self, x: i16, y: i16) -> Option<&mut Colour> {
         let index = y as isize * self.width as isize + x as isize;
 
-        if index < 0 || index as usize >= self.data.len() {
+        if index < 0 || index as usize >= self.data.len() || x < 0 || y < 0 || x as u16 >= self.width || y as u16 >= self.height {
             None
         } else {
             Some(self.pixel(x as u16, y as u16))

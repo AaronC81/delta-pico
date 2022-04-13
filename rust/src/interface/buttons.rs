@@ -25,6 +25,7 @@ pub enum ButtonInput {
     Multiply,
     Fraction,
     Power,
+    Sqrt,
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]

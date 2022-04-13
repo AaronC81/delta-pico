@@ -79,6 +79,9 @@ impl<F: ApplicationFramework> RbopContext<F> {
                 OSInput::Button(ButtonInput::Power) => Some(UnstructuredNode::Power(
                     UnstructuredNodeList { items: vec![] },
                 )),
+                OSInput::Button(ButtonInput::Sqrt) => Some(UnstructuredNode::Sqrt(
+                    UnstructuredNodeList { items: vec![] },
+                )),
 
                 OSInput::TextMultiTapNew(c) => Some(UnstructuredNode::Token(Token::Variable(c))),
                 OSInput::TextMultiTapCycle(c) => {
@@ -167,9 +170,10 @@ impl RbopSpriteRenderer {
         let width = layout.area.width.saturating_as::<u16>();
 
         // Create sprite now that we know the size, and draw its background
-        // 1 larger to account for the possibility that the cursor is at the end - we told rbop
-        // that the cursor has a width of 0, so it won't account for it in the layout size
-        let mut sprite = Sprite::new(width + 1, height + 1);
+        // 3 larger to account for the possibility that the cursor is at the end - we told rbop
+        // that the cursor has a width of 0, so it won't account for it in the layout size, and
+        // various other lies told by nodes
+        let mut sprite = Sprite::new(width + 3, height + 3);
         sprite.fill(background_colour);
         renderer.sprite = Some(sprite);
         
@@ -237,7 +241,7 @@ impl Renderer for RbopSpriteRenderer {
             Glyph::LeftParenthesis { inner_height } => Area { width: 5, height: max(inner_height, MINIMUM_PAREN_HEIGHT) },
             Glyph::RightParenthesis { inner_height } => Area { width: 5, height: max(inner_height, MINIMUM_PAREN_HEIGHT) },
 
-            Glyph::Sqrt { .. } => unimplemented!(),
+            Glyph::Sqrt { inner_area } => Area { width: inner_area.width + 10, height: inner_area.height + 5 },
         };
 
         if let Some(restore_font) = restore_font {
@@ -331,7 +335,19 @@ impl Renderer for RbopSpriteRenderer {
                 sprite.draw_line(x + 2, y + inner_height - 7, x + 2, y + inner_height - 3, Colour::WHITE);
             }
 
-            Glyph::Sqrt { .. } => unimplemented!(),
+            Glyph::Sqrt { inner_area } => {
+                // Little line at the beginning
+                sprite.draw_line(x, y + inner_area.height as i16 - 3, x + 4, y + inner_area.height as i16 + 1, Colour::WHITE);
+
+                // Left line from bottom to top
+                sprite.draw_line(x + 4, y + inner_area.height as i16 + 1, x + 7, y, Colour::WHITE);
+
+                // Line along top
+                sprite.draw_line(x + 7, y, x + inner_area.width as i16 + 10, y, Colour::WHITE);
+
+                // Little flick at the end
+                sprite.draw_line(x + inner_area.width as i16 + 10, y, x + inner_area.width as i16 + 10, y + 4, Colour::WHITE);
+            },
         }
 
         if let Some(restore_font) = restore_font {
