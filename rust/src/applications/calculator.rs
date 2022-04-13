@@ -2,7 +2,7 @@ use core::cmp::max;
 use alloc::{format, vec, vec::Vec, string::{String, ToString}};
 use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 
-use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput}, operating_system::{OSInput, OperatingSystem, os_accessor}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite};
+use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput, ShapeFill}, operating_system::{OSInput, OperatingSystem, os_accessor}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite};
 use super::{Application, ApplicationInfo};
 
 const PADDING: u64 = 10;
@@ -39,6 +39,20 @@ impl Selection {
         match *self {
             Selection::Expression(i) => i,
             Selection::Result(i) => i,
+        }
+    }
+
+    fn down(self) -> Selection {
+        match self {
+            Selection::Expression(i) => Selection::Result(i),
+            Selection::Result(i) => Selection::Expression(i + 1),
+        }
+    }
+
+    fn up(self) -> Selection {
+        match self {
+            Selection::Expression(i) => Selection::Result(i - 1),
+            Selection::Result(i) => Selection::Expression(i),
         }
     }
 }
@@ -178,7 +192,12 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
             };
 
             // Draw sprite for result
-            let mut result_sprite = Self::draw_result_to_sprite(&result);
+            let result_bg_colour = if self.selection == Selection::Result(i) {
+                Colour::GREY
+            } else {
+                Colour::BLACK
+            };
+            let mut result_sprite = Self::draw_result_to_sprite(&result, result_bg_colour);
             let result_height = PADDING as u16 * 3 + result_sprite.height;
 
             // Work out Y position to draw everything from. Since we draw from bottom to top, we
@@ -200,7 +219,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
 
                 // Is this the current calculation? If so, we've scrolled up but this was off the
                 // screen, and we need to adjust the starting Y to show this entire calculation 
-                if self.selection == Selection::Expression(i) {
+                if self.selection.index() == i {
                     // TODO: this does a weirdly large scroll if the calculation at the top of the
                     // screen gets taller
 
@@ -221,7 +240,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
             // If the greatest Y is off the bottom of the screen (again, maybe still partially
             // visible) and this is the calculation we're currently editing...
             if next_calculation_highest_y > self.os().display_sprite.height as i16
-                && self.selection == Selection::Expression(i)
+                && self.selection.index() == i
             {
                 // We need to scroll down by the different between the height of the display and the
                 // highest Y
@@ -259,7 +278,8 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
             this_calculation_current_y += calculation_sprite.height as i16 + PADDING as i16;
             
             // Draw result
-            self.draw_result(this_calculation_current_y, &mut result_sprite);
+            let is_this_result_selected = self.selection == Selection::Result(i);
+            self.draw_result(this_calculation_current_y, &mut result_sprite, is_this_result_selected);
             this_calculation_current_y += result_height as i16;
 
             // Draw a big line, unless this is the last item
@@ -316,13 +336,13 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
                     match dir {
                         MoveVerticalDirection::Up => if self.selection != Selection::Expression(0) {
                             self.save_current();
-                            self.selection = Selection::Expression(self.selection.index() - 1);
+                            self.selection = self.selection.up();
                             self.load_current();
                             self.clear_sprite_cache();
                         },
-                        MoveVerticalDirection::Down => if self.selection != Selection::Expression(self.calculations.len() - 1) {
+                        MoveVerticalDirection::Down => if self.selection != Selection::Result(self.calculations.len() - 1) {
                             self.save_current();
-                            self.selection = Selection::Expression(self.selection.index() + 1);
+                            self.selection = self.selection.down();
                             self.load_current();
                             self.clear_sprite_cache();
                         },
@@ -431,7 +451,15 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
         };
     }
     
-    fn draw_result(&mut self, y: i16, result_sprite: &mut Sprite) {
+    fn draw_result(&mut self, y: i16, result_sprite: &mut Sprite, is_selected: bool) {
+        if is_selected {
+            self.os_mut().display_sprite.draw_rect(
+                0, y + PADDING as i16,
+                self.os_mut().display_sprite.width as u16, 2 * PADDING as u16 + result_sprite.height,
+                Colour::GREY, ShapeFill::Filled, 0
+            );
+        }
+
         // Draw a line
         self.os_mut().display_sprite.draw_line(
             PADDING as i16, y + PADDING as i16,
@@ -447,7 +475,7 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
         );
     }
 
-    fn draw_result_to_sprite(result: &CalculationResult) -> Sprite {        
+    fn draw_result_to_sprite(result: &CalculationResult, background_colour: Colour) -> Sprite {        
         let error_string = match result {
             CalculationResult::Ok(number) => {
                 // Convert the result number into a structured node
@@ -458,7 +486,7 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
                     &mut result_node,
                     None,
                     None,
-                    Colour::BLACK
+                    background_colour,
                 );
             },
 
@@ -481,6 +509,7 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
         ).area.height + 1;
 
         let mut sprite = Sprite::new(width as u16, height as u16);
+        sprite.fill(background_colour);
         sprite.print_at(0, 0, &error_string);
         sprite
     }
