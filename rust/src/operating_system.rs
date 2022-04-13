@@ -21,7 +21,7 @@ pub struct OperatingSystem<F: ApplicationFramework + 'static> {
     // pub last_title_millis: u32,
 
     pub text_mode: bool,
-    pub multi_tap: MultiTapState,
+    pub multi_tap: MultiTapState<F>,
 
     pub display_sprite: Sprite,
 }
@@ -70,7 +70,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
             },
 
             text_mode: false,
-            multi_tap: MultiTapState::new(),
+            multi_tap: MultiTapState::new(core::ptr::null_mut()),
 
             display_sprite: Sprite::new(display_width, display_height),
         }
@@ -84,6 +84,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         self.application_list.os = ptr;
         self.filesystem.settings.storage.os = ptr;
         self.filesystem.calculations.table.storage.os = ptr;
+        self.multi_tap.os = ptr;
 
         // Load storage values
         self.filesystem.settings.load_into_self();

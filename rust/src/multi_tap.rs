@@ -1,15 +1,18 @@
-use crate::{operating_system::OSInput, interface::ButtonInput};
+use crate::{operating_system::{OSInput, OperatingSystem, os_accessor}, interface::{ButtonInput, ApplicationFramework}};
 
-pub struct MultiTapState {
+pub struct MultiTapState<F: ApplicationFramework + 'static> {
+    pub os: *mut OperatingSystem<F>,
     current_list: Option<&'static [char]>,
     current_index: Option<usize>,
     current_digit: Option<u8>,
     current_shifted: bool,
-    last_press_ms: u32,
+    last_press_ms: u64,
     pub shift: bool,
 }
 
-const PRESS_COOLDOWN_MS: u32 = 750;
+os_accessor!(MultiTapState<F>);
+
+const PRESS_COOLDOWN_MS: u64 = 750;
 
 // These aren't in the same order as a phone keypad, because our keys are the other way around
 //     Phone         Delta Pico
@@ -26,15 +29,18 @@ const ONE_CHAR_LIST:   [char; 4] = ['p', 'q', 'r', 's'];
 const TWO_CHAR_LIST:   [char; 3] = ['t', 'u', 'v'];
 const THREE_CHAR_LIST: [char; 4] = ['w', 'x', 'y', 'z'];
 
-impl MultiTapState {
-    pub fn new() -> Self { Self {
-        current_index: None,
-        current_list: None,
-        current_digit: None,
-        current_shifted: false,
-        last_press_ms: 0,
-        shift: false,
-    } }
+impl<F: ApplicationFramework> MultiTapState<F> {
+    pub fn new(os: *mut OperatingSystem<F>) -> Self {
+        Self {
+            os,
+            current_index: None,
+            current_list: None,
+            current_digit: None,
+            current_shifted: false,
+            last_press_ms: 0,
+            shift: false,
+        }
+    }
 
     pub fn input(&mut self, input: OSInput) -> Option<OSInput> {
         // Get whether shift was pressed, then clear shift
@@ -46,8 +52,7 @@ impl MultiTapState {
         } else if let OSInput::Button(ButtonInput::Digit(digit)) = input {
             // If it's been more than the threshold time since a key was pressed, discard the
             // information about the previous keypress and start a new character
-            // IMPORTANT TODO - Multitap will be broken with this commented out
-            let now_ms = 100000; // (framework().millis)();
+            let now_ms = self.os().framework.millis();
             if now_ms - self.last_press_ms > PRESS_COOLDOWN_MS {
                 self.drop_keypress();
             }
@@ -110,11 +115,5 @@ impl MultiTapState {
         self.current_index = None;
         self.current_shifted = false;
         self.shift = false;
-    }
-}
-
-impl Default for MultiTapState {
-    fn default() -> Self {
-        Self::new()
     }
 }
