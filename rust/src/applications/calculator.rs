@@ -1,4 +1,4 @@
-use core::cmp::max;
+use core::cmp::{max, min};
 use alloc::{format, vec, vec::Vec, string::{String, ToString}};
 use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 
@@ -85,6 +85,11 @@ pub struct CalculatorApplication<F: ApplicationFramework + 'static> {
     /// screen.) A non-scrolled screen should have a starting_y of the screen's height, since we'll
     /// begin drawing up from the bottom of the screen.
     starting_y: i16,
+
+    /// If the current selection is a result, the amount by which it is scrolled. 0 means the
+    /// beginning is on the left of the screen and it may spill off the right, and any value above
+    /// subtracts from the starting X, gradually spilling it off the left.
+    result_scroll_x: u16,
 }
 
 os_accessor!(CalculatorApplication<F>);
@@ -138,6 +143,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
             selection,
             sprite_cache: vec![],
             starting_y: os_ref.framework.display().height() as i16,
+            result_scroll_x: 0,
         };
         result.clear_sprite_cache();
         result
@@ -154,6 +160,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
         // Draw history
         let calculation_count = self.calculations.len();
         let mut rest_are_clipped = false;
+        let mut selected_result_width = None;
         for i in (0..self.calculations.len()).rev() {
             // If the last thing we drew was partially off the top of the screen, then this is fully
             // off the screen, so skip it and mark it as pruned
@@ -279,6 +286,9 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
             
             // Draw result
             let is_this_result_selected = self.selection == Selection::Result(i);
+            if is_this_result_selected {
+                selected_result_width = Some(result_sprite.width);   
+            }
             self.draw_result(this_calculation_current_y, &mut result_sprite, is_this_result_selected);
             this_calculation_current_y += result_height as i16;
 
@@ -329,6 +339,21 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
                     Some(_) => unreachable!(),
                     None => (),
                 }
+            } else if matches!(self.selection, Selection::Result(_)) && matches!(input, OSInput::Button(ButtonInput::MoveLeft | ButtonInput::MoveRight)) {
+                match input {
+                    OSInput::Button(ButtonInput::MoveLeft) => self.result_scroll_x -= min(self.result_scroll_x, 10),
+                    OSInput::Button(ButtonInput::MoveRight) => {
+                        let selected_result_width = selected_result_width.expect("unknown result width");
+                        if selected_result_width > 240 - PADDING as u16 * 2 {
+                            self.result_scroll_x += 10;
+                            let max_scroll = selected_result_width - 240 + PADDING as u16 * 2;
+                            if self.result_scroll_x > max_scroll {
+                                self.result_scroll_x = max_scroll;
+                            }
+                        }
+                    },
+                    _ => (),
+                }
             } else {
                 let move_result = self.rbop_ctx.input(input);
                 // Move calculations if needed
@@ -343,6 +368,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
                         MoveVerticalDirection::Down => if self.selection != Selection::Result(self.calculations.len() - 1) {
                             self.save_current();
                             self.selection = self.selection.down();
+                            self.result_scroll_x = 0;
                             self.load_current();
                             self.clear_sprite_cache();
                         },
@@ -469,7 +495,8 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
 
         // Draw the result sprite right-aligned
         self.os_mut().display_sprite.draw_sprite(
-            max((self.os().display_sprite.width as i16 - PADDING as i16) - result_sprite.width as i16, PADDING as i16),
+            max((self.os().display_sprite.width as i16 - PADDING as i16) - result_sprite.width as i16, PADDING as i16)
+            - if is_selected { self.result_scroll_x as i16 } else { 0 },
             y + PADDING as i16 * 2,
             result_sprite,
         );
@@ -506,7 +533,7 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
             &StructuredNode::Number(Number::Rational(6, 1)),
             None,
             LayoutComputationProperties::default()
-        ).area.height + 1;
+        ).area.height + 3;
 
         let mut sprite = Sprite::new(width as u16, height as u16);
         sprite.fill(background_colour);
@@ -516,6 +543,7 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
 
     fn reset_scroll(&mut self) {
         self.starting_y = self.os().display_sprite.height as i16;
+        self.result_scroll_x = 0;
     }
 }
 
