@@ -3,9 +3,9 @@
 The Delta Pico is a **powerful scientific calculator built around the Raspberry
 Pi Pico**.
 
-![The Delta Pico calculator in the centre of a wooden surface. Some of the
-components of the calculator, such as its display and the Pico, are also beside
-it.](img/table.jpg)
+![Three images of the Delta Pico calculator on a wooden surface. The first shows the menu interface,
+with a list of applications such as Calculator and Graph. The second shows the Calculator app, with
+an expression being edited. The third shows the Graph app, with a parabolic graph plot.](img/table.jpg)
 
 A follow-on project from my [Delta
 M0](https://github.com/AaronC81/delta-m0), this calculator is much larger
@@ -13,9 +13,6 @@ and significantly more capable, with a 2.8" 240x320 colour display and 30 keys.
 
 The Delta Pico is powered by the [rbop](https://github.com/AaronC81/rbop)
 mathematical engine, for gorgeous textbook-style input.
-
-![A hand holding the Delta Pico calculator, while it shows a calculation on the
-display.](img/holding.jpg)
 
 The Delta Pico's software is written in Rust. The hardware abstraction layer is
 separate to the user software, theoretically allowing the operating system to
