@@ -16,7 +16,7 @@ pub struct ButtonMatrix<
 > {
     row_pcf: Pcf8574<RowError, RowI2CDevice>,
     col_pcf: Pcf8574<ColError, ColI2CDevice>,
-    delay: &'static mut Delay,
+    pub delay: &'static mut Delay,
 
     currently_pressed: Option<(u8, u8)>,
 }

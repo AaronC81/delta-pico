@@ -21,7 +21,7 @@ use button_matrix::{RawButtonEvent, ButtonMatrix};
 use cat24c::Cat24C;
 use cortex_m::delay::Delay;
 use cortex_m_rt::entry;
-use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, ButtonsInterface, ButtonEvent, StorageInterface}, delta_pico_main, graphics::Sprite};
+use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, ButtonsInterface, ButtonEvent, StorageInterface, ButtonInput}, delta_pico_main, graphics::Sprite, operating_system::OSInput};
 use embedded_hal::{digital::v2::{OutputPin, ToggleableOutputPin}, spi::MODE_0, blocking::delay::DelayMs, blocking::i2c::{Write, Read}};
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
 
@@ -47,11 +47,14 @@ const HEAP_SIZE: usize = 240_000;
 static mut LED_PIN: Option<Pin<Gpio25, Output<PushPull>>> = None;
 static mut DELAY: Option<Delay> = None;
 
-// I've just picked a random one. Cross your fingers!
+// I've just picked random ones. Cross your fingers!
 pub type I2CSpinlock = bsp::hal::sio::Spinlock16;
+pub type ButtonQueueSpinlock = bsp::hal::sio::Spinlock17;
 
 type DeltaPicoI2C = I2C<I2C0, (Pin<Gpio20, FunctionI2C>, Pin<Gpio21, FunctionI2C>), Controller>;
 static mut SHARED_I2C: Option<BusManager<NullMutex<DeltaPicoI2C>>> = None;
+
+static mut BUTTON_QUEUE: [Option<ButtonInput>; 16] = [None; 16];
 
 #[entry]
 fn main() -> ! {
@@ -220,21 +223,40 @@ impl<
     Delay: DelayMs<u8> + 'static,
 > ButtonsInterface for ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay> {
     fn wait_event(&mut self) -> delta_pico_rust::interface::ButtonEvent {
-        loop {
-            match self.matrix.get_event(true).unwrap() {
-                Some(RawButtonEvent::Press(row, col)) => {
-                    let input = rev::BUTTON_MAPPING[row as usize][col as usize];
-                    return ButtonEvent::Press(input)
+        unsafe {
+            loop {
+                {
+                    // If there are items in the queue, grab the first and move the rest along
+                    let _lock = ButtonQueueSpinlock::claim();
+                    if let Some(button) = BUTTON_QUEUE[0].take() {
+                        let event = ButtonEvent::Press(button);
+                        for i in 0..(BUTTON_QUEUE.len() - 1) {
+                            BUTTON_QUEUE[i] = BUTTON_QUEUE[i + 1];
+                        }
+                        return event;
+                    }
                 }
 
-                Some(RawButtonEvent::Release(row, col)) => {
-                    let input = rev::BUTTON_MAPPING[row as usize][col as usize];
-                    return ButtonEvent::Release(input)
-                }
-
-                _ => continue,
-            };
+                // Prevents us from holding the queue lock all the time
+                self.matrix.delay.delay_ms(10);
+            }
         }
+
+        // loop {
+        //     match self.matrix.get_event(true).unwrap() {
+        //         Some(RawButtonEvent::Press(row, col)) => {
+        //             let input = rev::BUTTON_MAPPING[row as usize][col as usize];
+        //             return ButtonEvent::Press(input)
+        //         }
+
+        //         Some(RawButtonEvent::Release(row, col)) => {
+        //             let input = rev::BUTTON_MAPPING[row as usize][col as usize];
+        //             return ButtonEvent::Release(input)
+        //         }
+
+        //         _ => continue,
+        //     };
+        // }
     }
 
     fn poll_event(&mut self) -> Option<delta_pico_rust::interface::ButtonEvent> {
@@ -389,7 +411,14 @@ fn core1_task() -> ! {
     let mut led_pin = pins.led.into_push_pull_output();
     let mut delay = cortex_m::delay::Delay::new(core.SYST, 125000000); // TODO: nasty constant
     loop {
-        delay.delay_ms(500);
+        for _ in 0..12500000 { cortex_m::asm::nop(); }
+        let _lock = ButtonQueueSpinlock::claim();
+        unsafe {
+            // Insert button press into the first free slot in the queue, if there is one
+            if let Some(slot) = BUTTON_QUEUE.iter_mut().find(|b| b.is_none()) {
+                *slot = Some(ButtonInput::MoveDown);
+            }
+        }
         led_pin.toggle().unwrap();
     }
 }

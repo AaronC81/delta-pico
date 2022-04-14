@@ -416,7 +416,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum OSInput {
     Button(ButtonInput),
     TextMultiTapNew(char),
