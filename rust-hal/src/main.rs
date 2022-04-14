@@ -158,19 +158,6 @@ fn main() -> ! {
 
     unsafe { SHARED_I2C = Some(BusManagerSimple::new(i2c)); }
 
-    let col_pcf = pcf8574::Pcf8574::new(0x38, unsafe { SHARED_I2C.as_mut().unwrap().acquire_i2c() });
-    let row_pcf = pcf8574::Pcf8574::new(0x3E, unsafe { SHARED_I2C.as_mut().unwrap().acquire_i2c() });
-
-    // Init button matrix and wait for key
-    let buttons = ButtonMatrix::new(
-        row_pcf,
-        col_pcf, 
-        // TODO: This is not "clever" or "I know better" usage of `unsafe`, this is literally just
-        // plain UB - both this and `ili` hold a mutable reference to `delay` simultaneously
-        // But, like... how are you supposed to share it!?
-        unsafe { DELAY.as_mut().unwrap() }
-    );
-
     // Init flash storage
     let flash = Cat24C::new(
         0x50, 
@@ -180,7 +167,7 @@ fn main() -> ! {
 
     let framework = FrameworkImpl {
         display: DisplayImpl { ili },
-        buttons: ButtonsImpl { matrix: buttons },
+        buttons: ButtonsImpl { delay: unsafe { DELAY.as_mut().unwrap() } },
         storage: StorageImpl { flash },
         
         timer,
@@ -205,23 +192,11 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
     }
 }
 
-struct ButtonsImpl<
-    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError>,
-    RowError,
-    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError>,
-    ColError,
-    Delay: DelayMs<u8> + 'static,
-> {
-    matrix: ButtonMatrix<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay>,
+struct ButtonsImpl<Delay: DelayMs<u8> + 'static> {
+    delay: &'static mut Delay,
 }
 
-impl<
-    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError>,
-    RowError,
-    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError>,
-    ColError,
-    Delay: DelayMs<u8> + 'static,
-> ButtonsInterface for ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay> {
+impl<Delay: DelayMs<u8> + 'static> ButtonsInterface for ButtonsImpl<Delay> {
     fn wait_event(&mut self) -> delta_pico_rust::interface::ButtonEvent {
         unsafe {
             loop {
@@ -238,25 +213,9 @@ impl<
                 }
 
                 // Prevents us from holding the queue lock all the time
-                self.matrix.delay.delay_ms(10);
+                self.delay.delay_ms(10);
             }
         }
-
-        // loop {
-        //     match self.matrix.get_event(true).unwrap() {
-        //         Some(RawButtonEvent::Press(row, col)) => {
-        //             let input = rev::BUTTON_MAPPING[row as usize][col as usize];
-        //             return ButtonEvent::Press(input)
-        //         }
-
-        //         Some(RawButtonEvent::Release(row, col)) => {
-        //             let input = rev::BUTTON_MAPPING[row as usize][col as usize];
-        //             return ButtonEvent::Release(input)
-        //         }
-
-        //         _ => continue,
-        //     };
-        // }
     }
 
     fn poll_event(&mut self) -> Option<delta_pico_rust::interface::ButtonEvent> {
@@ -299,16 +258,11 @@ struct FrameworkImpl<
     RstPin: PinId,
     Delay: DelayMs<u8> + 'static,
 
-    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError>,
-    RowError,
-    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError>,
-    ColError,
-
     StorageI2CDevice: Write<Error = StorageError> + Read<Error = StorageError>,
     StorageError,
 > {
     display: DisplayImpl<SpiD, DcPin, RstPin, Delay>,
-    buttons: ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay>,
+    buttons: ButtonsImpl<Delay>,
     storage: StorageImpl<StorageI2CDevice, StorageError, Delay>,
     timer: Timer,
 }
@@ -319,16 +273,11 @@ impl<
     RstPin: PinId,
     Delay: DelayMs<u8> + 'static,
 
-    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError>,
-    RowError,
-    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError>,
-    ColError,
-
     StorageI2CDevice: Write<Error = StorageError> + Read<Error = StorageError>,
     StorageError,
-> ApplicationFramework for FrameworkImpl<SpiD, DcPin, RstPin, Delay, RowI2CDevice, RowError, ColI2CDevice, ColError, StorageI2CDevice, StorageError> {
+> ApplicationFramework for FrameworkImpl<SpiD, DcPin, RstPin, Delay, StorageI2CDevice, StorageError> {
     type DisplayI = DisplayImpl<SpiD, DcPin, RstPin, Delay>;
-    type ButtonsI = ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay>;
+    type ButtonsI = ButtonsImpl<Delay>;
     type StorageI = StorageImpl<StorageI2CDevice, StorageError, Delay>;
 
     fn display(&self) -> &Self::DisplayI { &self.display }
@@ -409,14 +358,38 @@ fn core1_task() -> ! {
     );
 
     let mut led_pin = pins.led.into_push_pull_output();
-    let mut delay = cortex_m::delay::Delay::new(core.SYST, 125000000); // TODO: nasty constant
+
+    let col_pcf = pcf8574::Pcf8574::new(0x38, unsafe { SHARED_I2C.as_mut().unwrap().acquire_i2c() });
+    let row_pcf = pcf8574::Pcf8574::new(0x3E, unsafe { SHARED_I2C.as_mut().unwrap().acquire_i2c() });
+
+    // Init button matrix and wait for key
+    let mut buttons = ButtonMatrix::new(
+        row_pcf,
+        col_pcf, 
+        // TODO: This is not "clever" or "I know better" usage of `unsafe`, this is literally just
+        // plain UB - both this and `ili` hold a mutable reference to `delay` simultaneously
+        // But, like... how are you supposed to share it!?
+        unsafe { DELAY.as_mut().unwrap() }
+    );
+
     loop {
         for _ in 0..12500000 { cortex_m::asm::nop(); }
         let _lock = ButtonQueueSpinlock::claim();
         unsafe {
+            let input = match buttons.get_event(false).unwrap() {
+                Some(RawButtonEvent::Press(row, col)) => {
+                    let input = rev::BUTTON_MAPPING[row as usize][col as usize];
+                    Some(input)
+                }
+
+                _ => None,
+            };
+
             // Insert button press into the first free slot in the queue, if there is one
-            if let Some(slot) = BUTTON_QUEUE.iter_mut().find(|b| b.is_none()) {
-                *slot = Some(ButtonInput::MoveDown);
+            if let Some(input) = input {
+                if let Some(slot) = BUTTON_QUEUE.iter_mut().find(|b| b.is_none()) {
+                    *slot = Some(input);
+                }
             }
         }
         led_pin.toggle().unwrap();
