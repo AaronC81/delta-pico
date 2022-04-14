@@ -22,7 +22,7 @@ use cat24c::Cat24C;
 use cortex_m::delay::Delay;
 use cortex_m_rt::entry;
 use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, ButtonsInterface, ButtonEvent, StorageInterface}, delta_pico_main, graphics::Sprite};
-use embedded_hal::{digital::v2::OutputPin, spi::MODE_0, blocking::delay::DelayMs, blocking::i2c::{Write, Read}};
+use embedded_hal::{digital::v2::{OutputPin, ToggleableOutputPin}, spi::MODE_0, blocking::delay::DelayMs, blocking::i2c::{Write, Read}};
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
 
 use ili9341::Ili9341;
@@ -36,7 +36,7 @@ use bsp::{hal::{
     pac,
     sio::Sio,
     watchdog::Watchdog,
-    spi::{Spi, SpiDevice}, gpio::{FunctionSpi, Pin, PinId, Output, PushPull, bank0::{Gpio25, Gpio20, Gpio21}, FunctionI2C}, I2C, i2c::Controller, Timer,
+    spi::{Spi, SpiDevice}, gpio::{FunctionSpi, Pin, PinId, Output, PushPull, bank0::{Gpio25, Gpio20, Gpio21}, FunctionI2C}, I2C, i2c::Controller, Timer, multicore::{Stack, Multicore},
 }, pac::I2C0};
 use shared_bus::{BusManagerSimple, NullMutex, BusManager};
 
@@ -67,7 +67,7 @@ fn main() -> ! {
     let mut pac = pac::Peripherals::take().unwrap();
     let core = pac::CorePeripherals::take().unwrap();
     let mut watchdog = Watchdog::new(pac.WATCHDOG);
-    let sio = Sio::new(pac.SIO);
+    let mut sio = Sio::new(pac.SIO);
 
     // External high-speed crystal on the pico board is 12Mhz
     let external_xtal_freq_hz = 12_000_000u32;
@@ -82,6 +82,11 @@ fn main() -> ! {
     )
     .ok()
     .unwrap();
+
+    let mut mc = Multicore::new(&mut pac.PSM, &mut pac.PPB, &mut sio);
+    let cores = mc.cores();
+    let core1 = &mut cores[1];
+    let _test = core1.spawn(core1_task, unsafe { &mut CORE1_STACK.mem });
 
     unsafe {
         DELAY = Some(cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().integer()));
@@ -366,4 +371,25 @@ fn blink(time: u32) {
     unsafe { DELAY.as_mut().unwrap() }.delay_ms(time);
     unsafe { LED_PIN.as_mut().unwrap() }.set_low().unwrap();
     unsafe { DELAY.as_mut().unwrap() }.delay_ms(time);
+}
+
+static mut CORE1_STACK: Stack<4096> = Stack::new();
+fn core1_task() -> ! {
+    let mut pac = unsafe { pac::Peripherals::steal() };
+    let core = unsafe { pac::CorePeripherals::steal() };
+
+    let sio = Sio::new(pac.SIO);
+    let pins = bsp::Pins::new(
+        pac.IO_BANK0,
+        pac.PADS_BANK0,
+        sio.gpio_bank0,
+        &mut pac.RESETS,
+    );
+
+    let mut led_pin = pins.led.into_push_pull_output();
+    let mut delay = cortex_m::delay::Delay::new(core.SYST, 125000000); // TODO: nasty constant
+    loop {
+        delay.delay_ms(500);
+        led_pin.toggle().unwrap();
+    }
 }
