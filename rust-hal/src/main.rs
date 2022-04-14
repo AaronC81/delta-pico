@@ -47,6 +47,9 @@ const HEAP_SIZE: usize = 240_000;
 static mut LED_PIN: Option<Pin<Gpio25, Output<PushPull>>> = None;
 static mut DELAY: Option<Delay> = None;
 
+// I've just picked a random one. Cross your fingers!
+pub type I2CSpinlock = bsp::hal::sio::Spinlock16;
+
 type DeltaPicoI2C = I2C<I2C0, (Pin<Gpio20, FunctionI2C>, Pin<Gpio21, FunctionI2C>), Controller>;
 static mut SHARED_I2C: Option<BusManager<NullMutex<DeltaPicoI2C>>> = None;
 
