@@ -310,9 +310,13 @@ impl Renderer for RbopSpriteRenderer {
             Glyph::Cursor { height } =>
                 sprite.draw_line(x, y, x, y + height.saturating_as::<i16>(), Colour::WHITE),
 
-            Glyph::Placeholder => sprite.draw_rect(
-                x, y, 6, 6, Colour::GREY, ShapeFill::Filled, 0
-            ),
+            Glyph::Placeholder => {
+                let digit_glyph = sprite.font.char_data(b'0').unwrap();
+                sprite.draw_rect(
+                    x + 4, y + 4, (digit_glyph.width - 8).into(), (digit_glyph.height - 8).into(),
+                    Colour::GREY, ShapeFill::Filled, 0
+                );
+            }
 
             Glyph::LeftParenthesis { inner_height } => {
                 let inner_height = max(MINIMUM_PAREN_HEIGHT, inner_height).saturating_as::<i16>();
