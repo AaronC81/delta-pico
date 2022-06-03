@@ -1,4 +1,4 @@
-use core::{fmt::Debug, mem::swap};
+use core::{fmt::Debug, mem::swap, convert::TryInto};
 
 use alloc::{vec, vec::Vec, string::{String, ToString}};
 use az::SaturatingAs;
@@ -451,7 +451,7 @@ pub trait AsciiFont: Debug {
 
         for c in string.chars() {
             if c != '\n' {
-                if let Some(glyph) = self.char_data(c as u8) { // TODO: unsafe cast
+                if let Some(glyph) = c.try_into().ok().and_then(|c| self.char_data(c)) {
                     // Update line width
                     current_line_width += glyph.width;
                     if current_line_width > longest_line_width {
