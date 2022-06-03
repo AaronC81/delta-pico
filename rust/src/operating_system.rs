@@ -1,6 +1,6 @@
 use alloc::{boxed::Box, format, string::{String, ToString}, vec::Vec};
 use az::SaturatingAs;
-use rbop::{Number, node::unstructured::{UnstructuredNodeRoot, Upgradable}, render::{Area, Viewport}};
+use rbop::{Number, node::{unstructured::{UnstructuredNodeRoot, Upgradable}, structured::EvaluationSettings}, render::{Area, Viewport}};
 
 use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, CHUNK_SIZE, CHUNK_ADDRESS_SIZE, ChunkTable, CalculationHistory}, graphics::Sprite, rbop_impl::{RbopContext, RbopSpriteRenderer}};
 
@@ -315,7 +315,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
                 .upgrade()
                 .map_err(|e| format!("{:?}", e))
                 .and_then(|sn| sn
-                    .evaluate()
+                    .evaluate(&EvaluationSettings::default())
                     .map_err(|e| format!("{:?}", e))) {
                 
                 Ok(d) => {

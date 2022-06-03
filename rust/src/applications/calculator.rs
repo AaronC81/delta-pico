@@ -1,6 +1,6 @@
 use core::cmp::{max, min};
 use alloc::{format, vec, vec::Vec, string::{String, ToString}};
-use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
+use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}, structured::EvaluationSettings}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 
 use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput, ShapeFill}, operating_system::{OSInput, OperatingSystem, os_accessor}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite};
 use super::{Application, ApplicationInfo};
@@ -20,6 +20,29 @@ enum SpriteCacheEntry {
     /// This item has been recomputing since the sprite cache was last cleared, and is at least
     /// partially visible on the screen.
     Entry { sprite: Sprite },
+}
+
+#[derive(Clone, Debug)]
+enum SpriteCacheEntryData {
+    Height(u16),
+    Sprite(Sprite),
+}
+
+impl SpriteCacheEntryData {
+    fn height(&self) -> u16 {
+        match self {
+            SpriteCacheEntryData::Height(h) => *h,
+            SpriteCacheEntryData::Sprite(s) => s.height,
+        }
+    }
+
+    fn unwrap(&self) -> &Sprite {
+        if let Self::Sprite(s) = &self {
+            s
+        } else {
+            panic!("tried to unwrap cache data entry without sprite");
+        }
+    }
 }
 
 impl SpriteCacheEntry {
@@ -185,7 +208,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
                 // If this is the calculation currently being edited, there is a possibly edited
                 // version in the rbop context, so use that instead of the cached sprite and result
                 result = match self.rbop_ctx.root.upgrade() {
-                    Ok(structured) => match structured.evaluate() {
+                    Ok(structured) => match structured.evaluate(&EvaluationSettings::default()) {
                         Ok(evaluation_result) => CalculationResult::Ok(evaluation_result),
                         Err(err) => CalculationResult::MathsError(err),
                     },
@@ -447,7 +470,7 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
     fn save_current(&mut self) {
         // Evaluate
         let result = match self.rbop_ctx.root.upgrade() {
-            Ok(structured) => match structured.evaluate() {
+            Ok(structured) => match structured.evaluate(&EvaluationSettings::default()) {
                 Ok(evaluation_result) => CalculationResult::Ok(evaluation_result),
                 Err(err) => CalculationResult::MathsError(err),
             },

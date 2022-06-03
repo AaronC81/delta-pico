@@ -1,6 +1,6 @@
 use alloc::{string::ToString, vec};
 use az::SaturatingAs;
-use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::unstructured::{UnstructuredNodeRoot, MoveResult}, render::{Area, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility, LayoutComputationProperties, Layoutable}};
+use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::{unstructured::{UnstructuredNodeRoot, MoveResult}, function::Function}, render::{Area, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility, LayoutComputationProperties, Layoutable}};
 use crate::{interface::{Colour, ShapeFill, ButtonInput, ApplicationFramework}, operating_system::{OSInput, OperatingSystem, os_accessor}, graphics::Sprite};
 
 use core::cmp::max;
@@ -111,6 +111,8 @@ impl<F: ApplicationFramework> RbopContext<F> {
                     None
                 }
                 OSInput::Button(ButtonInput::Digit(0)) => Some(UnstructuredNode::Token(Token::Variable('x'))),
+                OSInput::Button(ButtonInput::Digit(1)) => Some(UnstructuredNode::FunctionCall(Function::Sine, vec![UnstructuredNodeList::new()])),
+                OSInput::Button(ButtonInput::Digit(2)) => Some(UnstructuredNode::FunctionCall(Function::Cosine, vec![UnstructuredNodeList::new()])),
 
                 _ => {
                     input_pressed = false;
@@ -232,6 +234,7 @@ impl Renderer for RbopSpriteRenderer {
             },
 
             Glyph::Point => Area { width: text_character_size.width / 2, ..text_character_size },
+            Glyph::Comma => text_character_size,
             Glyph::Add => text_character_size,
             Glyph::Subtract => text_character_size,
             Glyph::Multiply => text_character_size,
@@ -242,6 +245,11 @@ impl Renderer for RbopSpriteRenderer {
             Glyph::RightParenthesis { inner_height } => Area { width: 5, height: max(inner_height, MINIMUM_PAREN_HEIGHT) },
 
             Glyph::Sqrt { inner_area } => Area { width: inner_area.width + 14, height: inner_area.height + 5 },
+
+            Glyph::FunctionName { function } => {
+                let (w, h) = sprite.font.string_size(function.render_name());
+                Area::new(w as u64, h as u64)
+            }
         };
 
         if let Some(restore_font) = restore_font {
@@ -298,6 +306,7 @@ impl Renderer for RbopSpriteRenderer {
         match glyph.glyph.glyph {
             Glyph::Digit { number } => sprite.draw_char_at(x, y, (number + b'0') as char),
             Glyph::Point => sprite.draw_char_at(x, y, '.'),
+            Glyph::Comma => sprite.draw_char_at(x, y, ','),
             Glyph::Variable { name } => sprite.draw_char_at(x, y, name),
             Glyph::Add => sprite.draw_char_at(x, y, '+'),
             Glyph::Subtract => sprite.draw_char_at(x, y, '-'),
@@ -354,6 +363,8 @@ impl Renderer for RbopSpriteRenderer {
                 // Little flick at the end
                 sprite.draw_line(x + inner_area.width as i16 + 10, y, x + inner_area.width as i16 + 10, y + 4, Colour::WHITE);
             },
+
+            Glyph::FunctionName { function } => sprite.print_at(x, y, function.render_name())
         }
 
         if let Some(restore_font) = restore_font {
