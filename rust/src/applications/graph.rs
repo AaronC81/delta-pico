@@ -2,14 +2,10 @@ use alloc::vec::Vec;
 use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable}}, render::{Area, Viewport}};
 use rust_decimal::prelude::{One, ToPrimitive, Zero};
 
-use crate::{interface::{Colour, ApplicationFramework, ButtonInput}, operating_system::{OSInput, OperatingSystem, os_accessor}, rbop_impl::{RbopContext, RbopSpriteRenderer}};
+use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor}, rbop_impl::{RbopContext, RbopSpriteRenderer}};
 use super::{Application, ApplicationInfo};
 
 const PADDING: u16 = 10;
-
-// TODO: Deduplicate
-const DISPLAY_WIDTH: u16 = 240;
-const DISPLAY_HEIGHT: u16 = 240;
 
 pub struct ViewWindow {
     pan_x: Number,

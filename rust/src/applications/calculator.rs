@@ -2,7 +2,7 @@ use core::cmp::{max, min};
 use alloc::{format, vec, vec::Vec, string::{String, ToString}};
 use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 
-use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput, ShapeFill}, operating_system::{OSInput, OperatingSystem, os_accessor}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite};
+use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput, ShapeFill, DISPLAY_WIDTH}, operating_system::{OSInput, OperatingSystem, os_accessor}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite};
 use super::{Application, ApplicationInfo};
 
 const PADDING: u64 = 10;
@@ -367,9 +367,9 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
                     OSInput::Button(ButtonInput::MoveLeft) => self.result_scroll_x -= min(self.result_scroll_x, 10),
                     OSInput::Button(ButtonInput::MoveRight) => {
                         let selected_result_width = selected_result_width.expect("unknown result width");
-                        if selected_result_width > 240 - PADDING as u16 * 2 {
+                        if selected_result_width > DISPLAY_WIDTH - PADDING as u16 * 2 {
                             self.result_scroll_x += 10;
-                            let max_scroll = selected_result_width - 240 + PADDING as u16 * 2;
+                            let max_scroll = selected_result_width - DISPLAY_WIDTH + PADDING as u16 * 2;
                             if self.result_scroll_x > max_scroll {
                                 self.result_scroll_x = max_scroll;
                             }

@@ -2,7 +2,7 @@ use alloc::{boxed::Box, format, string::{String, ToString}, vec::Vec};
 use az::SaturatingAs;
 use rbop::{Number, node::{unstructured::{UnstructuredNodeRoot, Upgradable}}, render::{Area, Viewport}};
 
-use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, CHUNK_SIZE, CHUNK_ADDRESS_SIZE, ChunkTable, CalculationHistory}, graphics::Sprite, rbop_impl::{RbopContext, RbopSpriteRenderer}};
+use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent, DISPLAY_WIDTH}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, CHUNK_SIZE, CHUNK_ADDRESS_SIZE, ChunkTable, CalculationHistory}, graphics::Sprite, rbop_impl::{RbopContext, RbopSpriteRenderer}};
 
 pub struct OperatingSystem<F: ApplicationFramework + 'static> {
     pub framework: F,
@@ -194,8 +194,8 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         loop {
             // Draw background
             let mut y = self.framework.display().height() as i16 - ITEM_GAP * items.len() as i16 - 10;
-            self.display_sprite.draw_rect(0, y, 240, 400, Colour::GREY, ShapeFill::Filled, 10);
-            self.display_sprite.draw_rect(0, y, 240, 400, Colour::WHITE, ShapeFill::Hollow, 10);
+            self.display_sprite.draw_rect(0, y, DISPLAY_WIDTH, 400, Colour::GREY, ShapeFill::Filled, 10);
+            self.display_sprite.draw_rect(0, y, DISPLAY_WIDTH, 400, Colour::WHITE, ShapeFill::Hollow, 10);
 
             // Draw items
             y += 10;
@@ -269,8 +269,8 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
                 - minimum_height
                 - 30
                 - PADDING as u16 * 2;
-            self.display_sprite.draw_rect(0, y.saturating_as::<i16>(), 240, 400, Colour::GREY, ShapeFill::Filled, 10);
-            self.display_sprite.draw_rect(0, y.saturating_as::<i16>(), 240, 400, Colour::WHITE, ShapeFill::Hollow, 10);      
+            self.display_sprite.draw_rect(0, y.saturating_as::<i16>(), DISPLAY_WIDTH, 400, Colour::GREY, ShapeFill::Filled, 10);
+            self.display_sprite.draw_rect(0, y.saturating_as::<i16>(), DISPLAY_WIDTH, 400, Colour::WHITE, ShapeFill::Hollow, 10);      
             
             // Draw title
             self.display_sprite.print_at(PADDING, y.saturating_as::<i16>() + PADDING, title);

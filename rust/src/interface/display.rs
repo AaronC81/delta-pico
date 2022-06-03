@@ -131,3 +131,6 @@ pub trait DisplayInterface {
 
     fn draw_display_sprite(&mut self, sprite: &Sprite);
 }
+
+pub const DISPLAY_WIDTH: u16 = 240;
+pub const DISPLAY_HEIGHT: u16 = 320;
