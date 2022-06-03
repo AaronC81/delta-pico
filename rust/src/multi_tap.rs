@@ -7,7 +7,6 @@ pub struct MultiTapState<F: ApplicationFramework + 'static> {
     current_digit: Option<u8>,
     current_shifted: bool,
     last_press_ms: u64,
-    pub shift: bool,
 }
 
 os_accessor!(MultiTapState<F>);
@@ -38,18 +37,13 @@ impl<F: ApplicationFramework> MultiTapState<F> {
             current_digit: None,
             current_shifted: false,
             last_press_ms: 0,
-            shift: false,
         }
     }
 
     pub fn input(&mut self, input: OSInput) -> Option<OSInput> {
-        // Get whether shift was pressed, then clear shift
-        let shift = self.shift;
-        self.shift = false;
+        let shift = matches!(input, OSInput::ShiftedButton(_));
 
-        if input == OSInput::Button(ButtonInput::Shift) {
-            self.shift = true;
-        } else if let OSInput::Button(ButtonInput::Digit(digit)) = input {
+        if let OSInput::Button(ButtonInput::Digit(digit)) | OSInput::ShiftedButton(ButtonInput::Digit(digit)) = input {
             // If it's been more than the threshold time since a key was pressed, discard the
             // information about the previous keypress and start a new character
             let now_ms = self.os().framework.millis();
@@ -114,6 +108,5 @@ impl<F: ApplicationFramework> MultiTapState<F> {
         self.current_digit = None;
         self.current_index = None;
         self.current_shifted = false;
-        self.shift = false;
     }
 }

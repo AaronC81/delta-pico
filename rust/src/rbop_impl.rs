@@ -11,8 +11,6 @@ pub struct RbopContext<F: ApplicationFramework + 'static> {
     pub root: UnstructuredNodeRoot,
     pub nav_path: NavPath,
     pub viewport: Option<Viewport>,
-
-    pub input_shift: bool,
 }
 
 os_accessor!(RbopContext<F>);
@@ -24,110 +22,81 @@ impl<F: ApplicationFramework> RbopContext<F> {
             root: UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![] } },
             nav_path: NavPath::new(vec![0]),
             viewport: None,
-            input_shift: false,
         }
     }
 
     pub fn input(&mut self, input: OSInput) -> Option<(MoveVerticalDirection, MoveResult)> {
         let mut renderer = RbopSpriteRenderer::new();
 
-        let node_to_insert = if !self.input_shift {
-            match input {        
-                OSInput::Button(ButtonInput::MoveLeft) => {
-                    self.root.move_left(&mut self.nav_path, &mut renderer, self.viewport.as_mut());
-                    None
-                }
-                OSInput::Button(ButtonInput::MoveRight) => {
-                    self.root.move_right(&mut self.nav_path, &mut renderer, self.viewport.as_mut());
-                    None
-                }
-                OSInput::Button(ButtonInput::MoveUp) => {
-                    return Some((
-                        MoveVerticalDirection::Up,
-                        self.root.move_up(&mut self.nav_path, &mut renderer, self.viewport.as_mut())
-                    ));
-                }
-                OSInput::Button(ButtonInput::MoveDown) => {
-                    return Some((
-                        MoveVerticalDirection::Down,
-                        self.root.move_down(&mut self.nav_path, &mut renderer, self.viewport.as_mut())
-                    ));
-                }
-                OSInput::Button(ButtonInput::Delete) => {
-                    self.root.delete(&mut self.nav_path, &mut renderer, self.viewport.as_mut());
-                    None
-                }
-                OSInput::Button(ButtonInput::Clear) => {
-                    self.root.clear(&mut self.nav_path, &mut renderer, self.viewport.as_mut());
-                    None
-                }
-        
-                OSInput::Button(ButtonInput::Digit(d)) => Some(UnstructuredNode::Token(Token::Digit(d))),
-        
-                OSInput::Button(ButtonInput::Point) => Some(UnstructuredNode::Token(Token::Point)),
-                OSInput::Button(ButtonInput::Parentheses) => Some(UnstructuredNode::Parentheses(
-                    UnstructuredNodeList { items: vec![] },
-                )),
-        
-                OSInput::Button(ButtonInput::Add) => Some(UnstructuredNode::Token(Token::Add)),
-                OSInput::Button(ButtonInput::Subtract) => Some(UnstructuredNode::Token(Token::Subtract)),
-                OSInput::Button(ButtonInput::Multiply) => Some(UnstructuredNode::Token(Token::Multiply)),
-                OSInput::Button(ButtonInput::Fraction) => Some(UnstructuredNode::Fraction(
-                    UnstructuredNodeList { items: vec![] },
-                    UnstructuredNodeList { items: vec![] },
-                )),
-                OSInput::Button(ButtonInput::Power) => Some(UnstructuredNode::Power(
-                    UnstructuredNodeList { items: vec![] },
-                )),
-                OSInput::Button(ButtonInput::Sqrt) => Some(UnstructuredNode::Sqrt(
-                    UnstructuredNodeList { items: vec![] },
-                )),
-
-                OSInput::TextMultiTapNew(c) => Some(UnstructuredNode::Token(Token::Variable(c))),
-                OSInput::TextMultiTapCycle(c) => {
-                    self.root.delete(&mut self.nav_path, &mut renderer, self.viewport.as_mut());
-                    Some(UnstructuredNode::Token(Token::Variable(c)))
-                }
-
-                OSInput::Button(ButtonInput::Exe) => return None,
-                OSInput::Button(ButtonInput::List) => return None,
-                OSInput::Button(ButtonInput::None) => return None,
-
-                OSInput::Button(ButtonInput::Shift) => {
-                    // TODO: should there just be one shift?
-                    if self.os().text_mode {
-                        self.os_mut().multi_tap.shift = true;
-                    } else {
-                        self.input_shift = true;
-                    }
-                    None
-                },
-
-                // Handled earlier in the driver stack
-                OSInput::Button(ButtonInput::Menu) | OSInput::Button(ButtonInput::Text) => unreachable!(),
+        let node_to_insert = match input {        
+            OSInput::Button(ButtonInput::MoveLeft) => {
+                self.root.move_left(&mut self.nav_path, &mut renderer, self.viewport.as_mut());
+                None
             }
-        } else {
-            let mut input_pressed = true;
-            let node = match input {
-                OSInput::Button(ButtonInput::Shift) => {
-                    self.input_shift = false;
-                    None
-                }
-                OSInput::Button(ButtonInput::Digit(0)) => Some(UnstructuredNode::Token(Token::Variable('x'))),
-                OSInput::Button(ButtonInput::Digit(1)) => Some(UnstructuredNode::FunctionCall(Function::Sine, vec![UnstructuredNodeList::new()])),
-                OSInput::Button(ButtonInput::Digit(2)) => Some(UnstructuredNode::FunctionCall(Function::Cosine, vec![UnstructuredNodeList::new()])),
+            OSInput::Button(ButtonInput::MoveRight) => {
+                self.root.move_right(&mut self.nav_path, &mut renderer, self.viewport.as_mut());
+                None
+            }
+            OSInput::Button(ButtonInput::MoveUp) => {
+                return Some((
+                    MoveVerticalDirection::Up,
+                    self.root.move_up(&mut self.nav_path, &mut renderer, self.viewport.as_mut())
+                ));
+            }
+            OSInput::Button(ButtonInput::MoveDown) => {
+                return Some((
+                    MoveVerticalDirection::Down,
+                    self.root.move_down(&mut self.nav_path, &mut renderer, self.viewport.as_mut())
+                ));
+            }
+            OSInput::Button(ButtonInput::Delete) => {
+                self.root.delete(&mut self.nav_path, &mut renderer, self.viewport.as_mut());
+                None
+            }
+            OSInput::Button(ButtonInput::Clear) => {
+                self.root.clear(&mut self.nav_path, &mut renderer, self.viewport.as_mut());
+                None
+            }
+    
+            OSInput::Button(ButtonInput::Digit(d)) => Some(UnstructuredNode::Token(Token::Digit(d))),
+    
+            OSInput::Button(ButtonInput::Point) => Some(UnstructuredNode::Token(Token::Point)),
+            OSInput::Button(ButtonInput::Parentheses) => Some(UnstructuredNode::Parentheses(
+                UnstructuredNodeList { items: vec![] },
+            )),
+    
+            OSInput::Button(ButtonInput::Add) => Some(UnstructuredNode::Token(Token::Add)),
+            OSInput::Button(ButtonInput::Subtract) => Some(UnstructuredNode::Token(Token::Subtract)),
+            OSInput::Button(ButtonInput::Multiply) => Some(UnstructuredNode::Token(Token::Multiply)),
+            OSInput::Button(ButtonInput::Fraction) => Some(UnstructuredNode::Fraction(
+                UnstructuredNodeList { items: vec![] },
+                UnstructuredNodeList { items: vec![] },
+            )),
+            OSInput::Button(ButtonInput::Power) => Some(UnstructuredNode::Power(
+                UnstructuredNodeList { items: vec![] },
+            )),
+            OSInput::Button(ButtonInput::Sqrt) => Some(UnstructuredNode::Sqrt(
+                UnstructuredNodeList { items: vec![] },
+            )),
 
-                _ => {
-                    input_pressed = false;
-                    None
-                },
-            };
-
-            if input_pressed {
-                self.input_shift = false;
+            OSInput::TextMultiTapNew(c) => Some(UnstructuredNode::Token(Token::Variable(c))),
+            OSInput::TextMultiTapCycle(c) => {
+                self.root.delete(&mut self.nav_path, &mut renderer, self.viewport.as_mut());
+                Some(UnstructuredNode::Token(Token::Variable(c)))
             }
 
-            node
+            OSInput::Button(ButtonInput::Exe) => return None,
+            OSInput::Button(ButtonInput::List) => return None,
+            OSInput::Button(ButtonInput::None) => return None,
+            OSInput::Button(ButtonInput::Shift) => return None,
+
+            // Handled earlier in the driver stack
+            OSInput::Button(ButtonInput::Menu) | OSInput::Button(ButtonInput::Text) => unreachable!(),
+
+            OSInput::ShiftedButton(ButtonInput::Digit(0)) => Some(UnstructuredNode::Token(Token::Variable('x'))),
+            OSInput::ShiftedButton(ButtonInput::Digit(1)) => Some(UnstructuredNode::FunctionCall(Function::Sine, vec![UnstructuredNodeList::new()])),
+            OSInput::ShiftedButton(ButtonInput::Digit(2)) => Some(UnstructuredNode::FunctionCall(Function::Cosine, vec![UnstructuredNodeList::new()])),
+            OSInput::ShiftedButton(_) => return None,
         };
     
         if let Some(node) = node_to_insert {

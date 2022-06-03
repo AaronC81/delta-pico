@@ -17,6 +17,7 @@ pub struct OperatingSystem<F: ApplicationFramework + 'static> {
     pub filesystem: Filesystem<F>,
     // pub last_title_millis: u32,
 
+    pub input_shift: bool,
     pub text_mode: bool,
     pub multi_tap: MultiTapState<F>,
 
@@ -68,6 +69,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
 
             text_mode: false,
             multi_tap: MultiTapState::new(core::ptr::null_mut()),
+            input_shift: false,
 
             display_sprite: Sprite::new(display_width, display_height),
         }
@@ -172,7 +174,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         // Draw text indicator
         if self.text_mode {
             self.display_sprite.draw_rect(145, 4, 50, 24, Colour::WHITE, ShapeFill::Hollow, 5);
-            if self.multi_tap.shift {
+            if self.input_shift {
                 self.display_sprite.print_at(149, 6, "TEXT");
             } else {
                 self.display_sprite.print_at(153, 6, "text");
@@ -382,15 +384,22 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
                 self.text_mode = !self.text_mode;
                 return None
             }
+            ButtonInput::Shift => {
+                self.input_shift = !self.input_shift;
+                return None
+            }
             ButtonInput::None => return None,
 
+            btn if self.input_shift => Some(OSInput::ShiftedButton(btn)),
             btn => Some(OSInput::Button(btn)),
         };
+
+        self.input_shift = false;
 
         // Intercept if a digit was pressed in text mode - this needs to be converted to a
         // character according to the OS' multi-tap state
         if self.text_mode {
-            if let Some(r@OSInput::Button(ButtonInput::Digit(_))) = result {
+            if let Some(r@OSInput::Button(ButtonInput::Digit(_)) | r@OSInput::ShiftedButton(ButtonInput::Digit(_))) = result {
                 result = self.multi_tap.input(r);
             } else {
                 // Make sure we don't cycle the wrong character if we e.g. move with the arrows
@@ -414,6 +423,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum OSInput {
     Button(ButtonInput),
+    ShiftedButton(ButtonInput),
     TextMultiTapNew(char),
     TextMultiTapCycle(char),
 }
