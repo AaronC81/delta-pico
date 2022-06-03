@@ -401,10 +401,6 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
         }
     }
 
-    fn destroy(&mut self) {
-        self.clear_sprite_cache();
-    }
-
     fn test_info(&self) -> Vec<String> {
         vec![
             format!("{:?}", self.calculations[self.selection.index()].result),

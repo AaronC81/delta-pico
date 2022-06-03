@@ -95,8 +95,6 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
     pub fn launch_application(&mut self, index: usize) {
         self.showing_menu = false;
 
-        // TODO: destroy now unused
-
         self.active_application_index = Some(index);
         self.active_application = Some(self.application_list.applications[index].1(self.application_list.os));
     }

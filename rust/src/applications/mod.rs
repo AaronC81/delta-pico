@@ -35,8 +35,6 @@ pub trait Application {
         Box::new(Self::new(os))
     }
 
-    fn destroy(&mut self) {}
-
     fn test_info(&self) -> Vec<String> {
         vec![]
     }
