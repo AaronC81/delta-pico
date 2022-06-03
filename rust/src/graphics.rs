@@ -428,7 +428,6 @@ impl Sprite {
         (lines, char_height.into(), y + char_height as i16)
     }
 
-    // TODO: actual FontSize implementation
     pub fn with_font<T, F>(&mut self, font: &'static dyn AsciiFont, func: F) -> T where F : FnOnce(&mut Self) -> T {
         let original_font = self.font;
         self.font = font;
