@@ -1,5 +1,5 @@
 use alloc::vec::Vec;
-use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable}, structured::EvaluationSettings}, render::{Area, Viewport}};
+use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable}}, render::{Area, Viewport}};
 use rust_decimal::prelude::{One, ToPrimitive, Zero};
 
 use crate::{interface::{Colour, ApplicationFramework, ButtonInput}, operating_system::{OSInput, OperatingSystem, os_accessor}, rbop_impl::{RbopContext, RbopSpriteRenderer}};
@@ -171,7 +171,7 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                         'x',
                         &StructuredNode::Number(x)
                     );
-                    sn_clone.evaluate(&EvaluationSettings::default())
+                    sn_clone.evaluate(&self.os().filesystem.settings.evaluation_settings())
                 };
                 let values = self.view_window.x_coords_on_screen()
                     .iter().map(|i| func(*i)).collect::<Vec<_>>();

@@ -1,3 +1,5 @@
+use rbop::node::structured::{EvaluationSettings, AngleUnit};
+
 use crate::interface::ApplicationFramework;
 use super::{RawStorage, RawStorageAddress};
 
@@ -11,6 +13,8 @@ pub struct SettingsValues {
     pub show_heap_usage: bool,
     pub show_frame_time: bool,
     pub fire_button_press_only: bool,
+
+    pub angle_unit: AngleUnit,
 }
 
 impl Default for SettingsValues {
@@ -19,6 +23,8 @@ impl Default for SettingsValues {
             show_heap_usage: false,
             show_frame_time: false,
             fire_button_press_only: true,
+            
+            angle_unit: AngleUnit::default(),
         }
     }
 }
@@ -54,6 +60,13 @@ impl<F: ApplicationFramework> Settings<F> {
             show_heap_usage: self.read_bool(RawStorageAddress(1), default.show_heap_usage)?,
             show_frame_time: self.read_bool(RawStorageAddress(2), default.show_frame_time)?,
             fire_button_press_only: self.read_bool(RawStorageAddress(3), default.fire_button_press_only)?,
+
+            // Bit of a hack - true is Degree, false is Radian
+            angle_unit: if self.read_bool(RawStorageAddress(4), true)? {
+                AngleUnit::Degree
+            } else {
+                AngleUnit::Radian
+            },
         })
     }
 
@@ -71,6 +84,7 @@ impl<F: ApplicationFramework> Settings<F> {
         self.write_bool(RawStorageAddress(1), self.values.show_heap_usage)?;
         self.write_bool(RawStorageAddress(2), self.values.show_frame_time)?;
         self.write_bool(RawStorageAddress(3), self.values.fire_button_press_only)?;
+        self.write_bool(RawStorageAddress(4), self.values.angle_unit == AngleUnit::Degree)?; // Hack again (see `load`)
         Some(())
     }
 
@@ -89,5 +103,10 @@ impl<F: ApplicationFramework> Settings<F> {
     fn write_bool(&mut self, address: RawStorageAddress, value: bool) -> Option<()> {
         let byte = if value { Self::TRUE_BYTE } else { Self::FALSE_BYTE };
         self.storage.write_byte(address, byte)
+    }
+
+    /// Creates an `EvaluationSettings` object from these settings.
+    pub fn evaluation_settings(&self) -> EvaluationSettings {
+        EvaluationSettings { angle_unit: self.values.angle_unit }
     }
 }

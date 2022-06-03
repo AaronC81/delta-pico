@@ -1,4 +1,5 @@
 use alloc::{vec, format};
+use rbop::node::structured::AngleUnit;
 
 use crate::{interface::{Colour, ShapeFill, ApplicationFramework, ButtonInput, DisplayInterface}, operating_system::{OSInput, UIMenu, UIMenuItem, os_accessor, OperatingSystem}, timer::Timer};
 use super::{Application, ApplicationInfo};
@@ -53,6 +54,11 @@ impl<F: ApplicationFramework> SettingsApplication<F> {
     fn build_menu(&mut self) {
         self.menu.items = vec![
             UIMenuItem {
+                title: format!("Angle unit: {}", self.os().filesystem.settings.values.angle_unit),
+                icon: "settings_angle_unit".into(),
+                toggle: None,
+            },
+            UIMenuItem {
                 title: "Show frame time".into(),
                 icon: "settings_show_frame_time".into(),
                 toggle: Some(self.os().filesystem.settings.values.show_frame_time),
@@ -86,14 +92,25 @@ impl<F: ApplicationFramework> SettingsApplication<F> {
 
         match self.menu.selected_index {
             0 => {
-                setting_value = &mut self.os_mut().filesystem.settings.values.show_frame_time;
-                index = 0;
+                let new_setting_value = match self.os().filesystem.settings.values.angle_unit {
+                    AngleUnit::Degree => AngleUnit::Radian,
+                    AngleUnit::Radian => AngleUnit::Degree,
+                };
+                self.os_mut().filesystem.settings.values.angle_unit = new_setting_value;
+                self.os_mut().filesystem.settings.save();
+
+                self.menu.items[0].title = format!("Angle unit: {}", new_setting_value);
+                return;
             }
             1 => {
-                setting_value = &mut self.os_mut().filesystem.settings.values.show_heap_usage;
+                setting_value = &mut self.os_mut().filesystem.settings.values.show_frame_time;
                 index = 1;
             }
             2 => {
+                setting_value = &mut self.os_mut().filesystem.settings.values.show_heap_usage;
+                index = 2;
+            }
+            3 => {
                 self.graphics_benchmark();
                 return
             }
