@@ -213,13 +213,13 @@ impl<
 > ButtonsInterface for ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay> {
     fn wait_event(&mut self) -> delta_pico_rust::interface::ButtonEvent {
         loop {
-            match self.matrix.get_event(true).unwrap() {
-                Some(RawButtonEvent::Press(row, col)) => {
+            match self.matrix.get_event(true) {
+                Ok(Some(RawButtonEvent::Press(row, col))) => {
                     let input = rev::BUTTON_MAPPING[row as usize][col as usize];
                     return ButtonEvent::Press(input)
                 }
 
-                Some(RawButtonEvent::Release(row, col)) => {
+                Ok(Some(RawButtonEvent::Release(row, col))) => {
                     let input = rev::BUTTON_MAPPING[row as usize][col as usize];
                     return ButtonEvent::Release(input)
                 }
