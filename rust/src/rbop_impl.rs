@@ -91,6 +91,8 @@ impl<F: ApplicationFramework> RbopContext<F> {
 
                 OSInput::Button(ButtonInput::Exe) => return None,
                 OSInput::Button(ButtonInput::List) => return None,
+                OSInput::Button(ButtonInput::None) => return None,
+
                 OSInput::Button(ButtonInput::Shift) => {
                     // TODO: should there just be one shift?
                     if self.os().text_mode {
@@ -99,9 +101,10 @@ impl<F: ApplicationFramework> RbopContext<F> {
                         self.input_shift = true;
                     }
                     None
-                }
+                },
 
-                _ => todo!(),
+                // Handled earlier in the driver stack
+                OSInput::Button(ButtonInput::Menu) | OSInput::Button(ButtonInput::Text) => unreachable!(),
             }
         } else {
             let mut input_pressed = true;
