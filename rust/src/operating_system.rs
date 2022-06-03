@@ -6,10 +6,7 @@ use crate::{applications::{Application, ApplicationList, menu::MenuApplication},
 
 pub struct OperatingSystem<F: ApplicationFramework + 'static> {
     pub framework: F,
-
-    // TODO: I don't think the operating system can hold application lists any more, since that 
-    // would lead to recursive references (unless we use an Rc) - so where *do* we put them?
-
+    
     pub application_list: ApplicationList<F>,
     pub menu: Option<MenuApplication<F>>,
     pub showing_menu: bool,

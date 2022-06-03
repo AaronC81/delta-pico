@@ -68,7 +68,6 @@ impl<E, I2CDevice: Write<Error = E> + Read<Error = E>, Delay: DelayMs<u8> + 'sta
             }
 
             // See if EEPROM is available or still writing a previous request
-            // TODO: Might want to give the bus a breather with a delay
             while self.is_busy() {
                 self.delay.delay_ms(1);
             }
