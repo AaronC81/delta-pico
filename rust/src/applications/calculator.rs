@@ -209,7 +209,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
                 // version in the rbop context, so use that instead of the cached sprite and result
                 result = match self.rbop_ctx.root.upgrade() {
                     Ok(structured) => match structured.evaluate(&EvaluationSettings::default()) {
-                        Ok(evaluation_result) => CalculationResult::Ok(evaluation_result),
+                        Ok(evaluation_result) => CalculationResult::Ok(evaluation_result.simplify()),
                         Err(err) => CalculationResult::MathsError(err),
                     },
                     Err(err) => CalculationResult::NodeError(err),
@@ -471,7 +471,7 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
         // Evaluate
         let result = match self.rbop_ctx.root.upgrade() {
             Ok(structured) => match structured.evaluate(&EvaluationSettings::default()) {
-                Ok(evaluation_result) => CalculationResult::Ok(evaluation_result),
+                Ok(evaluation_result) => CalculationResult::Ok(evaluation_result.simplify()),
                 Err(err) => CalculationResult::MathsError(err),
             },
             Err(err) => CalculationResult::NodeError(err),

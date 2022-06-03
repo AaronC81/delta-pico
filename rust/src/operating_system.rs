@@ -319,7 +319,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
                     .map_err(|e| format!("{:?}", e))) {
                 
                 Ok(d) => {
-                    return d;
+                    return d.simplify();
                 }
                 Err(s) => {
                     redraw();
