@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable}}, render::{Area, Viewport}};
 use rust_decimal::prelude::{One, ToPrimitive, Zero};
 
-use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor}, rbop_impl::{RbopContext, RbopSpriteRenderer}};
+use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}, rbop_impl::{RbopContext, RbopSpriteRenderer}};
 use super::{Application, ApplicationInfo};
 
 const PADDING: u16 = 10;
@@ -76,7 +76,7 @@ impl ViewWindow {
 }
 
 pub struct GraphApplication<F: ApplicationFramework + 'static> {
-    os: *mut OperatingSystem<F>,
+    os: OperatingSystemPointer<F>,
     rbop_ctx: RbopContext<F>,
     view_window: ViewWindow,
     edit_mode: bool,
@@ -94,7 +94,7 @@ impl<F: ApplicationFramework> Application for GraphApplication<F> {
         }
     }
 
-    fn new(os: *mut OperatingSystem<F>) -> Self {
+    fn new(os: OperatingSystemPointer<F>) -> Self {
         Self {
             os,
             rbop_ctx: RbopContext {

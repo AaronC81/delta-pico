@@ -2,11 +2,11 @@ use core::{cell::RefCell, fmt::Display};
 
 use alloc::{rc::Rc, string::String, vec, vec::Vec};
 
-use crate::{operating_system::{OperatingSystem, os_accessor}, interface::ApplicationFramework};
+use crate::{operating_system::{OperatingSystem, os_accessor, OperatingSystemPointer}, interface::ApplicationFramework};
 
 #[derive(Debug)]
 pub struct Timer<F: ApplicationFramework + 'static> {
-    os: *mut OperatingSystem<F>,
+    os: OperatingSystemPointer<F>,
 
     pub name: String,
     pub elapsed: u64,
@@ -17,7 +17,7 @@ pub struct Timer<F: ApplicationFramework + 'static> {
 os_accessor!(Timer<F>);
 
 impl<F: ApplicationFramework> Timer<F> {
-    pub fn new(os: *mut OperatingSystem<F>, name: &str) -> Self {
+    pub fn new(os: OperatingSystemPointer<F>, name: &str) -> Self {
         Self {
             os,
             name: name.into(),

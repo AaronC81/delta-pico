@@ -1,13 +1,13 @@
 use alloc::{vec, format};
 use rbop::node::structured::AngleUnit;
 
-use crate::{interface::{Colour, ShapeFill, ApplicationFramework, ButtonInput, DisplayInterface}, operating_system::{OSInput, UIMenu, UIMenuItem, os_accessor, OperatingSystem}, timer::Timer};
+use crate::{interface::{Colour, ShapeFill, ApplicationFramework, ButtonInput, DisplayInterface}, operating_system::{OSInput, UIMenu, UIMenuItem, os_accessor, OperatingSystem, OperatingSystemPointer}, timer::Timer};
 use super::{Application, ApplicationInfo};
 
 // TODO: mostly unimplemented
 
 pub struct SettingsApplication<F: ApplicationFramework + 'static> {
-    os: *mut OperatingSystem<F>,
+    os: OperatingSystemPointer<F>,
     menu: UIMenu<F>,
 }
 
@@ -23,7 +23,7 @@ impl<F: ApplicationFramework> Application for SettingsApplication<F> {
         }
     }
 
-    fn new(os: *mut OperatingSystem<F>) -> Self {
+    fn new(os: OperatingSystemPointer<F>) -> Self {
         let mut result = Self {
             os,
             menu: UIMenu::new(os, vec![]),

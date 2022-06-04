@@ -1,12 +1,12 @@
 use alloc::{string::ToString, vec};
 use az::SaturatingAs;
 use rbop::{Token, UnstructuredNode, UnstructuredNodeList, nav::{MoveVerticalDirection, NavPath}, node::{unstructured::{UnstructuredNodeRoot, MoveResult}, function::Function}, render::{Area, Glyph, Renderer, Viewport, ViewportGlyph, ViewportVisibility, LayoutComputationProperties, Layoutable}};
-use crate::{interface::{Colour, ShapeFill, ButtonInput, ApplicationFramework}, operating_system::{OSInput, OperatingSystem, os_accessor}, graphics::Sprite};
+use crate::{interface::{Colour, ShapeFill, ButtonInput, ApplicationFramework}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}, graphics::Sprite};
 
 use core::cmp::max;
 
 pub struct RbopContext<F: ApplicationFramework + 'static> {
-    pub os: *mut OperatingSystem<F>,
+    pub os: OperatingSystemPointer<F>,
 
     pub root: UnstructuredNodeRoot,
     pub nav_path: NavPath,
@@ -16,7 +16,7 @@ pub struct RbopContext<F: ApplicationFramework + 'static> {
 os_accessor!(RbopContext<F>);
 
 impl<F: ApplicationFramework> RbopContext<F> {
-    pub fn new(os: *mut OperatingSystem<F>) -> RbopContext<F> {
+    pub fn new(os: OperatingSystemPointer<F>) -> RbopContext<F> {
         RbopContext {
             os,
             root: UnstructuredNodeRoot { root: UnstructuredNodeList { items: vec![] } },

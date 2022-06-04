@@ -1,6 +1,6 @@
 use alloc::{vec, vec::Vec};
 
-use crate::{interface::{StorageInterface, ApplicationFramework}, operating_system::{OperatingSystem, os_accessor}};
+use crate::{interface::{StorageInterface, ApplicationFramework}, operating_system::{OperatingSystem, os_accessor, OperatingSystemPointer}};
 
 /// A relative address into `RawStorage`.
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
@@ -18,7 +18,7 @@ impl RawStorageAddress {
 
 /// A block of storage which can be used freely to store any data.
 pub struct RawStorage<F: ApplicationFramework + 'static> {
-    pub os: *mut OperatingSystem<F>,
+    pub os: OperatingSystemPointer<F>,
 
     pub start_address: u16,
     pub length: u16,

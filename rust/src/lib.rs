@@ -22,6 +22,7 @@ pub mod multi_tap;
 pub mod graphics;
 
 use interface::{ApplicationFramework, DisplayInterface, ButtonInput, StorageInterface};
+use operating_system::OperatingSystemPointer;
 
 use crate::{interface::Colour, operating_system::{OSInput, OperatingSystem}};
 
@@ -30,7 +31,8 @@ static mut PANIC_HANDLER: Option<Box<dyn FnMut(&PanicInfo)>> = None;
 
 pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: F) {
     let mut os = OperatingSystem::new(framework);
-    os.second_init();
+    let os_ptr = OperatingSystemPointer::new(&mut os as *mut _);
+    OperatingSystem::second_init(os_ptr);
     
     os.display_sprite.fill(Colour::WHITE);
     os.draw();
@@ -63,7 +65,7 @@ pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: 
     // });
 
     // Set up menu
-    os.menu = Some(applications::menu::MenuApplication::new(&mut os as *mut _));
+    os.menu = Some(applications::menu::MenuApplication::new(os_ptr));
 
     // Set up a panic handler!
     // Yeah, this is super unsafe, but we can't use `panic_handler` because we don't know the T in 

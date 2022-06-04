@@ -2,7 +2,7 @@ use core::cmp::{max, min};
 use alloc::{format, vec, vec::Vec, string::{String, ToString}};
 use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 
-use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput, ShapeFill, DISPLAY_WIDTH}, operating_system::{OSInput, OperatingSystem, os_accessor}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite};
+use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput, ShapeFill, DISPLAY_WIDTH}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite};
 use super::{Application, ApplicationInfo};
 
 const PADDING: u64 = 10;
@@ -81,7 +81,7 @@ impl Selection {
 }
 
 pub struct CalculatorApplication<F: ApplicationFramework + 'static> {
-    os: *mut OperatingSystem<F>,
+    os: OperatingSystemPointer<F>,
 
     calculations: Vec<Calculation>,
     selection: Selection,
@@ -128,13 +128,12 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
     }
 
     #[allow(clippy::not_unsafe_ptr_arg_deref)] // Required to perform initialisation
-    fn new(os: *mut OperatingSystem<F>) -> Self {
+    fn new(mut os: OperatingSystemPointer<F>) -> Self {
         // We need our OS reference early to do some setup!
-        let os_ref = unsafe { os.as_mut().unwrap() };
-        let mut calculations = if let Some(c) = os_ref.filesystem.calculations.read_calculations() {
+        let mut calculations = if let Some(c) = os.filesystem.calculations.read_calculations() {
             c
         } else {
-            os_ref.ui_text_dialog("Failed to load calculation history.");
+            os.ui_text_dialog("Failed to load calculation history.");
             vec![]
         };
         
@@ -156,8 +155,8 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
             os,
             rbop_ctx: RbopContext {
                 viewport: Some(Viewport::new(Area::new(
-                    (os_ref.display_sprite.width - PADDING as u16 * 2).into(),
-                    (os_ref.display_sprite.height - PADDING as u16 * 2).into(),
+                    (os.display_sprite.width - PADDING as u16 * 2).into(),
+                    (os.display_sprite.height - PADDING as u16 * 2).into(),
                 ))),
                 root,
                 ..RbopContext::new(os)
@@ -165,7 +164,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
             calculations,
             selection,
             sprite_cache: vec![],
-            starting_y: os_ref.framework.display().height() as i16,
+            starting_y: os.framework.display().height() as i16,
             result_scroll_x: 0,
         };
         result.clear_sprite_cache();

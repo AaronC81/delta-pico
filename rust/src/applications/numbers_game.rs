@@ -3,11 +3,11 @@ use alloc::{format, rc::Rc, string::ToString, vec::Vec, vec};
 use az::WrappingCast;
 use rand::{self, SeedableRng, Rng};
 
-use crate::{interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput}, operating_system::{OSInput, OperatingSystem, os_accessor}};
+use crate::{interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}};
 use super::{Application, ApplicationInfo};
 
 pub struct NumbersGame<F: ApplicationFramework + 'static> {
-    os: *mut OperatingSystem<F>,
+    os: OperatingSystemPointer<F>,
     score: u64,
     board: [[Rc<RefCell<Tile>>; 4]; 4], // Row, then column
     rng: rand::StdRng,
@@ -45,8 +45,8 @@ impl<F: ApplicationFramework> Application for NumbersGame<F> {
         }
     }
 
-    fn new(os: *mut OperatingSystem<F>) -> Self where Self: Sized {
-        let rng_seed: usize = unsafe { os.as_ref() }.unwrap().framework.millis().wrapping_cast();
+    fn new(os: OperatingSystemPointer<F>) -> Self where Self: Sized {
+        let rng_seed: usize = os.framework.millis().wrapping_cast();
         let mut rng = rand::StdRng::from_seed(&[rng_seed]);
         let mut board = [
             [blank!(), blank!(), blank!(), blank!()],

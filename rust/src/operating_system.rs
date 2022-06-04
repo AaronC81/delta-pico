@@ -1,3 +1,5 @@
+use core::ops::{Deref, DerefMut};
+
 use alloc::{boxed::Box, format, string::{String, ToString}, vec::Vec};
 use az::SaturatingAs;
 use rbop::{Number, node::{unstructured::{UnstructuredNodeRoot, Upgradable}}, render::{Area, Viewport}};
@@ -5,6 +7,7 @@ use rbop::{Number, node::{unstructured::{UnstructuredNodeRoot, Upgradable}}, ren
 use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent, DISPLAY_WIDTH}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, CHUNK_SIZE, CHUNK_ADDRESS_SIZE, ChunkTable, CalculationHistory}, graphics::Sprite, rbop_impl::{RbopContext, RbopSpriteRenderer}};
 
 pub struct OperatingSystem<F: ApplicationFramework + 'static> {
+    pub ptr: OperatingSystemPointer<F>,
     pub framework: F,
     
     pub application_list: ApplicationList<F>,
@@ -32,6 +35,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         let display_height = framework.display().height();
 
         Self {
+            ptr: OperatingSystemPointer::none(),
             framework,
 
             application_list: ApplicationList::new(),
@@ -44,7 +48,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
             filesystem: Filesystem {
                 settings: Settings::new(
                     RawStorage {
-                        os: core::ptr::null_mut(),
+                        os: OperatingSystemPointer::none(),
                         start_address: 0,
                         length: Settings::<F>::MINIMUM_STORAGE_SIZE,
                     }
@@ -55,7 +59,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
                         start_address: 0x1000,
                         chunks: 1024,
                         storage: RawStorage {
-                            os: core::ptr::null_mut(),
+                            os: OperatingSystemPointer::none(),
                             start_address: 0x1000,
 
                             length:
@@ -68,7 +72,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
             },
 
             text_mode: false,
-            multi_tap: MultiTapState::new(core::ptr::null_mut()),
+            multi_tap: MultiTapState::new(OperatingSystemPointer::none()),
             input_shift: false,
 
             display_sprite: Sprite::new(display_width, display_height),
@@ -77,16 +81,16 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
 
     /// Performs second-stage initialisation tasks which require a pointer to this OS instance.
     /// This *MUST* be called shortly after `new`, or nasty UB and null dereferences will occur.
-    pub fn second_init(&mut self) {
+    pub fn second_init(mut ptr: OperatingSystemPointer<F>) {
         // Set up cyclic raw pointers
-        let ptr = self as *mut _;
-        self.application_list.os = ptr;
-        self.filesystem.settings.storage.os = ptr;
-        self.filesystem.calculations.table.storage.os = ptr;
-        self.multi_tap.os = ptr;
+        ptr.deref_mut().ptr = ptr;
+        ptr.application_list.os = ptr;
+        ptr.filesystem.settings.storage.os = ptr;
+        ptr.filesystem.calculations.table.storage.os = ptr;
+        ptr.multi_tap.os = ptr;
 
         // Load storage values
-        self.filesystem.settings.load_into_self();
+        ptr.filesystem.settings.load_into_self();
     }
 
     /// Replaces the currently-running application with a new instance of the application at `index`
@@ -245,7 +249,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
                 (self.display_sprite.width - PADDING as u16 * 2).into(),
                 (self.display_sprite.height - PADDING as u16 * 2).into(),
             ))),
-            ..RbopContext::<F>::new(self as *mut _)
+            ..RbopContext::<F>::new(self.ptr)
         };
 
         if let Some(unr) = root {
@@ -420,6 +424,47 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
     }
 }
 
+#[derive(PartialEq, Eq, Debug)]
+pub struct OperatingSystemPointer<F: ApplicationFramework + 'static> {
+    pub ptr: *mut OperatingSystem<F>,
+}
+
+impl<F: ApplicationFramework + 'static> Clone for OperatingSystemPointer<F> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<F: ApplicationFramework + 'static> Copy for OperatingSystemPointer<F> {}
+
+impl<F: ApplicationFramework + 'static> Deref for OperatingSystemPointer<F> {
+    type Target = OperatingSystem<F>;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.ptr.as_ref().unwrap() }
+    }
+}
+
+impl<F: ApplicationFramework + 'static> DerefMut for OperatingSystemPointer<F> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { self.ptr.as_mut().unwrap() }
+    }
+}
+
+impl<F: ApplicationFramework + 'static> OperatingSystemPointer<F> {
+    pub fn get_mut_from_immut(&self) -> &mut OperatingSystem<F> {
+        unsafe { self.ptr.as_mut().unwrap() }
+    }
+
+    pub fn new(ptr: *mut OperatingSystem<F>) -> Self {
+        Self { ptr }
+    }
+
+    pub fn none() -> Self {
+        Self::new(core::ptr::null_mut())
+    }
+}
+
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum OSInput {
     Button(ButtonInput),
@@ -437,7 +482,7 @@ pub struct UIMenuItem {
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct UIMenu<F: ApplicationFramework + 'static> {
-    os: *mut OperatingSystem<F>,
+    os: OperatingSystemPointer<F>,
     pub items: Vec<UIMenuItem>,
     pub selected_index: usize,
     page_scroll_offset: usize,
@@ -446,7 +491,7 @@ pub struct UIMenu<F: ApplicationFramework + 'static> {
 impl<F: ApplicationFramework> UIMenu<F> {
     const ITEMS_PER_PAGE: usize = 5;
 
-    pub fn new(os: *mut OperatingSystem<F>, items: Vec<UIMenuItem>) -> Self {
+    pub fn new(os: OperatingSystemPointer<F>, items: Vec<UIMenuItem>) -> Self {
         Self {
             os,
             items,
@@ -548,11 +593,11 @@ macro_rules! os_accessor {
     ($n:ty) => {
         impl<F: ApplicationFramework> $n {
             #[allow(unused)]
-            fn os(&self) -> &OperatingSystem<F> { unsafe { &*self.os } }
+            fn os(&self) -> &OperatingSystem<F> { core::ops::Deref::deref(&self.os) }
 
             #[allow(unused)]
             #[allow(clippy::mut_from_ref)]
-            fn os_mut(&self) -> &mut OperatingSystem<F> { unsafe { &mut *self.os } }        
+            fn os_mut(&self) -> &mut OperatingSystem<F> { self.os.get_mut_from_immut() }        
         }
     };
 }

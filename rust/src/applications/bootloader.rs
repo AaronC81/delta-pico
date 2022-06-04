@@ -1,8 +1,8 @@
-use crate::{interface::ApplicationFramework, operating_system::{OperatingSystem, os_accessor}};
+use crate::{interface::ApplicationFramework, operating_system::{OperatingSystem, os_accessor, OperatingSystemPointer}};
 use super::{Application, ApplicationInfo};
 
 pub struct BootloaderApplication<F: ApplicationFramework + 'static> {
-    os: *mut OperatingSystem<F>,
+    os: OperatingSystemPointer<F>,
 }
 
 os_accessor!(BootloaderApplication<F>);
@@ -17,7 +17,7 @@ impl<F: ApplicationFramework> Application for BootloaderApplication<F> {
         }
     }
 
-    fn new(os: *mut OperatingSystem<F>) -> Self { Self { os } }
+    fn new(os: OperatingSystemPointer<F>) -> Self { Self { os } }
 
     fn tick(&mut self) {
         self.os_mut().framework.reboot_into_bootloader();

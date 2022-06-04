@@ -1,10 +1,10 @@
 use alloc::format;
 
-use crate::{interface::{Colour, ApplicationFramework}, operating_system::{OperatingSystem, os_accessor}};
+use crate::{interface::{Colour, ApplicationFramework}, operating_system::{OperatingSystem, os_accessor, OperatingSystemPointer}};
 use super::{Application, ApplicationInfo};
 
 pub struct AboutApplication<F: ApplicationFramework + 'static> {
-    os: *mut OperatingSystem<F>,
+    os: OperatingSystemPointer<F>,
 }
 
 os_accessor!(AboutApplication<F>);
@@ -19,7 +19,7 @@ impl<F: ApplicationFramework> Application for AboutApplication<F> {
         }
     }
 
-    fn new(os: *mut OperatingSystem<F>) -> Self { Self { os } }
+    fn new(os: OperatingSystemPointer<F>) -> Self { Self { os } }
 
     fn tick(&mut self) {
         self.os_mut().display_sprite.fill(Colour::BLACK);

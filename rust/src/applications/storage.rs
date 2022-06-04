@@ -1,13 +1,13 @@
 use alloc::format;
 use rust_decimal::prelude::ToPrimitive;
 
-use crate::{interface::{Colour, ApplicationFramework, StorageInterface, ButtonInput}, operating_system::{OSInput, OperatingSystem, os_accessor}};
+use crate::{interface::{Colour, ApplicationFramework, StorageInterface, ButtonInput}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}};
 use super::{Application, ApplicationInfo};
 
 const SHOW_BYTES: u16 = 64;
 
 pub struct StorageApplication<F: ApplicationFramework + 'static> {
-    os: *mut OperatingSystem<F>,
+    os: OperatingSystemPointer<F>,
     address: u16,
 }
 
@@ -23,7 +23,7 @@ impl<F: ApplicationFramework> Application for StorageApplication<F> {
         }
     }
 
-    fn new(os: *mut OperatingSystem<F>) -> Self {
+    fn new(os: OperatingSystemPointer<F>) -> Self {
         Self { os, address: 0 }
     }
 

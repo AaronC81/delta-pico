@@ -1,7 +1,7 @@
-use crate::{operating_system::{OSInput, OperatingSystem, os_accessor}, interface::{ButtonInput, ApplicationFramework}};
+use crate::{operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}, interface::{ButtonInput, ApplicationFramework}};
 
 pub struct MultiTapState<F: ApplicationFramework + 'static> {
-    pub os: *mut OperatingSystem<F>,
+    pub os: OperatingSystemPointer<F>,
     current_list: Option<&'static [char]>,
     current_index: Option<usize>,
     current_digit: Option<u8>,
@@ -29,7 +29,7 @@ const TWO_CHAR_LIST:   [char; 3] = ['t', 'u', 'v'];
 const THREE_CHAR_LIST: [char; 4] = ['w', 'x', 'y', 'z'];
 
 impl<F: ApplicationFramework> MultiTapState<F> {
-    pub fn new(os: *mut OperatingSystem<F>) -> Self {
+    pub fn new(os: OperatingSystemPointer<F>) -> Self {
         Self {
             os,
             current_index: None,

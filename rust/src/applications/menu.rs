@@ -1,10 +1,10 @@
 use alloc::{vec, vec::Vec};
 
-use crate::{interface::{Colour, ApplicationFramework, ButtonInput}, operating_system::{OSInput, UIMenu, UIMenuItem, OperatingSystem, os_accessor}};
+use crate::{interface::{Colour, ApplicationFramework, ButtonInput}, operating_system::{OSInput, UIMenu, UIMenuItem, OperatingSystem, os_accessor, OperatingSystemPointer}};
 use super::{Application, ApplicationInfo};
 
 pub struct MenuApplication<F: ApplicationFramework + 'static> {
-    os: *mut OperatingSystem<F>,
+    os: OperatingSystemPointer<F>,
     menu: UIMenu<F>,
 }
 
@@ -20,7 +20,7 @@ impl<F: ApplicationFramework> Application for MenuApplication<F> {
         }
     }
 
-    fn new(os: *mut OperatingSystem<F>) -> Self where Self: Sized {
+    fn new(os: OperatingSystemPointer<F>) -> Self where Self: Sized {
         Self {
             os,
             menu: UIMenu::new(os, vec![]),

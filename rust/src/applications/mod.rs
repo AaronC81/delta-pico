@@ -1,5 +1,5 @@
 use alloc::{boxed::Box, string::String, vec, vec::Vec};
-use crate::{operating_system::OperatingSystem, interface::ApplicationFramework};
+use crate::{operating_system::OperatingSystemPointer, interface::ApplicationFramework};
 
 pub struct ApplicationInfo {
     pub name: String,
@@ -28,10 +28,10 @@ pub trait Application {
 
     fn info() -> ApplicationInfo where Self: Sized;
 
-    fn new(os: *mut OperatingSystem<Self::Framework>) -> Self where Self: Sized;
+    fn new(os: OperatingSystemPointer<Self::Framework>) -> Self where Self: Sized;
     fn tick(&mut self);
 
-    fn new_dyn(os: *mut OperatingSystem<Self::Framework>) -> Box<dyn Application<Framework = Self::Framework>> where Self: Sized, Self: 'static {
+    fn new_dyn(os: OperatingSystemPointer<Self::Framework>) -> Box<dyn Application<Framework = Self::Framework>> where Self: Sized, Self: 'static {
         Box::new(Self::new(os))
     }
 
@@ -40,17 +40,17 @@ pub trait Application {
     }
 }
 
-type RegisteredApplication<F> = (ApplicationInfo, fn(*mut OperatingSystem<F>) -> Box<dyn Application<Framework = F>>);
+type RegisteredApplication<F> = (ApplicationInfo, fn(OperatingSystemPointer<F>) -> Box<dyn Application<Framework = F>>);
 
 pub struct ApplicationList<F: ApplicationFramework + 'static> {
-    pub os: *mut OperatingSystem<F>,
+    pub os: OperatingSystemPointer<F>,
     pub applications: Vec<RegisteredApplication<F>>,
 }
 
 impl<F: ApplicationFramework> ApplicationList<F> {
     pub fn new() -> Self {
         Self {
-            os: core::ptr::null_mut(),
+            os: OperatingSystemPointer::none(),
             applications: vec![],
         }
     }
