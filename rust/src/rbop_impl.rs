@@ -94,8 +94,9 @@ impl<F: ApplicationFramework> RbopContext<F> {
             OSInput::Button(ButtonInput::Menu) | OSInput::Button(ButtonInput::Text) => unreachable!(),
 
             OSInput::ShiftedButton(ButtonInput::Digit(0)) => Some(UnstructuredNode::Token(Token::Variable('x'))),
-            OSInput::ShiftedButton(ButtonInput::Digit(1)) => Some(UnstructuredNode::FunctionCall(Function::Sine, vec![UnstructuredNodeList::new()])),
-            OSInput::ShiftedButton(ButtonInput::Digit(2)) => Some(UnstructuredNode::FunctionCall(Function::Cosine, vec![UnstructuredNodeList::new()])),
+            OSInput::ShiftedButton(ButtonInput::Digit(1)) => Some(UnstructuredNode::new_function_call(Function::Sine)),
+            OSInput::ShiftedButton(ButtonInput::Digit(2)) => Some(UnstructuredNode::new_function_call(Function::Cosine)),
+            OSInput::ShiftedButton(ButtonInput::Digit(3)) => Some(UnstructuredNode::new_function_call(Function::GreatestCommonDenominator)),
             OSInput::ShiftedButton(_) => return None,
         };
     
