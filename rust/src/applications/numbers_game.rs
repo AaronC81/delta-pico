@@ -1,5 +1,6 @@
 use core::cell::RefCell;
 use alloc::{format, rc::Rc, string::ToString, vec::Vec, vec};
+use az::WrappingCast;
 use rand::{self, SeedableRng, Rng};
 
 use crate::{interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput}, operating_system::{OSInput, OperatingSystem, os_accessor}};
@@ -44,18 +45,39 @@ impl<F: ApplicationFramework> Application for NumbersGame<F> {
         }
     }
 
-    fn new(os: *mut OperatingSystem<F>) -> Self where Self: Sized { Self {
-        os,
-        score: 0,
-        board: [
-            [blank!(), blank!(), blank!(), Rc::new(RefCell::new(Tile::Filled(2)))],
+    fn new(os: *mut OperatingSystem<F>) -> Self where Self: Sized {
+        let rng_seed: usize = unsafe { os.as_ref() }.unwrap().framework.millis().wrapping_cast();
+        let mut rng = rand::StdRng::from_seed(&[rng_seed]);
+        let mut board = [
             [blank!(), blank!(), blank!(), blank!()],
-            [blank!(), Rc::new(RefCell::new(Tile::Filled(2))), blank!(), blank!()],
             [blank!(), blank!(), blank!(), blank!()],
-        ],
-        rng: rand::StdRng::from_seed(&[1, 2, 3, 4]), // TODO
-        game_over: false,
-    } }
+            [blank!(), blank!(), blank!(), blank!()],
+            [blank!(), blank!(), blank!(), blank!()],
+        ];
+
+        // Place our 2 starting '2' tiles randomly
+        let mut tiles_placed = 0;
+        while tiles_placed < 2 {
+            let x = rng.gen_range::<usize>(0, 4);
+            let y = rng.gen_range::<usize>(0, 4);
+            
+            // Don't replace an existing placed tile with our new tile
+            if matches!(*board[x][y].borrow(), Tile::Filled(_)) {
+                continue;
+            }
+
+            board[x][y] = Rc::new(RefCell::new(Tile::Filled(2)));
+            tiles_placed += 1;
+        }
+        
+        Self {
+            os,
+            score: 0,
+            board,
+            rng,
+            game_over: false,
+        }
+    }
 
     fn tick(&mut self) {
         self.os_mut().display_sprite.fill(Colour::BLACK);
