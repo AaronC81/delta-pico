@@ -23,6 +23,7 @@ pub struct OperatingSystem<F: ApplicationFramework + 'static> {
     pub input_shift: bool,
     pub text_mode: bool,
     pub multi_tap: MultiTapState<F>,
+    pub virtual_input_queue: Vec<OSInput>,
 
     pub display_sprite: Sprite,
 }
@@ -74,6 +75,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
             text_mode: false,
             multi_tap: MultiTapState::new(OperatingSystemPointer::none()),
             input_shift: false,
+            virtual_input_queue: Vec::new(),
 
             display_sprite: Sprite::new(display_width, display_height),
         }
@@ -95,6 +97,12 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
 
     /// Replaces the currently-running application with a new instance of the application at `index`
     /// in `application_list`.
+    /// 
+    /// NOTE: If called from an application, then **this will invalidate `self` once it returns**.
+    /// The operating system owns the active application (through a trait object), so when a new
+    /// application is launched, the current one will be dropped. The borrow checker would normally
+    /// prevent a situation like this, but applications hold their OS reference through a raw
+    /// pointer, so it can't. Be careful!
     pub fn launch_application(&mut self, index: usize) {
         self.showing_menu = false;
 
@@ -102,6 +110,20 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         self.active_application = Some(self.application_list.applications[index].1(self.application_list.os));
     }
 
+    /// Launches an application by its name.
+    /// 
+    /// The same **important safety warning** as `launch_application` applies!
+    pub fn launch_application_by_name(&mut self, name: &str) {
+        self.launch_application(
+            self.application_list.applications
+                .iter()
+                .enumerate()
+                .find(|(_, (app, _))| app.name == name)
+                .unwrap()
+                .0
+        );
+    }
+    
     /// Restarts the current application. If none is open, panics.
     pub fn restart_application(&mut self) {
         if let Some(index) = self.active_application_index {
@@ -415,11 +437,25 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
     }
 
     pub fn input(&mut self) -> Option<OSInput> {
+        if let Some(input) = self.virtual_input_queue.get(0).cloned() {
+            self.virtual_input_queue.remove(0);
+            return Some(input);
+        }
+
         loop {
             let event = self.framework.buttons_mut().wait_event();
             if let ButtonEvent::Press(btn_input) = event {
                 return self.button_input_to_os_input(btn_input)
             }
+        }
+    }
+
+    pub fn virtual_press(&mut self, buttons: &[OSInput]) {
+        self.virtual_input_queue.extend_from_slice(buttons);
+
+        // Empty the queue by ticking the application repeatedly
+        while !self.virtual_input_queue.is_empty() {
+            self.active_application.as_mut().unwrap().tick()
         }
     }
 }
