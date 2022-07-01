@@ -13,42 +13,31 @@ enum SpriteCacheEntry {
     /// The sprite cache has been cleared, and this item hasn't been recomputed yet.
     Blank,
 
-    /// This item was found to be completely off the screen, so has been marked as clipped. This
-    /// item does not need to be drawn.
-    Clipped,
+    /// This item was found to be completely off the top of the screen, so has been marked as
+    /// clipped. This item does not need to be drawn, and because it is off the top of the screen,
+    /// its height does not need to be known for layout calculation.
+    ClippedOffTop,
 
-    /// This item has been recomputing since the sprite cache was last cleared, and is at least
-    /// partially visible on the screen.
-    Entry { sprite: Sprite },
-}
-
-#[derive(Clone, Debug)]
-enum SpriteCacheEntryData {
-    Height(u16),
-    Sprite(Sprite),
-}
-
-impl SpriteCacheEntryData {
-    fn height(&self) -> u16 {
-        match self {
-            SpriteCacheEntryData::Height(h) => *h,
-            SpriteCacheEntryData::Sprite(s) => s.height,
-        }
-    }
-
-    fn unwrap(&self) -> &Sprite {
-        if let Self::Sprite(s) = &self {
-            s
-        } else {
-            panic!("tried to unwrap cache data entry without sprite");
-        }
-    }
+    /// This item has been recomputing since the sprite cache was last cleared, and is either:
+    ///   - At least partially visible on the screen, if the wrapped data is `Sprite`
+    ///   - Clipped off the bottom of the screen, but therefore has a height required for layout 
+    ///     calculation, so the wrapped data is `Height`, without sprite data to save memory
+    Entry { data: SpriteCacheEntryData },
 }
 
 impl SpriteCacheEntry {
     fn is_blank(&self) -> bool {
         matches!(self, SpriteCacheEntry::Blank)
     }
+}
+
+#[derive(Clone, Debug)]
+enum SpriteCacheEntryData {
+    Height {
+        calculation: u16,
+        result: u16,
+    },
+    Sprite(Sprite),
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
@@ -127,9 +116,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
         }
     }
 
-    #[allow(clippy::not_unsafe_ptr_arg_deref)] // Required to perform initialisation
     fn new(mut os: OperatingSystemPointer<F>) -> Self {
-        // We need our OS reference early to do some setup!
         let mut calculations = if let Some(c) = os.filesystem.calculations.read_calculations() {
             c
         } else {
@@ -214,13 +201,16 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
                     Err(err) => CalculationResult::NodeError(err),
                 };
 
-                new_calculation_sprite = RbopSpriteRenderer::draw_context_to_sprite(&mut self.rbop_ctx, Colour::BLACK);
+                new_calculation_sprite = SpriteCacheEntryData::Sprite(
+                    RbopSpriteRenderer::draw_context_to_sprite(&mut self.rbop_ctx, Colour::BLACK)
+                );
                 calculation_sprite = &mut new_calculation_sprite;
             } else {
                 result = self.calculations[i].result.clone()
             };
 
             // Draw sprite for result
+            // TODO: skip if height-only entry
             let result_bg_colour = if self.selection == Selection::Result(i) {
                 Colour::GREY
             } else {
@@ -231,12 +221,15 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
 
             // Work out Y position to draw everything from. Since we draw from bottom to top, we
             // need to subtract the height of what we're drawing from base Y
-            let node_height = calculation_sprite.height;
+            let calculation_height = match calculation_sprite {
+                SpriteCacheEntryData::Height { calculation, .. } => *calculation,
+                SpriteCacheEntryData::Sprite(s) => s.height,
+            };
             let this_calculation_lowest_y =
                 // Global start
                 next_calculation_highest_y - (
                     // Node
-                    node_height + PADDING as u16 +
+                    calculation_height + PADDING as u16 +
                     // Result
                     result_height
                 ) as i16;
@@ -279,32 +272,44 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
                 self.tick();
                 return;
             }
-            
+
             // The next calculation, drawn above this one, should have its highest Y be the same as
             // the lowest Y of this equation, minus one so they don't overlap
             next_calculation_highest_y = this_calculation_lowest_y - 1;
             
-            // If the lowest Y is off the bottom of the screen, then this is fully clipped and can
-            // be skipped
+            // If the lowest Y is off the bottom of the screen, then this isn't shown on the screen
+            // at all
             if this_calculation_lowest_y > self.os().display_sprite.height as i16 {
-                // TODO: The old framework used a hack here to deallocate sprites which were clipped
-                // off the screen, but no-fun Ferris probably won't let me do that
-                // At some point, modify to deallocate in a sane way
+                // If the sprite cache entry contains a sprite, we can replace it with just height
+                if let SpriteCacheEntryData::Sprite(s) = calculation_sprite {
+                    self.sprite_cache[i] = SpriteCacheEntry::Entry {
+                        data: SpriteCacheEntryData::Height {
+                            calculation: s.height,
+                            result: result_height,
+                        }
+                    };
 
-                continue;
+                    // We *just* set this index, so only the `Entry` case could ever occur
+                    calculation_sprite = match self.sprite_cache[i] {
+                        SpriteCacheEntry::Entry { ref data } => data,
+                        _ => unreachable!(),
+                    };
+                }
             }
             
-            // Draw calculation sprite
-            self.os_mut().display_sprite.draw_sprite(
-                PADDING as i16, 
-                this_calculation_lowest_y + PADDING as i16,
-                calculation_sprite,
-            );
+            // Draw calculation sprite (if we kept the sprite)
+            if let SpriteCacheEntryData::Sprite(sprite) = calculation_sprite {
+                self.os_mut().display_sprite.draw_sprite(
+                    PADDING as i16,
+                    this_calculation_lowest_y + PADDING as i16,
+                    sprite,
+                );
+            }
 
             // As we draw different components of the calculation, we'll add to the current Y
             // accordingly.
             let mut this_calculation_current_y = this_calculation_lowest_y;
-            this_calculation_current_y += calculation_sprite.height as i16 + PADDING as i16;
+            this_calculation_current_y += calculation_height as i16 + PADDING as i16;
             
             // Draw result
             let is_this_result_selected = self.selection == Selection::Result(i);
@@ -329,6 +334,18 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
 
         // Push to screen
         self.os_mut().draw();
+
+        // TEMPORARY: Debug sprite cache
+        self.os_mut().framework.debug(&format!("{:?}", self.sprite_cache.iter().map(|e| {
+            match e {
+                SpriteCacheEntry::Blank => "Blank".to_string(),
+                SpriteCacheEntry::ClippedOffTop => "Clipped off top".to_string(),
+                SpriteCacheEntry::Entry { data } => format!("Entry ({})", match data {
+                    SpriteCacheEntryData::Height { calculation, result } => format!("Height {}, {}", calculation, result),
+                    SpriteCacheEntryData::Sprite(s) => format!("FULL SPRITE {}x{}", s.width, s.height),
+                }),
+            }
+        }).collect::<Vec<_>>()));
 
         // Poll for input
         if let Some(input) = self.os_mut().input() {
@@ -439,7 +456,7 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
             );
 
             self.sprite_cache[index] = SpriteCacheEntry::Entry {
-                sprite
+                data: SpriteCacheEntryData::Sprite(sprite),
             }
         }
     }
@@ -447,10 +464,10 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
     /// Retrieves an index in the sprite cache, or computes it if the entry is blank. Returns the
     /// area and sprite pointer if the sprite is has not been marked as clipped, otherwise returns
     /// None.
-    fn sprite_cache_entry(&self, index: usize) -> Option<&Sprite> {
+    fn sprite_cache_entry(&self, index: usize) -> Option<&SpriteCacheEntryData> {
         match &self.sprite_cache[index] {
-            SpriteCacheEntry::Entry { sprite } => Some(sprite),
-            SpriteCacheEntry::Clipped => None,
+            SpriteCacheEntry::Entry { data } => Some(data),
+            SpriteCacheEntry::ClippedOffTop => None,
             SpriteCacheEntry::Blank => panic!("sprite cache miss"),
         }
     }
@@ -459,7 +476,7 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
     /// is cleared, any calls to `sprite_cache_entry` will return None so that the application loop
     /// can skip drawing off-screen calculations.
     fn mark_sprite_cache_clipped(&mut self, index: usize) {
-        self.sprite_cache[index] = SpriteCacheEntry::Clipped;
+        self.sprite_cache[index] = SpriteCacheEntry::ClippedOffTop;
     }
 
     fn save_current(&mut self) {
