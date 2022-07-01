@@ -34,4 +34,7 @@ pub trait ApplicationFramework {
 
     /// Get the number of (used, total available) bytes of memory.
     fn memory_usage(&self) -> (usize, usize);
+
+    /// Print a debug message. Currently only implemented on the simulator.
+    fn debug(&self, message: &str);
 }

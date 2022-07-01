@@ -349,6 +349,10 @@ impl<
     fn memory_usage(&self) -> (usize, usize) {
         (ALLOCATOR.used(), HEAP_SIZE)
     }
+
+    fn debug(&self, _message: &str) {
+        // Not implemented
+    }
 }
 
 #[alloc_error_handler]
