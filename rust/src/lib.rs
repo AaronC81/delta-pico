@@ -18,7 +18,7 @@ pub mod applications;
 pub mod filesystem;
 pub mod timer;
 pub mod multi_tap;
-// pub mod tests;
+pub mod tests;
 pub mod graphics;
 
 use interface::{ApplicationFramework, DisplayInterface, ButtonInput, StorageInterface};
@@ -109,6 +109,10 @@ pub extern "C" fn delta_pico_main<F: ApplicationFramework + 'static>(framework: 
                 }
             }
         }));
+    }
+
+    if os.framework.should_run_tests() {
+        tests::run_test_suite(&mut os);
     }
 
     loop {

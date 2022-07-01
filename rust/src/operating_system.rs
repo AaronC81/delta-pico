@@ -455,7 +455,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
 
         // Empty the queue by ticking the application repeatedly
         while !self.virtual_input_queue.is_empty() {
-            self.active_application.as_mut().unwrap().tick()
+            self.application_to_tick().tick()
         }
     }
 }

@@ -1,5 +1,5 @@
 use core::cmp::{max, min};
-use alloc::{format, vec, vec::Vec, string::{String, ToString}};
+use alloc::{format, vec, vec::Vec};
 use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 
 use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput, ShapeFill, DISPLAY_WIDTH}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite};
@@ -415,11 +415,22 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
         }
     }
 
-    fn test_info(&self) -> Vec<String> {
-        vec![
-            format!("{:?}", self.calculations[self.selection.index()].result),
-            self.calculations.len().to_string(),
-        ]
+    fn test(&mut self) {
+        // Note: We can assume a cleared history in here, settings does that for us
+
+        // Clear all
+        self.os_mut().virtual_press(&[
+            OSInput::Button(ButtonInput::Digit(1)),
+            OSInput::Button(ButtonInput::Add),
+            OSInput::Button(ButtonInput::Digit(2)),
+            OSInput::Button(ButtonInput::Exe),
+        ]);
+        
+        assert!(matches!(
+            self.calculations[0].result,
+            CalculationResult::Ok(Number::Rational(3, 1))
+        ));
+
     }
 }
 

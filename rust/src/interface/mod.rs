@@ -37,4 +37,7 @@ pub trait ApplicationFramework {
 
     /// Print a debug message. Currently only implemented on the simulator.
     fn debug(&self, message: &str);
+
+    /// Called once on boot to determine whether to run the test suite.
+    fn should_run_tests(&mut self) -> bool;
 }

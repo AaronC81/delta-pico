@@ -35,8 +35,8 @@ pub trait Application {
         Box::new(Self::new(os))
     }
 
-    fn test_info(&self) -> Vec<String> {
-        vec![]
+    fn test(&mut self) {
+        unimplemented!("no test for this application");
     }
 }
 
