@@ -345,18 +345,6 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
         // Push to screen
         self.os_mut().draw();
 
-        // TEMPORARY: Debug sprite cache
-        self.os_mut().framework.debug(&format!("{:?}", self.sprite_cache.iter().map(|e| {
-            match e {
-                SpriteCacheEntry::Blank => "Blank".to_string(),
-                SpriteCacheEntry::ClippedOffTop => "Clipped off top".to_string(),
-                SpriteCacheEntry::Entry { data } => format!("Entry ({})", match data {
-                    SpriteCacheEntryData::Height { calculation, result } => format!("Height {}, {}", calculation, result),
-                    SpriteCacheEntryData::Sprite(s) => format!("FULL SPRITE {}x{}", s.width, s.height),
-                }),
-            }
-        }).collect::<Vec<_>>()));
-
         // Poll for input
         if let Some(input) = self.os_mut().input() {
             if input == OSInput::Button(ButtonInput::Exe) {
