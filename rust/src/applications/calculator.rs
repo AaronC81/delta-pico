@@ -187,37 +187,45 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
 
             // Lay out this node, so we can work out height
             // We'll also calculate a result here since we might as well
-            let result;
+            let result_height;
+            let mut result_sprite;
             let mut new_calculation_sprite; // In case we need to allocate a new sprite
             
-            if self.selection == Selection::Expression(i) {
-                // If this is the calculation currently being edited, there is a possibly edited
-                // version in the rbop context, so use that instead of the cached sprite and result
-                result = match self.rbop_ctx.root.upgrade() {
-                    Ok(structured) => match structured.evaluate(&self.os().filesystem.settings.evaluation_settings()) {
-                        Ok(evaluation_result) => CalculationResult::Ok(evaluation_result.simplify()),
-                        Err(err) => CalculationResult::MathsError(err),
-                    },
-                    Err(err) => CalculationResult::NodeError(err),
+            if let SpriteCacheEntryData::Height { result: cached_result_height, .. } = calculation_sprite {
+                // This is entirely off the screen, so we only care about the height for layout
+                // purposes
+                result_height = *cached_result_height;
+                result_sprite = None;
+            } else {
+                let result;
+                if self.selection == Selection::Expression(i) {
+                    // If this is the calculation currently being edited, there is a possibly edited
+                    // version in the rbop context, so use that instead of the cached sprite and result
+                    result = match self.rbop_ctx.root.upgrade() {
+                        Ok(structured) => match structured.evaluate(&self.os().filesystem.settings.evaluation_settings()) {
+                            Ok(evaluation_result) => CalculationResult::Ok(evaluation_result.simplify()),
+                            Err(err) => CalculationResult::MathsError(err),
+                        },
+                        Err(err) => CalculationResult::NodeError(err),
+                    };
+
+                    new_calculation_sprite = SpriteCacheEntryData::Sprite(
+                        RbopSpriteRenderer::draw_context_to_sprite(&mut self.rbop_ctx, Colour::BLACK)
+                    );
+                    calculation_sprite = &mut new_calculation_sprite;
+                } else {
+                    result = self.calculations[i].result.clone()
                 };
 
-                new_calculation_sprite = SpriteCacheEntryData::Sprite(
-                    RbopSpriteRenderer::draw_context_to_sprite(&mut self.rbop_ctx, Colour::BLACK)
-                );
-                calculation_sprite = &mut new_calculation_sprite;
-            } else {
-                result = self.calculations[i].result.clone()
-            };
-
-            // Draw sprite for result
-            // TODO: skip if height-only entry
-            let result_bg_colour = if self.selection == Selection::Result(i) {
-                Colour::GREY
-            } else {
-                Colour::BLACK
-            };
-            let mut result_sprite = Self::draw_result_to_sprite(&result, result_bg_colour);
-            let result_height = PADDING as u16 * 3 + result_sprite.height;
+                // Draw sprite for result
+                let result_bg_colour = if self.selection == Selection::Result(i) {
+                    Colour::GREY
+                } else {
+                    Colour::BLACK
+                };
+                result_sprite = Some(Self::draw_result_to_sprite(&result, result_bg_colour));
+                result_height = PADDING as u16 * 3 + result_sprite.as_ref().unwrap().height;
+            }
 
             // Work out Y position to draw everything from. Since we draw from bottom to top, we
             // need to subtract the height of what we're drawing from base Y
@@ -312,11 +320,13 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
             this_calculation_current_y += calculation_height as i16 + PADDING as i16;
             
             // Draw result
-            let is_this_result_selected = self.selection == Selection::Result(i);
-            if is_this_result_selected {
-                selected_result_width = Some(result_sprite.width);   
+            if let Some(result_sprite) = &mut result_sprite {
+                let is_this_result_selected = self.selection == Selection::Result(i);
+                if is_this_result_selected {
+                    selected_result_width = Some(result_sprite.width);   
+                }
+                self.draw_result(this_calculation_current_y, result_sprite, is_this_result_selected);
             }
-            self.draw_result(this_calculation_current_y, &mut result_sprite, is_this_result_selected);
             this_calculation_current_y += result_height as i16;
 
             // Draw a big line, unless this is the last item
