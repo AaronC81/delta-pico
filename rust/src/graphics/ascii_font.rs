@@ -7,15 +7,15 @@ pub trait AsciiFont: Debug {
         // Use 'A' as the height of a line
         let line_height = self.char_data(b'A').unwrap().height;
 
-        let mut current_line_width = 0;
-        let mut longest_line_width = 0;
+        let mut current_line_width= 0u16;
+        let mut longest_line_width = 0u16;
         let mut height = line_height;
 
         for c in string.chars() {
             if c != '\n' {
                 if let Some(glyph) = c.try_into().ok().and_then(|c| self.char_data(c)) {
                     // Update line width
-                    current_line_width += glyph.width;
+                    current_line_width += glyph.width as u16;
                     if current_line_width > longest_line_width {
                         longest_line_width = current_line_width;
                     }
