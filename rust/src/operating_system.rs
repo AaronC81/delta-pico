@@ -450,7 +450,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         }
     }
 
-    pub fn virtual_press(&mut self, buttons: &[OSInput]) {
+    pub fn queue_virtual_presses(&mut self, buttons: &[OSInput]) {
         for input in buttons.iter().cloned() {
             self.virtual_input_queue.push(Some(input));
             self.virtual_input_queue.push(None);
@@ -623,9 +623,19 @@ impl<F: ApplicationFramework> UIMenu<F> {
 
 os_accessor!(UIMenu<F>);
 
+pub trait OsAccessor<F: ApplicationFramework> {
+    fn os(&self) -> &OperatingSystem<F>;
+
+    #[allow(clippy::mut_from_ref)]
+    fn os_mut(&self) -> &mut OperatingSystem<F>;
+}
+
 macro_rules! os_accessor {
     ($n:ty) => {
-        impl<F: ApplicationFramework> $n {
+        #[allow(unused)]
+        use crate::operating_system::OsAccessor as _;
+
+        impl<F: ApplicationFramework> crate::operating_system::OsAccessor<F> for $n {
             #[allow(unused)]
             fn os(&self) -> &OperatingSystem<F> { core::ops::Deref::deref(&self.os) }
 

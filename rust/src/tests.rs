@@ -1,4 +1,4 @@
-use crate::{operating_system::OperatingSystem, interface::{ApplicationFramework, Colour}};
+use crate::{operating_system::{OperatingSystem, OSInput, OsAccessor}, interface::{ApplicationFramework, Colour}, applications::Application};
 
 pub fn run_test_suite<F: ApplicationFramework + 'static>(os: &mut OperatingSystem<F>) {
     // We want to start with a blank history
@@ -17,4 +17,14 @@ pub fn run_test_suite<F: ApplicationFramework + 'static>(os: &mut OperatingSyste
     os.showing_menu = true;
     os.active_application = None;
     os.ui_text_dialog("Tests passed!");
+}
+
+pub fn press<F, A>(app: &mut A, inputs: &[OSInput])
+where F: ApplicationFramework + 'static, A: Application<Framework = F> + OsAccessor<F>
+{
+    app.os_mut().queue_virtual_presses(inputs);
+
+    while !app.os().virtual_input_queue.is_empty() {
+        app.tick();
+    }
 }

@@ -2,7 +2,7 @@ use core::cmp::{max, min};
 use alloc::{format, vec, vec::Vec};
 use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 
-use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput, ShapeFill, DISPLAY_WIDTH}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite};
+use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput, ShapeFill, DISPLAY_WIDTH}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite, tests};
 use super::{Application, ApplicationInfo};
 
 const PADDING: u64 = 10;
@@ -419,20 +419,19 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
         // Note: We can assume a cleared history in here, settings does that for us
 
         // Simple calculation
-        self.os_mut().virtual_press(&[
+        tests::press(self, &[
             OSInput::Button(ButtonInput::Digit(1)),
             OSInput::Button(ButtonInput::Add),
             OSInput::Button(ButtonInput::Digit(2)),
             OSInput::Button(ButtonInput::Exe),
         ]);
-        self.exhaust_tick();
         assert!(matches!(
             self.calculations[self.calculations.len() - 2].result,
             CalculationResult::Ok(Number::Rational(3, 1))
         ));
 
         // Fraction
-        self.os_mut().virtual_press(&[
+        tests::press(self, &[
             OSInput::Button(ButtonInput::Digit(1)),
             OSInput::Button(ButtonInput::Add),
             OSInput::Button(ButtonInput::Fraction),
@@ -441,8 +440,6 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
             OSInput::Button(ButtonInput::Digit(3)),
             OSInput::Button(ButtonInput::Exe),
         ]);
-        self.exhaust_tick();
-        self.os_mut().ui_text_dialog(&format!("{:?}", self.calculations.len()));
         assert!(matches!(
             self.calculations[self.calculations.len() - 2].result,
             CalculationResult::Ok(Number::Rational(5, 3))
@@ -451,12 +448,6 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
 }
 
 impl<F: ApplicationFramework> CalculatorApplication<F> {
-    pub fn exhaust_tick(&mut self) {
-        while !self.os().virtual_input_queue.is_empty() {
-            self.tick();
-        }
-    }
-
     /// Completely clears the sprite cache and frees any allocated sprites. All sprite cache slots
     /// become `Blank` after this.
     fn clear_sprite_cache(&mut self) {
