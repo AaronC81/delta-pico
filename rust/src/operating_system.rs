@@ -436,6 +436,12 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         result
     }
 
+    /// Waits for a key to be pressed, and returns it as `Some(OSInput)`. Can return `None`,
+    /// meaning that there is no input but some other event has occurred which requires the
+    /// application to tick and redraw.
+    /// 
+    /// Alternatively, if virtual presses have been queued with `queue_virtual_presses` as part of a
+    /// test, pops the queue and returns the next one.
     pub fn input(&mut self) -> Option<OSInput> {
         if let Some(input) = self.virtual_input_queue.get(0).cloned() {
             self.virtual_input_queue.remove(0);
@@ -450,6 +456,8 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         }
     }
 
+    /// Queues a sequence of presses to return for subsequent calls to `input`. Each given input is
+    /// interspersed with `input` returning `None`. Designed for use when writing tests.
     pub fn queue_virtual_presses(&mut self, buttons: &[OSInput]) {
         for input in buttons.iter().cloned() {
             self.virtual_input_queue.push(Some(input));
