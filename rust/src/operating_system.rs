@@ -23,7 +23,7 @@ pub struct OperatingSystem<F: ApplicationFramework + 'static> {
     pub input_shift: bool,
     pub text_mode: bool,
     pub multi_tap: MultiTapState<F>,
-    pub virtual_input_queue: Vec<OSInput>,
+    pub virtual_input_queue: Vec<Option<OSInput>>,
 
     pub display_sprite: Sprite,
 }
@@ -439,7 +439,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
     pub fn input(&mut self) -> Option<OSInput> {
         if let Some(input) = self.virtual_input_queue.get(0).cloned() {
             self.virtual_input_queue.remove(0);
-            return Some(input);
+            return input;
         }
 
         loop {
@@ -451,11 +451,9 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
     }
 
     pub fn virtual_press(&mut self, buttons: &[OSInput]) {
-        self.virtual_input_queue.extend_from_slice(buttons);
-
-        // Empty the queue by ticking the application repeatedly
-        while !self.virtual_input_queue.is_empty() {
-            self.application_to_tick().tick()
+        for input in buttons.iter().cloned() {
+            self.virtual_input_queue.push(Some(input));
+            self.virtual_input_queue.push(None);
         }
     }
 }
