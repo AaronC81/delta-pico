@@ -55,6 +55,11 @@ impl<F: ApplicationFramework> RawStorage<F> {
 
     /// Fills `count` bytes with the given byte value, starting from the given address.
     pub fn fill_bytes(&mut self, address: RawStorageAddress, count: u16, byte: u8) -> Option<()> {
+        // Optimisation if clearing
+        if byte == 0 {
+            return self.os_mut().framework.storage_mut().clear_range(self.absolute_address(address)?, count);
+        }
+
         for offset in 0..count {
             self.write_byte(address.offset(offset), byte)?;
         }
