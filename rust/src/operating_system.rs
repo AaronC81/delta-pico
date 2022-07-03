@@ -125,6 +125,10 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
     }
     
     /// Restarts the current application. If none is open, panics.
+    #[must_use =
+        "`restart_application` will drop the current application, making it unsafe to continue \
+        executing code within its methods, so the calling function should `return` here"
+    ]
     pub fn restart_application(&mut self) {
         if let Some(index) = self.active_application_index {
             self.launch_application(index);

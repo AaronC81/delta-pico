@@ -115,7 +115,7 @@ impl<F: ApplicationFramework> Application for NumbersGame<F> {
 
         if let Some(input) = self.os_mut().input() {
             if input == OSInput::Button(ButtonInput::Exe) {
-                self.os_mut().restart_application();
+                return self.os_mut().restart_application();
             }
 
             if !self.game_over {

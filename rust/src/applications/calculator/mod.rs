@@ -332,7 +332,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
                         self.os_mut().filesystem.calculations.table.clear(false);
                         
                         // There are too many things to reload manually, just restart the app
-                        self.os_mut().restart_application();
+                        return self.os_mut().restart_application();
                     }
                     Some(_) => unreachable!(),
                     None => (),
