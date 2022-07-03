@@ -1,9 +1,8 @@
 use core::ops::{Index, IndexMut};
 
 use alloc::vec::Vec;
-use rbop::node::unstructured::UnstructuredNodeRoot;
 
-use crate::{graphics::Sprite, filesystem::Calculation, rbop_impl::RbopSpriteRenderer, interface::{Colour, ApplicationFramework}};
+use crate::{graphics::Sprite, filesystem::Calculation, rbop_impl::RbopSpriteRenderer, interface::Colour};
 
 /// The sprite cache is an optimization technique which sacrifices memory in order to gain a
 /// significant performance boost. Computing and drawing an rbop layout is relatively expensive,

@@ -2,11 +2,13 @@ use core::cmp::{max, min};
 use alloc::{format, vec, vec::Vec};
 use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
 
-use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput, ShapeFill, DISPLAY_WIDTH}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite, tests};
+use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput, ShapeFill, DISPLAY_WIDTH}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite};
 use super::{Application, ApplicationInfo};
 
 mod sprite_cache;
 use sprite_cache::*;
+
+mod test;
 
 const PADDING: u64 = 10;
 
@@ -374,35 +376,8 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
         }
     }
 
-    fn test<'a>(&'a mut self) {
-        // Note: We can assume a cleared history in here, settings does that for us
-
-        // Simple calculation
-        tests::press(self, &[
-            OSInput::Button(ButtonInput::Digit(1)),
-            OSInput::Button(ButtonInput::Add),
-            OSInput::Button(ButtonInput::Digit(2)),
-            OSInput::Button(ButtonInput::Exe),
-        ]);
-        assert!(matches!(
-            self.calculations[self.calculations.len() - 2].result,
-            CalculationResult::Ok(Number::Rational(3, 1))
-        ));
-
-        // Fraction
-        tests::press(self, &[
-            OSInput::Button(ButtonInput::Digit(1)),
-            OSInput::Button(ButtonInput::Add),
-            OSInput::Button(ButtonInput::Fraction),
-            OSInput::Button(ButtonInput::Digit(2)),
-            OSInput::Button(ButtonInput::MoveDown),
-            OSInput::Button(ButtonInput::Digit(3)),
-            OSInput::Button(ButtonInput::Exe),
-        ]);
-        assert!(matches!(
-            self.calculations[self.calculations.len() - 2].result,
-            CalculationResult::Ok(Number::Rational(5, 3))
-        ));
+    fn test(&mut self) {
+        test::test(self);
     }
 }
 
