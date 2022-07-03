@@ -1,6 +1,6 @@
 use core::cmp::{max, min};
 use alloc::{format, vec, vec::Vec};
-use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}, function::Function}, render::{Area, Renderer, Viewport, LayoutComputationProperties}, UnstructuredNode};
+use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}, function::Function}, render::{Area, Renderer, Viewport, LayoutComputationProperties}, UnstructuredNode, UnstructuredNodeList};
 
 use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput, ShapeFill, DISPLAY_WIDTH}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite};
 use self::catalog::{CatalogItem, Catalog};
@@ -334,13 +334,13 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
                     Some(0) => {
                         let catalog = Catalog::new(self.os, "Catalog", Self::catalog_items());
                         if let Some(item) = catalog.tick_until_complete() {
-                            let function = item.metadata;
+                            let node = item.metadata;
 
                             self.rbop_ctx.root.insert(
                                 &mut self.rbop_ctx.nav_path,
                                 &mut RbopSpriteRenderer::new(),
                                 self.rbop_ctx.viewport.as_mut(),
-                                UnstructuredNode::new_function_call(function),
+                                node,
                             );
                         }
                     }
@@ -503,12 +503,14 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
         self.result_scroll_x = 0;
     }
 
-    fn catalog_items() -> Vec<CatalogItem<Function>> {
+    fn catalog_items() -> Vec<CatalogItem<UnstructuredNode>> {
         vec![
-            CatalogItem::new("sin", "", Function::Sine),
-            CatalogItem::new("cos", "", Function::Cosine),
-            CatalogItem::new("gcd", "", Function::GreatestCommonDenominator),
+            CatalogItem::new("frac", "", UnstructuredNode::Fraction(UnstructuredNodeList::new(), UnstructuredNodeList::new())),
+            CatalogItem::new("sqrt", "", UnstructuredNode::Sqrt(UnstructuredNodeList::new())),
+            CatalogItem::new("pow", "", UnstructuredNode::Power(UnstructuredNodeList::new())),
+            CatalogItem::new("sin", "", UnstructuredNode::new_function_call(Function::Sine)),
+            CatalogItem::new("cos", "", UnstructuredNode::new_function_call(Function::Cosine)),
+            CatalogItem::new("gcd", "", UnstructuredNode::new_function_call(Function::GreatestCommonDenominator)),
         ]
     }
 }
-
