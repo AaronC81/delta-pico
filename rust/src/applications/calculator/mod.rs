@@ -5,40 +5,10 @@ use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructur
 use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput, ShapeFill, DISPLAY_WIDTH}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite, tests};
 use super::{Application, ApplicationInfo};
 
+mod sprite_cache;
+use sprite_cache::*;
+
 const PADDING: u64 = 10;
-
-#[derive(Clone, Debug)]
-/// An entry into the sprite cache.
-enum SpriteCacheEntry {
-    /// The sprite cache has been cleared, and this item hasn't been recomputed yet.
-    Blank,
-
-    /// This item was found to be completely off the top of the screen, so has been marked as
-    /// clipped. This item does not need to be drawn, and because it is off the top of the screen,
-    /// its height does not need to be known for layout calculation.
-    ClippedOffTop,
-
-    /// This item has been recomputing since the sprite cache was last cleared, and is either:
-    ///   - At least partially visible on the screen, if the wrapped data is `Sprite`
-    ///   - Clipped off the bottom of the screen, but therefore has a height required for layout 
-    ///     calculation, so the wrapped data is `Height`, without sprite data to save memory
-    Entry { data: SpriteCacheEntryData },
-}
-
-impl SpriteCacheEntry {
-    fn is_blank(&self) -> bool {
-        matches!(self, SpriteCacheEntry::Blank)
-    }
-}
-
-#[derive(Clone, Debug)]
-enum SpriteCacheEntryData {
-    Height {
-        calculation: u16,
-        result: u16,
-    },
-    Sprite(Sprite),
-}
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 enum Selection {
@@ -76,22 +46,8 @@ pub struct CalculatorApplication<F: ApplicationFramework + 'static> {
     selection: Selection,
     rbop_ctx: RbopContext<F>,
 
-    /// The sprite cache is an optimization technique which sacrifices memory in order to gain a
-    /// significant performance boost. Computing and drawing an rbop layout is relatively expensive,
-    /// so the sprite cache is used to lay out and draw the calculations which we are not editing
-    /// onto sprites in advance. Calculations not being edited won't change unless we navigate
-    /// between calculations, so these will be stored until the edited calculation changes. Drawing
-    /// the sprites onto the screen is significantly faster than recomputing and redrawing the rbop
-    /// layout.
-    ///
-    /// Supposing that there are 4 calculations on the screen, one of which is being edited:
-    ///   - Without the sprite cache, every `tick` computes and draws 4 rbop layouts.
-    ///   - With the sprite cache:
-    ///      - The first `tick` after navigating between calculations computes and draws 4 rbop
-    ///        layouts, allocates sprites for them, and performs a pass to mark other calculations
-    ///        as off-screen.
-    ///      - Every subsequent `tick` draws 3 sprites (negligible time) and 1 rbop layout.
-    sprite_cache: Vec<SpriteCacheEntry>,
+    /// The sprite cache; see the docs for `SpriteCache`.
+    sprite_cache: SpriteCache,
 
     /// The Y which we starting drawing calculations decreasing from (that is, drawing them up the
     /// screen.) A non-scrolled screen should have a starting_y of the screen's height, since we'll
@@ -150,11 +106,11 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
             },
             calculations,
             selection,
-            sprite_cache: vec![],
+            sprite_cache: SpriteCache::new(),
             starting_y: os.framework.display().height() as i16,
             result_scroll_x: 0,
         };
-        result.clear_sprite_cache();
+        result.sprite_cache.clear(result.calculations.len());
         result
     }
 
@@ -174,12 +130,15 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
             // If the last thing we drew was partially off the top of the screen, then this is fully
             // off the screen, so skip it and mark it as pruned
             if rest_are_clipped {
-                self.mark_sprite_cache_clipped(i);
+                self.sprite_cache[i] = SpriteCacheEntry::ClippedOffTop;
+                
+                // TODO: Is this OK, or is there some reason it was missing until very recently?
+                continue;
             }
 
             // Fetch this from the sprite cache
-            self.ensure_sprite_cache_entry_exists(i);
-            let mut calculation_sprite = match self.sprite_cache_entry(i) {
+            self.sprite_cache.create_if_blank(i, &mut self.calculations);
+            let mut calculation_sprite = match self.sprite_cache.entry_data(i) {
                 Some(x) => x,
                 // If clipped, we don't need to draw this
                 None => continue,
@@ -363,7 +322,7 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
                 self.save_current();
 
                 // Clear the sprite cache
-                self.clear_sprite_cache();
+                self.sprite_cache.clear(self.calculations.len());
             } else if input == OSInput::Button(ButtonInput::List) {
                 match self.os_mut().ui_open_menu(&["Clear history".into()], true) {
                     Some(0) => {
@@ -400,14 +359,14 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
                             self.save_current();
                             self.selection = self.selection.up();
                             self.load_current();
-                            self.clear_sprite_cache();
+                            self.sprite_cache.clear(self.calculations.len());
                         },
                         MoveVerticalDirection::Down => if self.selection != Selection::Result(self.calculations.len() - 1) {
                             self.save_current();
                             self.selection = self.selection.down();
                             self.result_scroll_x = 0;
                             self.load_current();
-                            self.clear_sprite_cache();
+                            self.sprite_cache.clear(self.calculations.len());
                         },
                     }
                 }
@@ -448,59 +407,6 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
 }
 
 impl<F: ApplicationFramework> CalculatorApplication<F> {
-    /// Completely clears the sprite cache and frees any allocated sprites. All sprite cache slots
-    /// become `Blank` after this.
-    fn clear_sprite_cache(&mut self) {
-        // Clear the sprite cache
-        self.sprite_cache.clear();
-
-        // Fill with "Blank"
-        self.sprite_cache = Vec::with_capacity(self.calculations.len());
-        for _ in 0..(self.calculations.len()) {
-            self.sprite_cache.push(SpriteCacheEntry::Blank);
-        }
-    }
-
-    fn ensure_sprite_cache_entry_exists(&mut self, index: usize) {
-        if self.sprite_cache[index].is_blank() {
-            // This entry does not exist
-            // Grab calculation
-            let root = &mut self.calculations[index].root;
-
-            // Draw onto sprite, but with:
-            //   - No viewport needed since it's not on the screen
-            //   - No navpath, so no cursor shows up
-            let sprite = RbopSpriteRenderer::draw_to_sprite::<F, _>(
-                root,
-                None,
-                None,
-                Colour::BLACK,
-            );
-
-            self.sprite_cache[index] = SpriteCacheEntry::Entry {
-                data: SpriteCacheEntryData::Sprite(sprite),
-            }
-        }
-    }
-
-    /// Retrieves an index in the sprite cache, or computes it if the entry is blank. Returns the
-    /// area and sprite pointer if the sprite is has not been marked as clipped, otherwise returns
-    /// None.
-    fn sprite_cache_entry(&self, index: usize) -> Option<&SpriteCacheEntryData> {
-        match &self.sprite_cache[index] {
-            SpriteCacheEntry::Entry { data } => Some(data),
-            SpriteCacheEntry::ClippedOffTop => None,
-            SpriteCacheEntry::Blank => panic!("sprite cache miss"),
-        }
-    }
-
-    /// Marks an entry in the sprite cache as being clipped off the screen. Until the sprite cache
-    /// is cleared, any calls to `sprite_cache_entry` will return None so that the application loop
-    /// can skip drawing off-screen calculations.
-    fn mark_sprite_cache_clipped(&mut self, index: usize) {
-        self.sprite_cache[index] = SpriteCacheEntry::ClippedOffTop;
-    }
-
     fn save_current(&mut self) {
         // Evaluate
         let result = match self.rbop_ctx.root.upgrade() {
@@ -566,7 +472,7 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
                 let mut result_node = StructuredNode::Number(*number);
 
                 // Render this node to a sprite
-                return RbopSpriteRenderer::draw_to_sprite::<F, _>(
+                return RbopSpriteRenderer::draw_to_sprite::<_>(
                     &mut result_node,
                     None,
                     None,

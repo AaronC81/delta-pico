@@ -118,7 +118,7 @@ impl RbopSpriteRenderer {
     }
 
     pub fn draw_context_to_sprite<F: ApplicationFramework>(rbop_ctx: &mut RbopContext<F>, background_colour: Colour) -> Sprite {
-        Self::draw_to_sprite::<F, UnstructuredNodeRoot>(
+        Self::draw_to_sprite::<UnstructuredNodeRoot>(
             &mut rbop_ctx.root,
             Some(&mut rbop_ctx.nav_path),
             rbop_ctx.viewport.as_ref(),
@@ -126,7 +126,7 @@ impl RbopSpriteRenderer {
         )
     }
 
-    pub fn draw_to_sprite<F: ApplicationFramework, N: Layoutable>(
+    pub fn draw_to_sprite<N: Layoutable>(
         node: &mut N,
         mut nav_path: Option<&mut NavPath>,
         viewport: Option<&Viewport>,
