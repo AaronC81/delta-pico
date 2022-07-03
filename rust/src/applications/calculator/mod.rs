@@ -332,7 +332,6 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
             } else if input == OSInput::Button(ButtonInput::List) {
                 match self.os_mut().ui_open_menu(&["Catalog...".into(), "Clear history".into()], true) {
                     Some(0) => {
-                        // TODO: Shows the menu behind, which looks ugly
                         let catalog = Catalog::new(self.os, "Catalog", Self::catalog_items());
                         if let Some(item) = catalog.tick_until_complete() {
                             let function = item.metadata;
