@@ -1,14 +1,18 @@
 use core::cmp::{max, min};
 use alloc::{format, vec, vec::Vec};
-use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}}, render::{Area, Renderer, Viewport, LayoutComputationProperties}};
+use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}, function::Function}, render::{Area, Renderer, Viewport, LayoutComputationProperties}, UnstructuredNode};
 
 use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput, ShapeFill, DISPLAY_WIDTH}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite};
+use self::catalog::{CatalogItem, Catalog};
+
 use super::{Application, ApplicationInfo};
 
 mod sprite_cache;
 use sprite_cache::*;
 
 mod test;
+
+pub mod catalog;
 
 const PADDING: u64 = 10;
 
@@ -326,14 +330,30 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
                 // Clear the sprite cache
                 self.sprite_cache.clear(self.calculations.len());
             } else if input == OSInput::Button(ButtonInput::List) {
-                match self.os_mut().ui_open_menu(&["Clear history".into()], true) {
+                match self.os_mut().ui_open_menu(&["Catalog...".into(), "Clear history".into()], true) {
                     Some(0) => {
+                        // TODO: Shows the menu behind, which looks ugly
+                        let catalog = Catalog::new(self.os, "Catalog", Self::catalog_items());
+                        if let Some(item) = catalog.tick_until_complete() {
+                            let function = item.metadata;
+
+                            self.rbop_ctx.root.insert(
+                                &mut self.rbop_ctx.nav_path,
+                                &mut RbopSpriteRenderer::new(),
+                                self.rbop_ctx.viewport.as_mut(),
+                                UnstructuredNode::new_function_call(function),
+                            );
+                        }
+                    }
+
+                    Some(1) => {
                         // Delete from storage
                         self.os_mut().filesystem.calculations.table.clear(false);
                         
                         // There are too many things to reload manually, just restart the app
                         return self.os_mut().restart_application();
                     }
+
                     Some(_) => unreachable!(),
                     None => (),
                 }
@@ -482,6 +502,14 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
     fn reset_scroll(&mut self) {
         self.starting_y = self.os().display_sprite.height as i16;
         self.result_scroll_x = 0;
+    }
+
+    fn catalog_items() -> Vec<CatalogItem<Function>> {
+        vec![
+            CatalogItem::new("sin", "", Function::Sine),
+            CatalogItem::new("cos", "", Function::Cosine),
+            CatalogItem::new("gcd", "", Function::GreatestCommonDenominator),
+        ]
     }
 }
 
