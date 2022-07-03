@@ -60,7 +60,7 @@ where
     const HEIGHT: u16 = 250;
     const ROW_HEIGHT: u16 = 30;
     const ITEM_PADDING: u16 = 5;
-
+    const DESCRIPTION_HEIGHT: u16 = 70;
     const COLUMNS: u16 = 3;
 
     pub fn new(os: OperatingSystemPointer<F>, title: impl Into<String>, items: Vec<CatalogItem<T>>) -> Self {
@@ -147,6 +147,27 @@ where
             starting_x, starting_y, Self::WIDTH - 1, Self::HEIGHT,
             Colour::WHITE, ShapeFill::Hollow, 0,
         );
+
+        // Draw description panel
+        let panel_y = starting_y + (Self::HEIGHT - Self::DESCRIPTION_HEIGHT) as i16;
+        self.os.display_sprite.draw_rect(
+            starting_x, panel_y,
+            Self::WIDTH, Self::DESCRIPTION_HEIGHT,
+            Colour::WHITE, ShapeFill::Hollow, 0,  
+        );
+        let description = self.selected().description.clone();
+        let wrapped_text = self.os.display_sprite.wrap_text(
+            &description,
+            Self::WIDTH - Self::ITEM_PADDING * 2
+        );
+        for (i, line) in wrapped_text.0.iter().enumerate() {
+            self.os.display_sprite.print_at(
+                starting_x + Self::ITEM_PADDING as i16,
+                panel_y + Self::ITEM_PADDING as i16 + wrapped_text.1 * i as i16,
+                line,
+            );
+            if i == 2 { break; }
+        }
 
         // Redraw
         self.os.draw();

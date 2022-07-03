@@ -505,12 +505,12 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
 
     fn catalog_items() -> Vec<CatalogItem<UnstructuredNode>> {
         vec![
-            CatalogItem::new("frac", "", UnstructuredNode::Fraction(UnstructuredNodeList::new(), UnstructuredNodeList::new())),
-            CatalogItem::new("sqrt", "", UnstructuredNode::Sqrt(UnstructuredNodeList::new())),
-            CatalogItem::new("pow", "", UnstructuredNode::Power(UnstructuredNodeList::new())),
-            CatalogItem::new("sin", "", UnstructuredNode::new_function_call(Function::Sine)),
-            CatalogItem::new("cos", "", UnstructuredNode::new_function_call(Function::Cosine)),
-            CatalogItem::new("gcd", "", UnstructuredNode::new_function_call(Function::GreatestCommonDenominator)),
+            CatalogItem::new("frac", "A fraction/division with a numerator and denominator", UnstructuredNode::Fraction(UnstructuredNodeList::new(), UnstructuredNodeList::new())),
+            CatalogItem::new("sqrt", "Compute square root of a value", UnstructuredNode::Sqrt(UnstructuredNodeList::new())),
+            CatalogItem::new("pow", "Raise a value to a power", UnstructuredNode::Power(UnstructuredNodeList::new())),
+            CatalogItem::new("sin", "Trigonometric sine", UnstructuredNode::new_function_call(Function::Sine)),
+            CatalogItem::new("cos", "Trigonometric cosine", UnstructuredNode::new_function_call(Function::Cosine)),
+            CatalogItem::new("gcd", "Greatest common denominator of two values", UnstructuredNode::new_function_call(Function::GreatestCommonDenominator)),
         ]
     }
 }
