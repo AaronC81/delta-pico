@@ -317,7 +317,15 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
                     OSInput::Button(ButtonInput::Exe) => return rbop_ctx.root,
                     OSInput::Button(ButtonInput::List) => {
                         // TODO: should this open a list for consistency with Calculator?
-                        // TODO: doesn't get redrawn after selection
+
+                        // We won't be redrawing the whole app, just the expression input dialog, so
+                        // this catalog wouldn't get redrawn, which looks very odd. Instead, take a
+                        // copy of the display sprite right now. We can then restore the copy later,
+                        // once the catalog is closed.
+                        // (Very memory intensive! But a display sprite is ~70kB, 240kB available,
+                        // and I've rarely seen more than 100kB used, so should be fine.)
+                        let display_sprite_before_catalog = self.display_sprite.clone();
+
                         let catalog = Catalog::new(
                             OperatingSystemPointer::new(self as *mut _),
                             "Catalog",
@@ -331,6 +339,8 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
                                 item.metadata,
                             );
                         }
+
+                        self.display_sprite = display_sprite_before_catalog;
                     }
                     _ => {
                         rbop_ctx.input(input);
