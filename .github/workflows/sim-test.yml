@@ -8,12 +8,12 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  DELTA_PICO_FFPYTHON: /usr/bin/python2
+  DELTA_PICO_FFPYTHON: /usr/bin/python3
 
 jobs:
   build:
 
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     
     steps:
     - name: Install nightly Rust toolchain
@@ -22,10 +22,9 @@ jobs:
       run: sudo apt-get install libxkbcommon-dev
     - name: Install FontForge
       run: |
-        sudo add-apt-repository ppa:fontforge/fontforge -y
         sudo apt update -y
         sudo apt install fontforge -y
-        sudo apt install python-fontforge -y
+        sudo apt install python3-fontforge -y
     - name: Checkout main
       uses: actions/checkout@v3
       with:
