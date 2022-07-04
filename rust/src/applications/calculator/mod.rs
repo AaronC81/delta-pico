@@ -503,7 +503,7 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
         self.result_scroll_x = 0;
     }
 
-    fn catalog_items() -> Vec<CatalogItem<UnstructuredNode>> {
+    pub fn catalog_items() -> Vec<CatalogItem<UnstructuredNode>> {
         vec![
             CatalogItem::new("frac", "A fraction/division with a numerator and denominator", UnstructuredNode::Fraction(UnstructuredNodeList::new(), UnstructuredNodeList::new())),
             CatalogItem::new("sqrt", "Compute square root of a value", UnstructuredNode::Sqrt(UnstructuredNodeList::new())),

@@ -4,7 +4,7 @@ use alloc::{boxed::Box, format, string::{String, ToString}, vec::Vec};
 use az::SaturatingAs;
 use rbop::{Number, node::{unstructured::{UnstructuredNodeRoot, Upgradable}}, render::{Area, Viewport}};
 
-use crate::{applications::{Application, ApplicationList, menu::MenuApplication}, interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent, DISPLAY_WIDTH}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, CHUNK_SIZE, CHUNK_ADDRESS_SIZE, ChunkTable, CalculationHistory}, graphics::Sprite, rbop_impl::{RbopContext, RbopSpriteRenderer}};
+use crate::{applications::{Application, ApplicationList, menu::MenuApplication, calculator::{catalog::Catalog, CalculatorApplication}}, interface::{Colour, ShapeFill, ApplicationFramework, DisplayInterface, ButtonInput, ButtonsInterface, ButtonEvent, DISPLAY_WIDTH}, multi_tap::MultiTapState, filesystem::{Filesystem, Settings, RawStorage, CHUNK_SIZE, CHUNK_ADDRESS_SIZE, ChunkTable, CalculationHistory}, graphics::Sprite, rbop_impl::{RbopContext, RbopSpriteRenderer}};
 
 pub struct OperatingSystem<F: ApplicationFramework + 'static> {
     pub ptr: OperatingSystemPointer<F>,
@@ -313,10 +313,28 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
 
             // Poll for input
             if let Some(input) = self.input() {
-                if input == OSInput::Button(ButtonInput::Exe) {
-                    return rbop_ctx.root;
-                } else {
-                    rbop_ctx.input(input);
+                match input {
+                    OSInput::Button(ButtonInput::Exe) => return rbop_ctx.root,
+                    OSInput::Button(ButtonInput::List) => {
+                        // TODO: should this open a list for consistency with Calculator?
+                        // TODO: doesn't get redrawn after selection
+                        let catalog = Catalog::new(
+                            OperatingSystemPointer::new(self as *mut _),
+                            "Catalog",
+                            CalculatorApplication::<F>::catalog_items(),
+                        );
+                        if let Some(item) = catalog.tick_until_complete() {
+                            rbop_ctx.root.insert(
+                                &mut rbop_ctx.nav_path,
+                                &mut RbopSpriteRenderer::new(),
+                                rbop_ctx.viewport.as_mut(),
+                                item.metadata,
+                            );
+                        }
+                    }
+                    _ => {
+                        rbop_ctx.input(input);
+                    }
                 }
             }
         }
