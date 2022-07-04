@@ -51,6 +51,6 @@ pub fn test<F: ApplicationFramework>(app: &mut CalculatorApplication<F>) {
     ]);
     assert!(matches!(
         app.calculations[app.calculations.len() - 2].result,
-        CalculationResult::Ok(Number::Decimal(d)) if d.is_one()
+        CalculationResult::Ok(Number::Decimal(d, _)) if d.is_one()
     ));
 }
