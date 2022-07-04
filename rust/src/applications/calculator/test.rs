@@ -53,4 +53,38 @@ pub fn test<F: ApplicationFramework>(app: &mut CalculatorApplication<F>) {
         app.calculations[app.calculations.len() - 2].result,
         CalculationResult::Ok(Number::Decimal(d, _)) if d.is_one()
     ));
+
+    // Accuracy correction
+    tests::press(app, &[
+        // sin(1)
+        OSInput::Button(ButtonInput::List),
+        OSInput::Button(ButtonInput::Exe),
+        OSInput::Button(ButtonInput::MoveDown),
+        OSInput::Button(ButtonInput::Exe),
+        OSInput::Button(ButtonInput::Digit(1)),
+        OSInput::Button(ButtonInput::MoveRight),
+
+        // ...squared
+        OSInput::Button(ButtonInput::Power),
+        OSInput::Button(ButtonInput::Digit(2)),
+        OSInput::Button(ButtonInput::MoveRight),
+
+        // + cos(1)
+        OSInput::Button(ButtonInput::List),
+        OSInput::Button(ButtonInput::Exe),
+        OSInput::Button(ButtonInput::MoveDown),
+        OSInput::Button(ButtonInput::MoveRight),
+        OSInput::Button(ButtonInput::Exe),
+        OSInput::Button(ButtonInput::Digit(1)),
+        OSInput::Button(ButtonInput::MoveRight),
+
+        // ...squared
+        OSInput::Button(ButtonInput::Power),
+        OSInput::Button(ButtonInput::Digit(2)),
+        OSInput::Button(ButtonInput::MoveRight),        
+    ]);
+    assert!(matches!(
+        app.calculations[app.calculations.len() - 2].result,
+        CalculationResult::Ok(Number::Decimal(d, _)) if d.is_one()
+    ));
 }
