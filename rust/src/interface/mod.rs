@@ -40,4 +40,8 @@ pub trait ApplicationFramework {
 
     /// Called once on boot to determine whether to run the test suite.
     fn should_run_tests(&mut self) -> bool;
+
+    /// Called immediately after a test run, started by `should_run_tests`, completes successfully.
+    /// (Test failures are a panic instead.)
+    fn tests_success_hook(&mut self) {}
 }

@@ -17,6 +17,7 @@ pub fn run_test_suite<F: ApplicationFramework + 'static>(os: &mut OperatingSyste
     os.application_to_tick().test();
 
     // Failures are panics, so all good if we got here
+    os.framework.tests_success_hook();
     os.showing_menu = true;
     os.active_application = None;
     os.ui_text_dialog("Tests passed!");
