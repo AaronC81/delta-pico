@@ -1,0 +1,35 @@
+name: Test in simulator
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout main
+      uses: actions/checkout@v3
+      with:
+        repository: AaronC81/delta-pico
+        path: ./delta-pico
+    - name: Checkout simulator
+      uses: actions/checkout@v3
+      with:
+        repository: AaronC81/delta-pico-sim
+        path: ./delta-pico-sim
+    - name: Checkout rbop
+      uses: actions/checkout@v3
+      with:
+        repository: AaronC81/rbop
+        path: ./rbop
+    - name: Run tests in simulator
+      run: cargo run --verbose -- --test
+      working-directory: ./delta-pico-sim
