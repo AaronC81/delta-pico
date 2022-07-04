@@ -60,7 +60,7 @@ impl Sprite {
     pub fn try_pixel_immutable(&self, x: i16, y: i16) -> Option<Colour> {
         let index = y as isize * self.width as isize + x as isize;
 
-        if index < 0 || index as usize >= self.data.len() {
+        if index < 0 || index as usize >= self.data.len() || x < 0 || y < 0 || x as u16 >= self.width || y as u16 >= self.height {
             None
         } else {
             Some(self.pixel_immutable(x as u16, y as u16))
