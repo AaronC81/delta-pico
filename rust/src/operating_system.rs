@@ -18,7 +18,6 @@ pub struct OperatingSystem<F: ApplicationFramework + 'static> {
     pub active_application_index: Option<usize>,
 
     pub filesystem: Filesystem<F>,
-    // pub last_title_millis: u32,
 
     pub input_shift: bool,
     pub text_mode: bool,
@@ -26,6 +25,7 @@ pub struct OperatingSystem<F: ApplicationFramework + 'static> {
     pub virtual_input_queue: Vec<Option<OSInput>>,
 
     pub display_sprite: Sprite,
+    pub last_input_millis: u64,
 }
 
 impl<F: ApplicationFramework> OperatingSystem<F> {
@@ -78,6 +78,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
             virtual_input_queue: Vec::new(),
 
             display_sprite: Sprite::new(display_width, display_height),
+            last_input_millis: 0,
         }
     }
 
@@ -152,6 +153,41 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
 
     /// Draws the display sprite, updating the (physical) display after a set of drawing operations.
     pub fn draw(&mut self) {
+        const DEBUG_PANEL_WIDTH: i16 = 80;
+
+        // Draw frame time, if enabled
+        if self.filesystem.settings.values.show_frame_time {
+            let now_millis = self.framework.millis();
+            let millis_elapsed = now_millis - self.last_input_millis;
+            self.display_sprite.draw_rect(
+                self.display_sprite.width as i16 - DEBUG_PANEL_WIDTH, 0,
+                DEBUG_PANEL_WIDTH as u16, Self::TITLE_BAR_HEIGHT / 2,
+                Colour::BLACK, ShapeFill::Filled, 0,
+            );
+            self.display_sprite.with_font(&crate::font_data::DroidSans14, |sprite| {
+                sprite.print_at(
+                    sprite.width as i16 - DEBUG_PANEL_WIDTH, 0,
+                    &format!("{}ms", millis_elapsed)
+                );
+            });
+        }
+
+        // Draw memory usage, if enabled
+        if self.filesystem.settings.values.show_heap_usage {
+            let (used, total) = self.framework.memory_usage();
+            self.display_sprite.draw_rect(
+                self.display_sprite.width as i16 - DEBUG_PANEL_WIDTH, Self::TITLE_BAR_HEIGHT as i16 / 2,
+                DEBUG_PANEL_WIDTH as u16, Self::TITLE_BAR_HEIGHT / 2,
+                Colour::BLACK, ShapeFill::Filled, 0,
+            );
+            self.display_sprite.with_font(&crate::font_data::DroidSans14, |sprite| {
+                sprite.print_at(
+                    sprite.width as i16 - DEBUG_PANEL_WIDTH, Self::TITLE_BAR_HEIGHT as i16 / 2,
+                    &format!("{}/{}kB", used / 1000, total / 1000),
+                );
+            });
+        }
+
         self.framework.display_mut().draw_display_sprite(&self.display_sprite)
     }
 
@@ -185,15 +221,6 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
             0, 0, self.display_sprite.width, Self::TITLE_BAR_HEIGHT,
             Colour::ORANGE, ShapeFill::Filled, 0
         );
-
-        // TODO: frame time
-        let s = if self.filesystem.settings.values.show_heap_usage {
-            let (used, total) = self.framework.memory_usage();
-            format!("{}/{}kB", used / 1000, total / 1000)
-        } else {
-            s.to_string()
-        };
-
         self.display_sprite.print_at(5, 7, &s);
 
         // Draw charge indicator
@@ -483,6 +510,7 @@ impl<F: ApplicationFramework> OperatingSystem<F> {
         loop {
             let event = self.framework.buttons_mut().wait_event();
             if let ButtonEvent::Press(btn_input) = event {
+                self.last_input_millis = self.framework.millis();
                 return self.button_input_to_os_input(btn_input)
             }
         }
