@@ -80,15 +80,47 @@ struct Plot {
 impl Plot {
     fn recalculate_values(&mut self, view: &ViewWindow, settings: &EvaluationSettings) -> Result<(), NodeError> {
         let upgraded = self.root.upgrade()?;
-        let func = |x| {
-            let sn_clone = upgraded.substitute_variable(
-                'x',
-                &StructuredNode::Number(x)
-            );
-            sn_clone.evaluate(settings)
-        };
         self.y_values = view.x_coords_on_screen()
-            .iter().map(|i| func(*i)).collect::<Vec<_>>();
+            .iter().map(|i| Self::recalculate_one_value(*i, &upgraded, settings)).collect::<Vec<_>>();
+
+        Ok(())
+    }
+
+    fn recalculate_one_value(x: Number, node: &StructuredNode, settings: &EvaluationSettings) -> Result<Number, MathsError> {
+        let sn_clone = node.substitute_variable(
+            'x',
+            &StructuredNode::Number(x)
+        );
+        sn_clone.evaluate(settings)
+    }
+
+    fn recalculate_x_pan(&mut self, pan: isize, view: &ViewWindow, settings: &EvaluationSettings) -> Result<(), NodeError> {
+        let upgraded = self.root.upgrade()?;
+        let x_values = view.x_coords_on_screen();
+
+        if pan > 0 {
+            // Moving right - copy values down
+            let pan = pan as usize;
+            for i in 0..(self.y_values.len() - pan) {
+                self.y_values[i] = self.y_values[i + pan].clone();
+            }
+
+            // Insert new values
+            for i in (self.y_values.len() - pan)..self.y_values.len() {
+                self.y_values[i] = Self::recalculate_one_value(x_values[i], &upgraded, settings);
+            }
+        } else if pan < 0 {
+            // Moving left - copy values up
+            let pan = pan.abs() as usize;
+            for i in (0..(self.y_values.len() - pan)).rev() {
+                self.y_values[i + pan] = self.y_values[i].clone();
+            }
+            
+            // Insert new values
+            for i in 0..pan {
+                self.y_values[i] = Self::recalculate_one_value(x_values[i], &upgraded, settings);
+            }
+        }
 
         Ok(())
     }
@@ -125,42 +157,40 @@ impl<F: ApplicationFramework> Application for GraphApplication<F> {
 
         // Poll for input
         if let Some(input) = self.os_mut().input() {
-            let ten = Number::from(10);
-            let mut recalculation_required = false;
+            let pan_amount = Number::from(Self::PAN_AMOUNT as i64);
             match input {
                 OSInput::Button(ButtonInput::MoveLeft) => {
-                    self.view_window.pan_x += ten;
-                    recalculation_required = true;
+                    self.view_window.pan_x += pan_amount;
+                    let settings = self.settings();
+                    for plot in &mut self.plots {
+                        plot.recalculate_x_pan(-Self::PAN_AMOUNT, &self.view_window, &settings).expect("unchanged plot encountered error");
+                    }
                 },
                 OSInput::Button(ButtonInput::MoveRight) => {
-                    self.view_window.pan_x -= ten;
-                    recalculation_required = true;
+                    self.view_window.pan_x -= pan_amount;
+                    let settings = self.settings();
+                    for plot in &mut self.plots {
+                        plot.recalculate_x_pan(Self::PAN_AMOUNT, &self.view_window, &settings).expect("unchanged plot encountered error");
+                    }
                 }
                 OSInput::Button(ButtonInput::MoveUp) => {
-                    self.view_window.pan_y -= ten;
-                    recalculation_required = true;
+                    self.view_window.pan_y -= pan_amount;
                 }
                 OSInput::Button(ButtonInput::MoveDown) => {
-                    self.view_window.pan_y += ten;
-                    recalculation_required = true;
+                    self.view_window.pan_y += pan_amount;
                 }
 
                 OSInput::Button(ButtonInput::List) => self.open_menu(),
 
                 _ => (),
             }
-
-            if recalculation_required {
-                let settings = self.settings();
-                for plot in &mut self.plots {
-                    plot.recalculate_values(&self.view_window, &settings).expect("unchanged plot encountered error");
-                }
-            }
         }
     }
 }
 
 impl<F: ApplicationFramework> GraphApplication<F> {
+    const PAN_AMOUNT: isize = 10;
+
     fn draw(&mut self) {
         self.os_mut().display_sprite.fill(Colour::BLACK);
 
@@ -233,6 +263,11 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                             None,
                             || (),
                         );
+
+                        let settings = self.settings();
+                        for plot in &mut self.plots {
+                            plot.recalculate_values(&self.view_window, &settings).expect("error rescaling plot");
+                        }
                     }
                     Some(1) => {
                         self.view_window.scale_y = self.os_mut().ui_input_expression_and_evaluate(
@@ -240,6 +275,11 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                             None,
                             || (),
                         );
+
+                        let settings = self.settings();
+                        for plot in &mut self.plots {
+                            plot.recalculate_values(&self.view_window, &settings).expect("error rescaling plot");
+                        }
                     }
                     None => (),
                     _ => unreachable!()
