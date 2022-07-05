@@ -70,8 +70,7 @@ impl ViewWindow {
 
         // Squash into an integer, flip around the bottom of the screen, and
         // pan so that (0, 0) is in the middle of the screen
-        (DISPLAY_HEIGHT as i16 + -y.to_decimal().to_i16().unwrap())
-            - DISPLAY_HEIGHT as i16 / 2
+        DISPLAY_HEIGHT as i16 / 2 - y.to_decimal().to_i16().unwrap()
     }
 }
 
