@@ -1,11 +1,9 @@
 use alloc::vec::Vec;
-use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable}, structured::EvaluationSettings}, render::{Area, Viewport}};
+use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable, UnstructuredNodeRoot}, structured::EvaluationSettings}};
 use rust_decimal::prelude::{One, ToPrimitive, Zero};
 
-use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}, rbop_impl::{RbopContext, RbopSpriteRenderer}};
+use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}};
 use super::{Application, ApplicationInfo};
-
-const PADDING: u16 = 10;
 
 pub struct ViewWindow {
     pan_x: Number,
@@ -74,11 +72,14 @@ impl ViewWindow {
     }
 }
 
+struct Plot {
+    root: UnstructuredNodeRoot,
+}
+
 pub struct GraphApplication<F: ApplicationFramework + 'static> {
     os: OperatingSystemPointer<F>,
-    rbop_ctx: RbopContext<F>,
+    plots: Vec<Plot>,
     view_window: ViewWindow,
-    edit_mode: bool,
 }
 
 os_accessor!(GraphApplication<F>);
@@ -96,15 +97,8 @@ impl<F: ApplicationFramework> Application for GraphApplication<F> {
     fn new(os: OperatingSystemPointer<F>) -> Self {
         Self {
             os,
-            rbop_ctx: RbopContext {
-                viewport: Some(Viewport::new(Area::new(
-                    (DISPLAY_WIDTH - PADDING * 2 - 30).into(),
-                    (DISPLAY_HEIGHT - PADDING * 2).into(),
-                ))),
-                ..RbopContext::new(os)
-            },
+            plots: Vec::new(),
             view_window: ViewWindow::new(),
-            edit_mode: true,
         }
     }
 
@@ -113,22 +107,16 @@ impl<F: ApplicationFramework> Application for GraphApplication<F> {
 
         // Poll for input
         if let Some(input) = self.os_mut().input() {
-            if input == OSInput::Button(ButtonInput::Exe) {
-                self.edit_mode = !self.edit_mode;        
-            } else if self.edit_mode {
-                self.rbop_ctx.input(input);
-            } else {
-                let ten = Number::from(10);
-                match input {
-                    OSInput::Button(ButtonInput::MoveLeft) => self.view_window.pan_x += ten,
-                    OSInput::Button(ButtonInput::MoveRight) => self.view_window.pan_x -= ten,
-                    OSInput::Button(ButtonInput::MoveUp) => self.view_window.pan_y -= ten,
-                    OSInput::Button(ButtonInput::MoveDown) => self.view_window.pan_y += ten,
+            let ten = Number::from(10);
+            match input {
+                OSInput::Button(ButtonInput::MoveLeft) => self.view_window.pan_x += ten,
+                OSInput::Button(ButtonInput::MoveRight) => self.view_window.pan_x -= ten,
+                OSInput::Button(ButtonInput::MoveUp) => self.view_window.pan_y -= ten,
+                OSInput::Button(ButtonInput::MoveDown) => self.view_window.pan_y += ten,
 
-                    OSInput::Button(ButtonInput::List) => self.open_menu(),
+                OSInput::Button(ButtonInput::List) => self.open_menu(),
 
-                    _ => (),
-                }
+                _ => (),
             }
         }
     }
@@ -138,29 +126,14 @@ impl<F: ApplicationFramework> GraphApplication<F> {
     fn draw(&mut self) {
         self.os_mut().display_sprite.fill(Colour::BLACK);
 
-        if self.edit_mode {
-            self.os_mut().ui_draw_title("Graph");
+        // Draw axes
+        let (x_axis, y_axis) = self.view_window.axis_screen_coords();
+        self.os_mut().display_sprite.draw_line(x_axis, 0, x_axis, DISPLAY_HEIGHT as i16, Colour::BLUE);
+        self.os_mut().display_sprite.draw_line(0, y_axis, DISPLAY_WIDTH as i16, y_axis, Colour::BLUE);
 
-            // Draw rbop input
-            let sprite = RbopSpriteRenderer::draw_context_to_sprite(&mut self.rbop_ctx, Colour::BLACK);
-            self.os_mut().display_sprite.draw_sprite(PADDING as i16 + 30, PADDING as i16 + 30, &sprite);
-
-            // TODO: Drawing "y=" in line with the baseline would be nice, but we don't actually
-            // get given our layout
-            self.os_mut().display_sprite.print_at(
-                PADDING as i16, PADDING as i16 + 30 - 8,
-                "y="
-            );
-
-            self.os_mut().display_sprite.print_at(23, 290, "EXE: Toggle edit/view");
-        } else {
-            // Draw axes
-            let (x_axis, y_axis) = self.view_window.axis_screen_coords();
-            self.os_mut().display_sprite.draw_line(x_axis, 0, x_axis, DISPLAY_HEIGHT as i16, Colour::BLUE);
-            self.os_mut().display_sprite.draw_line(0, y_axis, DISPLAY_WIDTH as i16, y_axis, Colour::BLUE);
-
-            // Upgrade, substitute, and draw graph
-            if let Ok(sn) = self.rbop_ctx.root.upgrade() {
+        // Upgrade, substitute, and draw each graph
+        for graph in &self.plots {
+            if let Ok(sn) = graph.root.upgrade() {
                 let func = |x| {
                     let sn_clone = sn.substitute_variable(
                         'x',
@@ -200,12 +173,18 @@ impl<F: ApplicationFramework> GraphApplication<F> {
 
     fn open_menu(&mut self) {
         let idx = self.os_mut().ui_open_menu(&[
+            "Add plot".into(),
             "View window".into(),
         ], true);
         self.draw();
 
         match idx {
             Some(0) => {
+                let root = self.os_mut().ui_input_expression("y =", None);
+                self.plots.push(Plot { root });
+            }
+
+            Some(1) => {
                 let idx = self.os_mut().ui_open_menu(&[
                     "X scale".into(),
                     "Y scale".into(),
