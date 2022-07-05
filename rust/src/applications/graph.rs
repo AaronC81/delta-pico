@@ -1,5 +1,5 @@
 use alloc::{vec::Vec, string::ToString};
-use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable, UnstructuredNodeRoot}, structured::EvaluationSettings}, error::{MathsError, NodeError}};
+use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable, UnstructuredNodeRoot}, structured::EvaluationSettings}, error::MathsError};
 use rust_decimal::prelude::{One, ToPrimitive, Zero};
 
 use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}};
@@ -73,17 +73,15 @@ impl ViewWindow {
 }
 
 struct Plot {
-    root: UnstructuredNodeRoot,
+    unstructured: UnstructuredNodeRoot,
+    structured: StructuredNode,
     y_values: Vec<Result<Number, MathsError>>,
 }
 
 impl Plot {
-    fn recalculate_values(&mut self, view: &ViewWindow, settings: &EvaluationSettings) -> Result<(), NodeError> {
-        let upgraded = self.root.upgrade()?;
+    fn recalculate_values(&mut self, view: &ViewWindow, settings: &EvaluationSettings) {
         self.y_values = view.x_coords_on_screen()
-            .iter().map(|i| Self::recalculate_one_value(*i, &upgraded, settings)).collect::<Vec<_>>();
-
-        Ok(())
+            .iter().map(|i| Self::recalculate_one_value(*i, &self.structured, settings)).collect::<Vec<_>>();
     }
 
     fn recalculate_one_value(x: Number, node: &StructuredNode, settings: &EvaluationSettings) -> Result<Number, MathsError> {
@@ -94,8 +92,7 @@ impl Plot {
         sn_clone.evaluate(settings)
     }
 
-    fn recalculate_x_pan(&mut self, pan: isize, view: &ViewWindow, settings: &EvaluationSettings) -> Result<(), NodeError> {
-        let upgraded = self.root.upgrade()?;
+    fn recalculate_x_pan(&mut self, pan: isize, view: &ViewWindow, settings: &EvaluationSettings) {
         let x_values = view.x_coords_on_screen();
 
         if pan > 0 {
@@ -107,7 +104,7 @@ impl Plot {
 
             // Insert new values
             for i in (self.y_values.len() - pan)..self.y_values.len() {
-                self.y_values[i] = Self::recalculate_one_value(x_values[i], &upgraded, settings);
+                self.y_values[i] = Self::recalculate_one_value(x_values[i], &self.structured, settings);
             }
         } else if pan < 0 {
             // Moving left - copy values up
@@ -118,11 +115,9 @@ impl Plot {
             
             // Insert new values
             for i in 0..pan {
-                self.y_values[i] = Self::recalculate_one_value(x_values[i], &upgraded, settings);
+                self.y_values[i] = Self::recalculate_one_value(x_values[i], &self.structured, settings);
             }
         }
-
-        Ok(())
     }
 }
 
@@ -163,14 +158,14 @@ impl<F: ApplicationFramework> Application for GraphApplication<F> {
                     self.view_window.pan_x += pan_amount;
                     let settings = self.settings();
                     for plot in &mut self.plots {
-                        plot.recalculate_x_pan(-Self::PAN_AMOUNT, &self.view_window, &settings).expect("unchanged plot encountered error");
+                        plot.recalculate_x_pan(-Self::PAN_AMOUNT, &self.view_window, &settings);
                     }
                 },
                 OSInput::Button(ButtonInput::MoveRight) => {
                     self.view_window.pan_x -= pan_amount;
                     let settings = self.settings();
                     for plot in &mut self.plots {
-                        plot.recalculate_x_pan(Self::PAN_AMOUNT, &self.view_window, &settings).expect("unchanged plot encountered error");
+                        plot.recalculate_x_pan(Self::PAN_AMOUNT, &self.view_window, &settings);
                     }
                 }
                 OSInput::Button(ButtonInput::MoveUp) => {
@@ -199,7 +194,7 @@ impl<F: ApplicationFramework> GraphApplication<F> {
         self.os_mut().display_sprite.draw_line(x_axis, 0, x_axis, DISPLAY_HEIGHT as i16, Colour::BLUE);
         self.os_mut().display_sprite.draw_line(0, y_axis, DISPLAY_WIDTH as i16, y_axis, Colour::BLUE);
 
-        // Upgrade, substitute, and draw each graph
+        // Draw each graph from computed points
         for plot in &self.plots {
             let mut next_y_screen = self.view_window.y_to_screen(plot.y_values[0].clone().unwrap_or(Number::zero()));
             for this_x in 0..(plot.y_values.len() - 1) {
@@ -237,19 +232,26 @@ impl<F: ApplicationFramework> GraphApplication<F> {
 
         match idx {
             Some(0) => {
-                // Take input repeatedly until we get something which calculates valid values
-                let mut root = None;
-                let plot = loop {
-                    root = Some(self.os_mut().ui_input_expression("y =", root));
-                    let mut plot = Plot { root: root.clone().unwrap(), y_values: Vec::new() };
-                    match plot.recalculate_values(&self.view_window, &self.settings()) {
-                        Ok(_) => break plot,
+                // Take input repeatedly until we get something which upgrades
+                let (structured, unstructured) = loop {
+                    let unstructured = self.os_mut().ui_input_expression("y =", None);
+                    match unstructured.upgrade() {
+                        Ok(s) => break (s, unstructured),
                         Err(e) => {
                             self.os_mut().ui_text_dialog(&e.to_string());
                             self.draw();
                         }
                     }
                 };
+
+                let mut plot = Plot {
+                    unstructured,
+                    structured,
+                    y_values: Vec::new()
+                };
+                plot.recalculate_values(&self.view_window, &self.settings());
+
+                // Create and push plot
                 self.plots.push(plot);
             }
 
@@ -270,7 +272,7 @@ impl<F: ApplicationFramework> GraphApplication<F> {
 
                         let settings = self.settings();
                         for plot in &mut self.plots {
-                            plot.recalculate_values(&self.view_window, &settings).expect("error rescaling plot");
+                            plot.recalculate_values(&self.view_window, &settings);
                         }
                     }
                     Some(1) => {
@@ -282,7 +284,7 @@ impl<F: ApplicationFramework> GraphApplication<F> {
 
                         let settings = self.settings();
                         for plot in &mut self.plots {
-                            plot.recalculate_values(&self.view_window, &settings).expect("error rescaling plot");
+                            plot.recalculate_values(&self.view_window, &settings);
                         }
                     }
                     None => (),
