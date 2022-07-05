@@ -172,16 +172,19 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                 let values = self.view_window.x_coords_on_screen()
                     .iter().map(|i| func(*i)).collect::<Vec<_>>();
         
+                let mut next_y_screen = self.view_window.y_to_screen(values[0].clone().unwrap_or(Number::zero()));
                 for this_x in 0..(values.len() - 1) {
                     let next_x = this_x + 1;
 
                     values[this_x].as_ref().unwrap();
                     if let Ok(this_y) = values[this_x] {
                         let next_y = values[next_x].as_ref().unwrap_or(&this_y);
+                        let this_y_screen = next_y_screen;
+                        next_y_screen = self.view_window.y_to_screen(*next_y);
             
                         self.os_mut().display_sprite.draw_line(
-                            this_x as i16, self.view_window.y_to_screen(this_y),
-                            next_x as i16, self.view_window.y_to_screen(*next_y),
+                            this_x as i16, this_y_screen,
+                            next_x as i16, next_y_screen,
                             Colour::WHITE
                         );
                     }
