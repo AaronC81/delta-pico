@@ -181,8 +181,7 @@ impl<F: ApplicationFramework> GraphApplication<F> {
             
                         self.os_mut().display_sprite.draw_line(
                             this_x as i16, self.view_window.y_to_screen(this_y),
-                            // TODO: use next_x when draw_line supports it
-                            this_x as i16, self.view_window.y_to_screen(*next_y),
+                            next_x as i16, self.view_window.y_to_screen(*next_y),
                             Colour::WHITE
                         );
                     }
