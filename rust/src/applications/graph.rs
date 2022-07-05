@@ -211,11 +211,15 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                     let this_y_screen = next_y_screen;
                     next_y_screen = self.view_window.y_to_screen(*next_y);
         
-                    self.os_mut().display_sprite.draw_line(
-                        this_x as i16, this_y_screen,
-                        next_x as i16, next_y_screen,
-                        Colour::WHITE
-                    );
+                    if this_y_screen == next_y_screen {
+                        self.os_mut().display_sprite.draw_pixel(this_x as i16, this_y_screen, Colour::WHITE);
+                    } else {
+                        self.os_mut().display_sprite.draw_line(
+                            this_x as i16, this_y_screen,
+                            this_x as i16, next_y_screen,
+                            Colour::WHITE
+                        );
+                    }
                 }
             }
         }
