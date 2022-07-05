@@ -4,6 +4,7 @@
 #![no_std]
 #![no_main]
 #![feature(alloc_error_handler)]
+#![feature(default_alloc_error_handler)]
 
 extern crate alloc;
 
@@ -13,13 +14,10 @@ mod cat24c;
 mod button_matrix;
 mod rev;
 
-use core::alloc::Layout;
-
 use alloc::string::{String, ToString};
 use alloc_cortex_m::CortexMHeap;
 use button_matrix::{RawButtonEvent, ButtonMatrix};
 use cat24c::Cat24C;
-use cortex_m::delay::Delay;
 use cortex_m_rt::entry;
 use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, ButtonsInterface, ButtonEvent, StorageInterface, ButtonInput}, delta_pico_main, graphics::Sprite};
 use embedded_hal::{digital::v2::OutputPin, spi::MODE_0, blocking::delay::DelayMs, blocking::i2c::{Write, Read}};
@@ -36,19 +34,27 @@ use bsp::{hal::{
     pac,
     sio::Sio,
     watchdog::Watchdog,
-    spi::{Spi, SpiDevice}, gpio::{FunctionSpi, Pin, PinId, Output, PushPull, bank0::{Gpio25, Gpio20, Gpio21}, FunctionI2C}, I2C, i2c::Controller, Timer,
-}, pac::I2C0};
-use shared_bus::{BusManagerSimple, NullMutex, BusManager};
+    spi::{Spi, SpiDevice}, gpio::{FunctionSpi, PinId, FunctionI2C}, I2C, Timer,
+}};
 
 #[global_allocator]
 static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
 const HEAP_SIZE: usize = 240_000;
 
-static mut LED_PIN: Option<Pin<Gpio25, Output<PushPull>>> = None;
-static mut DELAY: Option<Delay> = None;
-
-type DeltaPicoI2C = I2C<I2C0, (Pin<Gpio20, FunctionI2C>, Pin<Gpio21, FunctionI2C>), Controller>;
-static mut SHARED_I2C: Option<BusManager<NullMutex<DeltaPicoI2C>>> = None;
+/// Asserts that a reference will be valid for the entire lifetime of the program, and returns a new
+/// reference to the same object, but with a `'static` lifetime.
+/// 
+/// This is *very* unsafe when used incorrectly, since it can easily create invalid references.
+/// It's also used to create multiple mutable references to the same value, which isn't allowed.
+/// However, in our embedded world, we can be reasonably confident that some objects do in fact live
+/// forever, even if the compiler doesn't agree with us. (Or at the very least, if these objects are
+/// ever dropped, something has gone wrong enough that it won't matter any more!)
+/// 
+/// This avoids having to associate lifetimes with our framework implementation, which isn't
+/// possible due to the `'static` bounds enforced by the OS.
+fn lives_forever<T: ?Sized>(t: &mut T) -> &'static mut T {
+    unsafe { (t as *mut T).as_mut().unwrap() }
+}
 
 #[entry]
 fn main() -> ! {
@@ -80,10 +86,7 @@ fn main() -> ! {
     .ok()
     .unwrap();
 
-    unsafe {
-        DELAY = Some(cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().integer()));
-    }
-
+    let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().integer());
     let timer = Timer::new(pac.TIMER, &mut pac.RESETS);
 
     let pins = bsp::Pins::new(
@@ -93,10 +96,8 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    unsafe {
-        LED_PIN = Some(pins.led.into_push_pull_output());
-        LED_PIN.as_mut().unwrap().set_high().unwrap();
-    }
+    let mut led = pins.led.into_push_pull_output();
+    led.set_high().unwrap();
 
     // Chip-select display
     let mut cs_pin = pins.gpio4.into_push_pull_output();
@@ -117,9 +118,9 @@ fn main() -> ! {
     // Hardware reset
     let mut rst_pin = pins.gpio6.into_push_pull_output();
     rst_pin.set_low().unwrap();
-    unsafe { DELAY.as_mut().unwrap() }.delay_ms(50);
+    delay.delay_ms(50);
     rst_pin.set_high().unwrap();
-    unsafe { DELAY.as_mut().unwrap() }.delay_ms(50);
+    delay.delay_ms(50);
 
     // DC pin
     let dc_pin = pins.gpio5.into_push_pull_output();
@@ -130,13 +131,13 @@ fn main() -> ! {
         spi,
         dc_pin,
         rst_pin,
-        unsafe { core::ptr::read(DELAY.as_ref().unwrap()) },
+        lives_forever(&mut delay),
     ).init().unwrap();
 
     // Construct PCF8574 instances
     let sda_pin = pins.gpio20.into_mode::<FunctionI2C>();
     let scl_pin = pins.gpio21.into_mode::<FunctionI2C>();
-    let i2c = I2C::i2c0(
+    let mut i2c = I2C::i2c0(
         pac.I2C0,
         sda_pin,
         scl_pin,
@@ -145,26 +146,21 @@ fn main() -> ! {
         clocks.peripheral_clock,
     );
 
-    unsafe { SHARED_I2C = Some(BusManagerSimple::new(i2c)); }
-
-    let col_pcf = pcf8574::Pcf8574::new(0x38, unsafe { SHARED_I2C.as_mut().unwrap().acquire_i2c() });
-    let row_pcf = pcf8574::Pcf8574::new(0x3E, unsafe { SHARED_I2C.as_mut().unwrap().acquire_i2c() });
+    let col_pcf = pcf8574::Pcf8574::new(0x38, lives_forever(&mut i2c));
+    let row_pcf = pcf8574::Pcf8574::new(0x3E, lives_forever(&mut i2c));
 
     // Init button matrix and wait for key
     let buttons = ButtonMatrix::new(
         row_pcf,
         col_pcf, 
-        // TODO: This is not "clever" or "I know better" usage of `unsafe`, this is literally just
-        // plain UB - both this and `ili` hold a mutable reference to `delay` simultaneously
-        // But, like... how are you supposed to share it!?
-        unsafe { DELAY.as_mut().unwrap() }
+        lives_forever(&mut delay),
     );
 
     // Init flash storage
     let flash = Cat24C::new(
         0x50, 
-        unsafe { SHARED_I2C.as_mut().unwrap().acquire_i2c() },
-        unsafe { DELAY.as_mut().unwrap() },
+        lives_forever(&mut i2c),
+        lives_forever(&mut delay),
     );
 
     let framework = FrameworkImpl {
@@ -181,7 +177,7 @@ fn main() -> ! {
     }
 }
 
-struct DisplayImpl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> {
+struct DisplayImpl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8> + 'static> {
     ili: Ili9341<ili9341::Enabled, SpiD, DcPin, RstPin, Delay>,
 }
 
@@ -195,9 +191,9 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
 }
 
 struct ButtonsImpl<
-    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError>,
+    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError> + 'static,
     RowError,
-    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError>,
+    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError> + 'static,
     ColError,
     Delay: DelayMs<u8> + 'static,
 > {
@@ -235,7 +231,7 @@ impl<
 }
 
 struct StorageImpl<
-    StorageI2CDevice: Write<Error = StorageError> + Read<Error = StorageError>,
+    StorageI2CDevice: Write<Error = StorageError> + Read<Error = StorageError> + 'static,
     StorageError,
     Delay: DelayMs<u8> + 'static,
 > {
@@ -269,12 +265,12 @@ struct FrameworkImpl<
     RstPin: PinId,
     Delay: DelayMs<u8> + 'static,
 
-    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError>,
+    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError> + 'static,
     RowError,
-    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError>,
+    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError> + 'static,
     ColError,
 
-    StorageI2CDevice: Write<Error = StorageError> + Read<Error = StorageError>,
+    StorageI2CDevice: Write<Error = StorageError> + Read<Error = StorageError> + 'static,
     StorageError,
 > {
     display: DisplayImpl<SpiD, DcPin, RstPin, Delay>,
@@ -365,18 +361,4 @@ impl<
         
         false
     }
-}
-
-#[alloc_error_handler]
-fn oom(_: Layout) -> ! {
-    loop {
-        blink(100);
-    }
-}
-
-fn blink(time: u32) {
-    unsafe { LED_PIN.as_mut().unwrap() }.set_high().unwrap();
-    unsafe { DELAY.as_mut().unwrap() }.delay_ms(time);
-    unsafe { LED_PIN.as_mut().unwrap() }.set_low().unwrap();
-    unsafe { DELAY.as_mut().unwrap() }.delay_ms(time);
 }

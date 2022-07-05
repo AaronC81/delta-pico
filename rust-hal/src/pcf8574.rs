@@ -5,15 +5,15 @@ pub enum Pcf8574Error {
     I2CError,
 }
 
-pub struct Pcf8574<E, I2CDevice: Write<Error = E> + Read<Error = E>> {
+pub struct Pcf8574<E, I2CDevice: Write<Error = E> + Read<Error = E> + 'static> {
     address: u8,
-    i2c: I2CDevice,
+    i2c: &'static mut I2CDevice,
 }
 
 impl<E, I2CDevice: Write<Error = E> + Read<Error = E>> Pcf8574<E, I2CDevice> {
     pub fn new(
         address: u8,
-        i2c: I2CDevice,
+        i2c: &'static mut I2CDevice,
     ) -> Self {
         Pcf8574 { address, i2c }
     }

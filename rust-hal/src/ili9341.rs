@@ -23,7 +23,7 @@ pub struct Ili9341<
     SpiD: SpiDevice,
     DcPin: PinId,
     RstPin: PinId,
-    Delay: DelayMs<u8>,
+    Delay: DelayMs<u8> + 'static,
 > {
     pub width: u16,
     pub height: u16,
@@ -31,7 +31,7 @@ pub struct Ili9341<
     spi: Spi<spi::Enabled, SpiD, 8>,
     dc: Pin<DcPin, Output<PushPull>>,
     rst: Pin<RstPin, Output<PushPull>>,
-    delay: Delay,
+    delay: &'static mut Delay,
 
     state: PhantomData<S>,
 }
@@ -41,7 +41,7 @@ pub struct Ili9341FastDataWriter<
     SpiD: SpiDevice,
     DcPin: PinId,
     RstPin: PinId,
-    Delay: DelayMs<u8>,
+    Delay: DelayMs<u8> + 'static,
 > {
     ili9341: &'a mut Ili9341<Enabled, SpiD, DcPin, RstPin, Delay>,
 }
@@ -127,14 +127,14 @@ impl<S: State, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>>
     }
 }
 
-impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> Ili9341<Disabled, SpiD, DcPin, RstPin, Delay> {
+impl<'a, SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8> + 'static> Ili9341<Disabled, SpiD, DcPin, RstPin, Delay> {
     pub fn new(
         width: u16,
         height: u16,
         spi: Spi<spi::Enabled, SpiD, 8>,
         dc: Pin<DcPin, Output<PushPull>>,
         rst: Pin<RstPin, Output<PushPull>>,
-        delay: Delay,
+        delay: &'static mut Delay,
     ) -> Ili9341<Disabled, SpiD, DcPin, RstPin, Delay> {
         Ili9341 {
             width,

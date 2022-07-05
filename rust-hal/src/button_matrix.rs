@@ -8,9 +8,9 @@ pub enum RawButtonEvent {
 }
 
 pub struct ButtonMatrix<
-    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError>,
+    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError> + 'static,
     RowError,
-    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError>,
+    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError> + 'static,
     ColError,
     Delay: DelayMs<u8> + 'static,
 > {

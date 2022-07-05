@@ -6,16 +6,16 @@ pub enum Cat24CError {
     I2C,
 }
 
-pub struct Cat24C<I2CDevice: Write<Error = E> + Read<Error = E>, E, Delay: DelayMs<u8> + 'static> {
+pub struct Cat24C<I2CDevice: Write<Error = E> + Read<Error = E> + 'static, E, Delay: DelayMs<u8> + 'static> {
     address: u8,
-    i2c: I2CDevice,
+    i2c: &'static mut I2CDevice,
     delay: &'static mut Delay,
 }
 
-impl<E, I2CDevice: Write<Error = E> + Read<Error = E>, Delay: DelayMs<u8> + 'static> Cat24C<I2CDevice, E, Delay> {
+impl<E, I2CDevice: Write<Error = E> + Read<Error = E> + 'static, Delay: DelayMs<u8> + 'static> Cat24C<I2CDevice, E, Delay> {
     pub fn new(
         address: u8,
-        i2c: I2CDevice,
+        i2c: &'static mut I2CDevice,
         delay: &'static mut Delay,
     ) -> Self {
         Cat24C { address, i2c, delay }

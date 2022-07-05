@@ -15,7 +15,6 @@ alloc-cortex-m = "0.4.2"
 embedded-hal = { version = "0.2.5", features = ["unproven"] }
 embedded-time = "0.12.0"
 nb = "1.0"
-shared-bus = "0.2.3"
 delta-pico-rust = { path = "../rust", features = ["display_panic_handler"] }
 
 defmt = "0.3.0"
