@@ -107,6 +107,6 @@ impl<F: ApplicationFramework> Settings<F> {
 
     /// Creates an `EvaluationSettings` object from these settings.
     pub fn evaluation_settings(&self) -> EvaluationSettings {
-        EvaluationSettings { angle_unit: self.values.angle_unit }
+        EvaluationSettings { angle_unit: self.values.angle_unit, ..Default::default() }
     }
 }

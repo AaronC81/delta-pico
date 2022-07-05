@@ -167,7 +167,10 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                         'x',
                         &StructuredNode::Number(x)
                     );
-                    sn_clone.evaluate(&self.os().filesystem.settings.evaluation_settings())
+                    sn_clone.evaluate(&EvaluationSettings {
+                        use_floats: true,
+                        ..self.os().filesystem.settings.evaluation_settings()
+                    })
                 };
                 let values = self.view_window.x_coords_on_screen()
                     .iter().map(|i| func(*i)).collect::<Vec<_>>();
