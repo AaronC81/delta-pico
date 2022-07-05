@@ -1,5 +1,5 @@
 use alloc::vec::Vec;
-use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable}}, render::{Area, Viewport}};
+use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable}, structured::EvaluationSettings}, render::{Area, Viewport}};
 use rust_decimal::prelude::{One, ToPrimitive, Zero};
 
 use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}, rbop_impl::{RbopContext, RbopSpriteRenderer}};
