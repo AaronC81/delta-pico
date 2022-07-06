@@ -1,11 +1,11 @@
 use alloc::{vec, vec::Vec};
 
-use crate::{interface::{Colour, ApplicationFramework, ButtonInput}, operating_system::{OSInput, UIMenu, UIMenuItem, OperatingSystem, os_accessor, OperatingSystemPointer}};
+use crate::{interface::{Colour, ApplicationFramework, ButtonInput}, operating_system::{OSInput, UIFullPageMenu, UIFullPageMenuItem, OperatingSystem, os_accessor, OperatingSystemPointer}};
 use super::{Application, ApplicationInfo};
 
 pub struct MenuApplication<F: ApplicationFramework + 'static> {
     os: OperatingSystemPointer<F>,
-    menu: UIMenu<F>,
+    menu: UIFullPageMenu<F>,
 }
 
 os_accessor!(MenuApplication<F>);
@@ -23,7 +23,7 @@ impl<F: ApplicationFramework> Application for MenuApplication<F> {
     fn new(os: OperatingSystemPointer<F>) -> Self where Self: Sized {
         Self {
             os,
-            menu: UIMenu::new(os, vec![]),
+            menu: UIFullPageMenu::new(os, vec![]),
         }
     }
 
@@ -34,7 +34,7 @@ impl<F: ApplicationFramework> Application for MenuApplication<F> {
         // Doesn't work to assign during `new` for some reason, so do this instead
         self.menu.items = self.os().application_list.applications
             .iter()
-            .map(|(app, _)| UIMenuItem {
+            .map(|(app, _)| UIFullPageMenuItem {
                 title: app.name.clone(),
                 icon: app.icon_name(),
                 toggle: None,
