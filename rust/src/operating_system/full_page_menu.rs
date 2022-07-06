@@ -5,24 +5,24 @@ use crate::interface::{ApplicationFramework, ShapeFill, Colour, DisplayInterface
 use super::{OperatingSystemPointer, os_accessor, OperatingSystem};
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub struct UIFullPageMenuItem {
+pub struct FullPageMenuItem {
     pub title: String,
     pub icon: String,
     pub toggle: Option<bool>,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub struct UIFullPageMenu<F: ApplicationFramework + 'static> {
+pub struct FullPageMenu<F: ApplicationFramework + 'static> {
     os: OperatingSystemPointer<F>,
-    pub items: Vec<UIFullPageMenuItem>,
+    pub items: Vec<FullPageMenuItem>,
     pub selected_index: usize,
     page_scroll_offset: usize,
 }
 
-impl<F: ApplicationFramework> UIFullPageMenu<F> {
+impl<F: ApplicationFramework> FullPageMenu<F> {
     const ITEMS_PER_PAGE: usize = 5;
 
-    pub fn new(os: OperatingSystemPointer<F>, items: Vec<UIFullPageMenuItem>) -> Self {
+    pub fn new(os: OperatingSystemPointer<F>, items: Vec<FullPageMenuItem>) -> Self {
         Self {
             os,
             items,
@@ -118,4 +118,4 @@ impl<F: ApplicationFramework> UIFullPageMenu<F> {
     }
 }
 
-os_accessor!(UIFullPageMenu<F>);
+os_accessor!(FullPageMenu<F>);

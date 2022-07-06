@@ -1,14 +1,14 @@
 use alloc::{vec, format};
 use rbop::node::structured::AngleUnit;
 
-use crate::{interface::{Colour, ShapeFill, ApplicationFramework, ButtonInput, DisplayInterface}, operating_system::{OSInput, UIFullPageMenu, UIFullPageMenuItem, os_accessor, OperatingSystem, OperatingSystemPointer}, timer::Timer};
+use crate::{interface::{Colour, ShapeFill, ApplicationFramework, ButtonInput, DisplayInterface}, operating_system::{OSInput, FullPageMenu, FullPageMenuItem, os_accessor, OperatingSystem, OperatingSystemPointer}, timer::Timer};
 use super::{Application, ApplicationInfo};
 
 // TODO: mostly unimplemented
 
 pub struct SettingsApplication<F: ApplicationFramework + 'static> {
     os: OperatingSystemPointer<F>,
-    menu: UIFullPageMenu<F>,
+    menu: FullPageMenu<F>,
 }
 
 os_accessor!(SettingsApplication<F>);
@@ -26,7 +26,7 @@ impl<F: ApplicationFramework> Application for SettingsApplication<F> {
     fn new(os: OperatingSystemPointer<F>) -> Self {
         let mut result = Self {
             os,
-            menu: UIFullPageMenu::new(os, vec![]),
+            menu: FullPageMenu::new(os, vec![]),
         };
         result.build_menu();
         result
@@ -53,22 +53,22 @@ impl<F: ApplicationFramework> Application for SettingsApplication<F> {
 impl<F: ApplicationFramework> SettingsApplication<F> {
     fn build_menu(&mut self) {
         self.menu.items = vec![
-            UIFullPageMenuItem {
+            FullPageMenuItem {
                 title: format!("Angle unit: {}", self.os().filesystem.settings.values.angle_unit),
                 icon: "settings_angle_unit".into(),
                 toggle: None,
             },
-            UIFullPageMenuItem {
+            FullPageMenuItem {
                 title: "Show frame time".into(),
                 icon: "settings_show_frame_time".into(),
                 toggle: Some(self.os().filesystem.settings.values.show_frame_time),
             },
-            UIFullPageMenuItem {
+            FullPageMenuItem {
                 title: "Show heap usage".into(),
                 icon: "settings_show_memory_usage".into(),
                 toggle: Some(self.os().filesystem.settings.values.show_heap_usage),
             },
-            UIFullPageMenuItem {
+            FullPageMenuItem {
                 title: "Graphics benchmark".into(),
                 icon: "settings_graphics_benchmark".into(),
                 toggle: None,
