@@ -2,9 +2,9 @@ use alloc::{string::String, format, vec::Vec};
 use az::SaturatingAs;
 use rbop::{render::{Viewport, Area}, node::unstructured::{UnstructuredNodeRoot, Upgradable}, Number};
 
-use crate::{interface::{ApplicationFramework, Colour, ShapeFill, DISPLAY_WIDTH, DisplayInterface, ButtonInput}, operating_system::{OSInput, OperatingSystemPointer}, rbop_impl::{RbopContext, RbopSpriteRenderer}, applications::calculator::{catalog::Catalog, CalculatorApplication}};
+use crate::{interface::{ApplicationFramework, Colour, ShapeFill, DISPLAY_WIDTH, ButtonInput}, operating_system::{OSInput, OperatingSystemPointer}, rbop_impl::{RbopContext, RbopSpriteRenderer}, applications::calculator::{catalog::Catalog, CalculatorApplication}};
 
-use super::OperatingSystem;
+use super::{OperatingSystem, ContextMenu, ContextMenuItem};
 
 impl<F: ApplicationFramework + 'static> OperatingSystem<F> {
     /// Draws a title bar to the top of the screen, with the text `s`.
@@ -37,51 +37,17 @@ impl<F: ApplicationFramework + 'static> OperatingSystem<F> {
     /// These menus are typically to be opened with the LIST key. If `can_close` is true, pressing
     /// LIST will return None.
     pub fn ui_open_menu(&mut self, items: &[String], can_close: bool) -> Option<usize> {
-        const ITEM_GAP: i16 = 30;
-        let mut selected_index = 0;
-
-        loop {
-            // Draw background
-            let mut y = self.framework.display().height() as i16 - ITEM_GAP * items.len() as i16 - 10;
-            self.display_sprite.draw_rect(0, y, DISPLAY_WIDTH, 400, Colour::GREY, ShapeFill::Filled, 10);
-            self.display_sprite.draw_rect(0, y, DISPLAY_WIDTH, 400, Colour::WHITE, ShapeFill::Hollow, 10);
-
-            // Draw items
-            y += 10;
-            for (i, item) in items.iter().enumerate() {
-                if i == selected_index {
-                    let width = self.framework.display().width();
-                    self.display_sprite.draw_rect(
-                        5, y as i16, width - 5 * 2, 25,
-                        Colour::BLUE, ShapeFill::Filled, 7
-                    );
-                }
-                self.display_sprite.print_at(10, y + 4, item);
-
-                y += ITEM_GAP;
-            }
-
-            self.draw();
-
-            if let Some(btn) = self.input() {
-                match btn {
-                    OSInput::Button(ButtonInput::MoveUp) => {
-                        if selected_index == 0 {
-                            selected_index = items.len() - 1;
-                        } else {
-                            selected_index -= 1;
-                        }
-                    }
-                    OSInput::Button(ButtonInput::MoveDown) => {
-                        selected_index += 1;
-                        selected_index %= items.len();
-                    }
-                    OSInput::Button(ButtonInput::Exe) => return Some(selected_index),
-                    OSInput::Button(ButtonInput::List) if can_close => return None,
-                    _ => (),
-                }
-            }
-        }
+        ContextMenu::new(
+            self.ptr,
+            items.iter()
+                .enumerate()
+                .map(|(i, text)| ContextMenuItem::Text { text: text.clone(), metadata: i })
+                .collect::<Vec<_>>(),
+            can_close
+        )
+            .tick_until_complete()
+            .map(|i| i.into_metadata())
+            .flatten()
     }
 
     /// Opens an rbop input box with the given `title` and optionally starts the node tree at the
