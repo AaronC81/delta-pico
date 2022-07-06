@@ -19,6 +19,11 @@ pub enum ContextMenuItem<T> {
         text: String,
         metadata: T,
     },
+    Sprite {
+        sprite: Sprite,
+        selected_sprite: Option<Sprite>,
+        metadata: T,
+    },
     Divider,
 }
 
@@ -26,20 +31,28 @@ impl<T> ContextMenuItem<T> {
     pub fn height(&self) -> u16 {
         match self {
             Self::Text { .. } => 30,
+            Self::Sprite { sprite, .. } => sprite.height + 4,
             Self::Divider => 8,
         }
     }
 
-    pub fn draw(&self, sprite: &mut Sprite, y: i16) {
+    pub fn draw(&self, sprite: &mut Sprite, y: i16, selected: bool) {
         match self {
             Self::Text { text, .. } => sprite.print_at(10, y + 4, text),
+            Self::Sprite { sprite: inner_sprite, selected_sprite, .. } => {
+                if selected && let Some(selected_sprite) = selected_sprite {
+                    sprite.draw_sprite(5, y + 2, selected_sprite);
+                } else {
+                    sprite.draw_sprite(5, y + 2, inner_sprite);
+                }
+            },
             Self::Divider => sprite.draw_line(5, y + 4, DISPLAY_WIDTH as i16 - 5, y + 4, Colour::WHITE),
         }
     }
 
     pub fn selectable(&self) -> bool {
         match self {
-            Self::Text { .. } => true,
+            Self::Text { .. } | Self::Sprite { .. } => true,
             Self::Divider => false,
         }
     }
@@ -60,6 +73,7 @@ impl<T> SelectorMenuItem for ContextMenuItem<T> {
     fn inner(&self) -> &T {
         match self {
             Self::Text { metadata, .. } => metadata,
+            Self::Sprite { metadata, .. } => metadata,
             Self::Divider => panic!("tried to get inner of unselectable item"),
         }
     }
@@ -67,6 +81,7 @@ impl<T> SelectorMenuItem for ContextMenuItem<T> {
     fn into_inner(self) -> T {
         match self {
             Self::Text { metadata, .. } => metadata,
+            Self::Sprite { metadata, .. } => metadata,
             Self::Divider => panic!("tried to get inner of unselectable item"),
         }
     }
@@ -109,7 +124,8 @@ where F: ApplicationFramework + 'static,
             let height = item.height();
 
             // If it's selected, draw a background
-            if i == self.selected_index {
+            let selected = i == self.selected_index;
+            if selected {
                 let width = DISPLAY_WIDTH;
                 self.os.display_sprite.draw_rect(
                     5, y as i16, width - 5 * 2, height,
@@ -118,7 +134,7 @@ where F: ApplicationFramework + 'static,
             }
             
             // Draw item
-            item.draw(&mut self.os.display_sprite, y);
+            item.draw(&mut self.os.display_sprite, y, selected);
 
             // Move up by height
             y += height as i16;
