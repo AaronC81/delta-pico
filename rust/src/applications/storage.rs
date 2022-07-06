@@ -1,7 +1,7 @@
-use alloc::format;
+use alloc::{format, vec};
 use rust_decimal::prelude::ToPrimitive;
 
-use crate::{interface::{Colour, ApplicationFramework, StorageInterface, ButtonInput}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}};
+use crate::{interface::{Colour, ApplicationFramework, StorageInterface, ButtonInput}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer, ContextMenu, ContextMenuItem, SelectorMenuCallable}};
 use super::{Application, ApplicationInfo};
 
 const SHOW_BYTES: u16 = 64;
@@ -51,32 +51,22 @@ impl<F: ApplicationFramework> Application for StorageApplication<F> {
                 OSInput::Button(ButtonInput::MoveDown) => self.address += SHOW_BYTES,
                 OSInput::Button(ButtonInput::MoveUp) => self.address -= SHOW_BYTES,
                 OSInput::Button(ButtonInput::List) => {
-                    match self.os_mut().ui_open_menu(&["Jump".into(), "Clear memory".into(), "Save USB mass storage".into()], true) {
-                        Some(0) => {
-                            // TODO redraw
-                            let (address_dec, _) = self.os_mut().ui_input_expression_and_evaluate("Memory address", None, || ());
-                            if let Some(address) = address_dec.to_decimal().to_u16() {
-                                // Bind to boundary
-                                self.address = (address / SHOW_BYTES) * SHOW_BYTES;
-                            } else {
-                                self.os_mut().ui_text_dialog("Invalid address");
-                            }
-                        }
-                        Some(1) => {
-                            todo!(); // TODO
-                            // if os().filesystem.clear().is_some() {
-                            //     os().ui_text_dialog("Memory cleared.");
-                            // } else {
-                            //     os().ui_text_dialog("Failed to clear memory.");
-                            // }
-                        },
-                        // Temporary
-                        Some(2) => {
-                            todo!(); // TODO
-                            // os().save_usb_mass_storage();
-                        }
-                        _ => (),
-                    }
+                    ContextMenu::new(
+                        self.os,
+                        vec![
+                            ContextMenuItem::new_common("Jump...", |this: &mut Self| {
+                                // TODO redraw
+                                let (address_dec, _) = this.os_mut().ui_input_expression_and_evaluate("Memory address", None, || ());
+                                if let Some(address) = address_dec.to_decimal().to_u16() {
+                                    // Bind to boundary
+                                    this.address = (address / SHOW_BYTES) * SHOW_BYTES;
+                                } else {
+                                    this.os_mut().ui_text_dialog("Invalid address");
+                                }
+                            })
+                        ],
+                        true,
+                    ).tick_until_call(self);
                 }
                 _ => (),
             }

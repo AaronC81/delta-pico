@@ -1,4 +1,4 @@
-use alloc::{string::String, vec::Vec};
+use alloc::{string::String, vec::Vec, boxed::Box};
 
 use crate::{interface::{ApplicationFramework, DISPLAY_HEIGHT, DISPLAY_WIDTH, Colour, ShapeFill, ButtonInput}, operating_system::OSInput};
 
@@ -19,6 +19,15 @@ pub enum ContextMenuItem<T> {
         text: String,
         metadata: T,
     },
+}
+
+impl<A> ContextMenuItem<Box<dyn FnOnce(&mut A)>> {
+    pub fn new_common(text: impl Into<String>, func: impl FnOnce(&mut A) + 'static) -> Self {
+        ContextMenuItem::Text {
+            text: text.into(),
+            metadata: Box::new(func),
+        }
+    }
 }
 
 impl<T> SelectorMenuItem for ContextMenuItem<T> {

@@ -2,7 +2,7 @@ use alloc::{vec, vec::Vec, string::ToString};
 use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable, UnstructuredNodeRoot}, structured::EvaluationSettings}, error::MathsError, UnstructuredNodeList, UnstructuredNode, Token};
 use rust_decimal::prelude::{One, ToPrimitive, Zero};
 
-use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer, ContextMenu, SelectorMenu, ContextMenuItem}};
+use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer, ContextMenu, ContextMenuItem, SelectorMenuCallable}};
 use super::{Application, ApplicationInfo};
 
 /// Represents the current viewport position and scale.
@@ -283,78 +283,72 @@ impl<F: ApplicationFramework> GraphApplication<F> {
     }
 
     fn open_menu(&mut self) {
-        let idx = self.os_mut().ui_open_menu(&[
-            "Add plot".into(),
-            "View window".into(),
-        ], true);
+        ContextMenu::new(
+            self.os,
+            vec![
+                ContextMenuItem::new_common("Add plot...", |this: &mut Self| {
+                    // Take input repeatedly until we get something which upgrades
+                    let (structured, unstructured) = loop {
+                        let unstructured = this.os_mut().ui_input_expression("y =", None);
+                        match unstructured.upgrade() {
+                            Ok(s) => break (s, unstructured),
+                            Err(e) => {
+                                this.os_mut().ui_text_dialog(&e.to_string());
+                                this.draw();
+                            }
+                        }
+                    };
+
+                    let mut plot = Plot {
+                        unstructured,
+                        structured,
+                        y_values: Vec::new()
+                    };
+                    plot.recalculate_values(&this.view_window, &this.settings());
+
+                    // Create and push plot
+                    this.plots.push(plot);
+                }),
+
+                ContextMenuItem::new_common("View window...", |this: &mut Self| {
+                    ContextMenu::new(
+                        this.os,
+                        vec![
+                            ContextMenuItem::new_common("X scale", |this: &mut Self| {
+                                (this.view_window.scale_x, this.view_window.scale_x_tree) =
+                                    this.os_mut().ui_input_expression_and_evaluate(
+                                        "X scale:",
+                                        Some(this.view_window.scale_x_tree.clone()),
+                                        || (),
+                                    );
+    
+                                let settings = this.settings();
+                                for plot in &mut this.plots {
+                                    plot.recalculate_values(&this.view_window, &settings);
+                                }
+                            }),
+                            ContextMenuItem::new_common("Y scale", |this: &mut Self| {
+                                (this.view_window.scale_y, this.view_window.scale_y_tree) =
+                                    this.os_mut().ui_input_expression_and_evaluate(
+                                        "Y scale:",
+                                        Some(this.view_window.scale_y_tree.clone()),
+                                        || (),
+                                    );
+    
+                                let settings = this.settings();
+                                for plot in &mut this.plots {
+                                    plot.recalculate_values(&this.view_window, &settings);
+                                }
+                            }),
+                        ],
+                        true,
+                    ).tick_until_call(this);
+                })
+            ],
+            true,
+        ).tick_until_call(self);
+
         self.draw();
-
-        match idx {
-            Some(0) => {
-                // Take input repeatedly until we get something which upgrades
-                let (structured, unstructured) = loop {
-                    let unstructured = self.os_mut().ui_input_expression("y =", None);
-                    match unstructured.upgrade() {
-                        Ok(s) => break (s, unstructured),
-                        Err(e) => {
-                            self.os_mut().ui_text_dialog(&e.to_string());
-                            self.draw();
-                        }
-                    }
-                };
-
-                let mut plot = Plot {
-                    unstructured,
-                    structured,
-                    y_values: Vec::new()
-                };
-                plot.recalculate_values(&self.view_window, &self.settings());
-
-                // Create and push plot
-                self.plots.push(plot);
-            }
-
-            Some(1) => {
-                let idx = self.os_mut().ui_open_menu(&[
-                    "X scale".into(),
-                    "Y scale".into(),
-                ], true);
-
-                match idx {
-                    // TODO: Doesn't redraw because Ferris was angry at me
-                    Some(0) => {
-                        (self.view_window.scale_x, self.view_window.scale_x_tree) =
-                            self.os_mut().ui_input_expression_and_evaluate(
-                                "X scale:",
-                                Some(self.view_window.scale_x_tree.clone()),
-                                || (),
-                            );
-
-                        let settings = self.settings();
-                        for plot in &mut self.plots {
-                            plot.recalculate_values(&self.view_window, &settings);
-                        }
-                    }
-                    Some(1) => {
-                        (self.view_window.scale_y, self.view_window.scale_y_tree) =
-                            self.os_mut().ui_input_expression_and_evaluate(
-                                "Y scale:",
-                                Some(self.view_window.scale_y_tree.clone()),
-                                || (),
-                            );
-
-                        let settings = self.settings();
-                        for plot in &mut self.plots {
-                            plot.recalculate_values(&self.view_window, &settings);
-                        }
-                    }
-                    None => (),
-                    _ => unreachable!()
-                }
-            },
-            None => (),
-            _ => unreachable!()
-        }
     }
 
     /// Returns the settings used for evaluating values for this graph. Notably, this sets the 

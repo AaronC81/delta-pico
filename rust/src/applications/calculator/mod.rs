@@ -2,7 +2,7 @@ use core::cmp::{max, min};
 use alloc::{format, vec, vec::Vec};
 use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}, function::Function}, render::{Area, Renderer, Viewport, LayoutComputationProperties}, UnstructuredNode, UnstructuredNodeList};
 
-use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput, ShapeFill, DISPLAY_WIDTH}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer, SelectorMenu}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite};
+use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput, ShapeFill, DISPLAY_WIDTH}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer, SelectorMenu, ContextMenu, ContextMenuItem, SelectorMenuCallable}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite};
 use self::catalog::{CatalogItem, Catalog};
 
 use super::{Application, ApplicationInfo};
@@ -330,32 +330,33 @@ impl<F: ApplicationFramework> Application for CalculatorApplication<F> {
                 // Clear the sprite cache
                 self.sprite_cache.clear(self.calculations.len());
             } else if input == OSInput::Button(ButtonInput::List) {
-                match self.os_mut().ui_open_menu(&["Catalog...".into(), "Clear history".into()], true) {
-                    Some(0) => {
-                        let catalog = Catalog::new(self.os, "Catalog", Self::catalog_items());
-                        if let Some(item) = catalog.tick_until_complete() {
-                            let node = item.metadata;
+                ContextMenu::new(
+                    self.os,
+                    vec![
+                        ContextMenuItem::new_common("Catalog...", |this: &mut Self| {
+                            let catalog = Catalog::new(this.os, "Catalog", Self::catalog_items());
+                            if let Some(item) = catalog.tick_until_complete() {
+                                let node = item.metadata;
 
-                            self.rbop_ctx.root.insert(
-                                &mut self.rbop_ctx.nav_path,
-                                &mut RbopSpriteRenderer::new(),
-                                self.rbop_ctx.viewport.as_mut(),
-                                node,
-                            );
-                        }
-                    }
+                                this.rbop_ctx.root.insert(
+                                    &mut this.rbop_ctx.nav_path,
+                                    &mut RbopSpriteRenderer::new(),
+                                    this.rbop_ctx.viewport.as_mut(),
+                                    node,
+                                );
+                            }
+                        }),
 
-                    Some(1) => {
-                        // Delete from storage
-                        self.os_mut().filesystem.calculations.table.clear(false);
-                        
-                        // There are too many things to reload manually, just restart the app
-                        return self.os_mut().restart_application();
-                    }
-
-                    Some(_) => unreachable!(),
-                    None => (),
-                }
+                        ContextMenuItem::new_common("Clear history", |this: &mut Self| {
+                            // Delete from storage
+                            this.os_mut().filesystem.calculations.table.clear(false);
+                            
+                            // There are too many things to reload manually, just restart the app
+                            return this.os_mut().restart_application();
+                        })
+                    ],
+                    true,
+                ).tick_until_call(self);
             } else if matches!(self.selection, Selection::Result(_)) && matches!(input, OSInput::Button(ButtonInput::MoveLeft | ButtonInput::MoveRight)) {
                 match input {
                     OSInput::Button(ButtonInput::MoveLeft) => self.result_scroll_x -= min(self.result_scroll_x, 10),

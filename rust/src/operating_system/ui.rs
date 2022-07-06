@@ -1,10 +1,10 @@
-use alloc::{string::String, format, vec::Vec};
+use alloc::{format, vec::Vec};
 use az::SaturatingAs;
 use rbop::{render::{Viewport, Area}, node::unstructured::{UnstructuredNodeRoot, Upgradable}, Number};
 
 use crate::{interface::{ApplicationFramework, Colour, ShapeFill, DISPLAY_WIDTH, ButtonInput}, operating_system::{OSInput, OperatingSystemPointer}, rbop_impl::{RbopContext, RbopSpriteRenderer}, applications::calculator::{catalog::Catalog, CalculatorApplication}};
 
-use super::{OperatingSystem, ContextMenu, ContextMenuItem};
+use super::OperatingSystem;
 
 impl<F: ApplicationFramework + 'static> OperatingSystem<F> {
     /// Draws a title bar to the top of the screen, with the text `s`.
@@ -29,24 +29,6 @@ impl<F: ApplicationFramework + 'static> OperatingSystem<F> {
                 self.display_sprite.print_at(153, 6, "text");
             }
         }
-    }
-
-    /// Opens a menu with the items in the slice `items`. The user can navigate the menu with the
-    /// up and down keys, and select an item with EXE.
-    /// Returns Some(the index of the item selected).
-    /// These menus are typically to be opened with the LIST key. If `can_close` is true, pressing
-    /// LIST will return None.
-    pub fn ui_open_menu(&mut self, items: &[String], can_close: bool) -> Option<usize> {
-        ContextMenu::new(
-            self.ptr,
-            items.iter()
-                .enumerate()
-                .map(|(i, text)| ContextMenuItem::Text { text: text.clone(), metadata: i })
-                .collect::<Vec<_>>(),
-            can_close
-        )
-            .tick_until_complete()
-            .map(|i| i.into_inner())
     }
 
     /// Opens an rbop input box with the given `title` and optionally starts the node tree at the
