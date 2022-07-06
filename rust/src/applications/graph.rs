@@ -286,7 +286,26 @@ impl<F: ApplicationFramework> GraphApplication<F> {
         ContextMenu::new(
             self.os,
             vec![
-                ContextMenuItem::new_common("Add plot...", |this: &mut Self| {
+                ContextMenuItem::new_common("Plots...", |this: &mut Self| {
+                    this.draw();
+                    this.plot_menu();
+                }),
+                ContextMenuItem::new_common("View window...", |this: &mut Self| {
+                    this.draw();
+                    this.view_window_menu();
+                }),
+            ],
+            true,
+        ).tick_until_call(self);
+
+        self.draw();
+    }
+
+    fn plot_menu(&mut self) {
+        ContextMenu::new(
+            self.os,
+            vec![
+                ContextMenuItem::new_common("Add plot", |this: &mut Self| {
                     // Take input repeatedly until we get something which upgrades
                     let (structured, unstructured) = loop {
                         let unstructured = this.os_mut().ui_input_expression("y =", None);
@@ -309,46 +328,44 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                     // Create and push plot
                     this.plots.push(plot);
                 }),
-
-                ContextMenuItem::new_common("View window...", |this: &mut Self| {
-                    ContextMenu::new(
-                        this.os,
-                        vec![
-                            ContextMenuItem::new_common("X scale", |this: &mut Self| {
-                                (this.view_window.scale_x, this.view_window.scale_x_tree) =
-                                    this.os_mut().ui_input_expression_and_evaluate(
-                                        "X scale:",
-                                        Some(this.view_window.scale_x_tree.clone()),
-                                        || (),
-                                    );
-    
-                                let settings = this.settings();
-                                for plot in &mut this.plots {
-                                    plot.recalculate_values(&this.view_window, &settings);
-                                }
-                            }),
-                            ContextMenuItem::new_common("Y scale", |this: &mut Self| {
-                                (this.view_window.scale_y, this.view_window.scale_y_tree) =
-                                    this.os_mut().ui_input_expression_and_evaluate(
-                                        "Y scale:",
-                                        Some(this.view_window.scale_y_tree.clone()),
-                                        || (),
-                                    );
-    
-                                let settings = this.settings();
-                                for plot in &mut this.plots {
-                                    plot.recalculate_values(&this.view_window, &settings);
-                                }
-                            }),
-                        ],
-                        true,
-                    ).tick_until_call(this);
-                })
             ],
             true,
         ).tick_until_call(self);
+    }
 
-        self.draw();
+    fn view_window_menu(&mut self) {
+        ContextMenu::new(
+            self.os,
+            vec![
+                ContextMenuItem::new_common("X scale", |this: &mut Self| {
+                    (this.view_window.scale_x, this.view_window.scale_x_tree) =
+                        this.os_mut().ui_input_expression_and_evaluate(
+                            "X scale:",
+                            Some(this.view_window.scale_x_tree.clone()),
+                            || (),
+                        );
+
+                    let settings = this.settings();
+                    for plot in &mut this.plots {
+                        plot.recalculate_values(&this.view_window, &settings);
+                    }
+                }),
+                ContextMenuItem::new_common("Y scale", |this: &mut Self| {
+                    (this.view_window.scale_y, this.view_window.scale_y_tree) =
+                        this.os_mut().ui_input_expression_and_evaluate(
+                            "Y scale:",
+                            Some(this.view_window.scale_y_tree.clone()),
+                            || (),
+                        );
+
+                    let settings = this.settings();
+                    for plot in &mut this.plots {
+                        plot.recalculate_values(&this.view_window, &settings);
+                    }
+                }),
+            ],
+            true,
+        ).tick_until_call(self);
     }
 
     /// Returns the settings used for evaluating values for this graph. Notably, this sets the 
