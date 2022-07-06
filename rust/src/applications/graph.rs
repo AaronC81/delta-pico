@@ -1,4 +1,4 @@
-use alloc::{vec, vec::Vec, string::ToString};
+use alloc::{vec, vec::Vec, string::ToString, format};
 use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable, UnstructuredNodeRoot}, structured::EvaluationSettings}, error::MathsError, UnstructuredNodeList, UnstructuredNode, Token};
 use rust_decimal::prelude::{One, ToPrimitive, Zero};
 
@@ -302,38 +302,68 @@ impl<F: ApplicationFramework> GraphApplication<F> {
     }
 
     fn plot_menu(&mut self) {
+        self.draw();
+
+        // Start with the menu item to add a new plot, then a divider
+        let mut menu_items = vec![
+            ContextMenuItem::new_common("Add plot", |this: &mut Self| {
+                let (structured, unstructured) = this.input_expression_until_upgrade(None);
+                let mut plot = Plot {
+                    unstructured,
+                    structured,
+                    y_values: Vec::new()
+                };
+                plot.recalculate_values(&this.view_window, &this.settings());
+
+                // Create and push plot
+                this.plots.push(plot);
+            }),
+            ContextMenuItem::Divider,
+        ];
+
+        // Add an item to edit each existing plot
+        for (i, _plot) in self.plots.iter().enumerate() {
+            menu_items.push(
+                ContextMenuItem::new_common(format!("Plot {}...", i), move |this: &mut Self| {
+                    this.plot_edit_menu(i);
+                }),
+            )
+        }
+
+        ContextMenu::new(
+            self.os,
+            menu_items,
+            true,
+        ).tick_until_call(self);
+    }
+
+    fn plot_edit_menu(&mut self, plot_index: usize) {
+        self.draw();
+
         ContextMenu::new(
             self.os,
             vec![
-                ContextMenuItem::new_common("Add plot", |this: &mut Self| {
-                    // Take input repeatedly until we get something which upgrades
-                    let (structured, unstructured) = loop {
-                        let unstructured = this.os_mut().ui_input_expression("y =", None);
-                        match unstructured.upgrade() {
-                            Ok(s) => break (s, unstructured),
-                            Err(e) => {
-                                this.os_mut().ui_text_dialog(&e.to_string());
-                                this.draw();
-                            }
-                        }
-                    };
-
-                    let mut plot = Plot {
-                        unstructured,
-                        structured,
-                        y_values: Vec::new()
-                    };
-                    plot.recalculate_values(&this.view_window, &this.settings());
-
-                    // Create and push plot
-                    this.plots.push(plot);
+                ContextMenuItem::new_common("Edit", move |this: &mut Self| {
+                    let (structured, unstructured) = this.input_expression_until_upgrade(
+                        Some(this.plots[plot_index].unstructured.clone())
+                    );
+                    let settings = this.settings();
+                    let plot = &mut this.plots[plot_index];
+                    plot.unstructured = unstructured;
+                    plot.structured = structured;
+                    plot.recalculate_values(&this.view_window, &settings);    
+                }),
+                ContextMenuItem::new_common("Delete", move |this: &mut Self| {
+                    this.plots.remove(plot_index);
                 }),
             ],
             true,
         ).tick_until_call(self);
     }
-
+    
     fn view_window_menu(&mut self) {
+        self.draw();
+
         ContextMenu::new(
             self.os,
             vec![
@@ -374,6 +404,19 @@ impl<F: ApplicationFramework> GraphApplication<F> {
         EvaluationSettings {
             use_floats: true,
             ..self.os().filesystem.settings.evaluation_settings()
+        }
+    }
+
+    fn input_expression_until_upgrade(&mut self, start: Option<UnstructuredNodeRoot>) -> (StructuredNode, UnstructuredNodeRoot) {
+        loop {
+            let unstructured = self.os_mut().ui_input_expression("y =", start.clone());
+            match unstructured.upgrade() {
+                Ok(s) => return (s, unstructured),
+                Err(e) => {
+                    self.os_mut().ui_text_dialog(&e.to_string());
+                    self.draw();
+                }
+            }
         }
     }
 }
