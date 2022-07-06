@@ -1,7 +1,7 @@
 use core::fmt::Debug;
 use alloc::{string::String, vec::Vec};
 
-use crate::{operating_system::{OperatingSystemPointer, OperatingSystem, OSInput}, interface::{ApplicationFramework, Colour, ShapeFill, ButtonInput}};
+use crate::{operating_system::{OperatingSystemPointer, OperatingSystem, OSInput, SelectorMenu, SelectorMenuTickResult}, interface::{ApplicationFramework, Colour, ShapeFill, ButtonInput}};
 
 /// A pop-up dialog box with multiple columns of selectable items.
 #[derive(Debug)]
@@ -38,19 +38,6 @@ where T: Debug
     }
 }
 
-/// The result of `Catalog::tick`, indicating whether any external handling needs to occur.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum CatalogTickResult {
-    /// The tick completed with no further external action required.
-    Normal,
-
-    /// The user selected an item in the catalog with the EXE key.
-    Selected,
-
-    /// The user dismissed the catalog with the LIST key.
-    Cancelled,
-}
-
 impl<F, T> Catalog<F, T>
 where
     F: ApplicationFramework + 'static,
@@ -71,22 +58,22 @@ where
             selected_index: 0,
         }
     }
+}
 
-    /// Retrieves a reference to the item currently hovered for selection.
-    pub fn selected(&self) -> &CatalogItem<T> {
-        &self.items[self.selected_index]
-    }
+impl<F, T> SelectorMenu for Catalog<F, T>
+where
+    F: ApplicationFramework + 'static,
+    T: Debug
+{
+    type Item = CatalogItem<T>;
 
-    /// Consumes the catalog and returns the item hovered for selection.
-    pub fn into_selected(mut self) -> CatalogItem<T> {
-        // Mutation won't have unintended consequences because this method consumes and drops `self`
-        // anyway
-        self.items.remove(self.selected_index)
-    }
+    fn selected_index(&self) -> usize { self.selected_index }
+    fn items(&self) -> &Vec<Self::Item> { &self.items }
+    fn into_items(self) -> Vec<Self::Item> { self.items }
 
     /// Draws the catalog to the screen, takes one key of input, and indicates whether any external
     /// action needs to occur.
-    pub fn tick(&mut self) -> CatalogTickResult {
+    fn tick(&mut self) -> SelectorMenuTickResult {
         // Calculate the X and Y position to start drawing from
         let starting_x = ((self.os.display_sprite.width - Self::WIDTH) / 2) as i16;
         let starting_y = 
@@ -201,30 +188,15 @@ where
                 }
             },
             Some(OSInput::Button(ButtonInput::Exe)) => {
-                return CatalogTickResult::Selected;
+                return SelectorMenuTickResult::Selected;
             },
             Some(OSInput::Button(ButtonInput::List)) => {
-                return CatalogTickResult::Cancelled;
+                return SelectorMenuTickResult::Cancelled;
             }
 
             _ => (),
         }
 
-        CatalogTickResult::Normal
-    }
-
-    /// Repeatedly draws the catalog to the screen and takes a key of input, until either:
-    ///   - An item is selected, which returns `Some` with the selected item
-    ///   - The catalog is dismissed, which returns `None`.
-    pub fn tick_until_complete(mut self) -> Option<CatalogItem<T>> {
-        let mut last_result;
-        loop {
-            last_result = self.tick();
-            match last_result {
-                CatalogTickResult::Normal => continue,
-                CatalogTickResult::Selected => return Some(self.into_selected()),
-                CatalogTickResult::Cancelled => return None,
-            }
-        }
+        SelectorMenuTickResult::Normal
     }
 }

@@ -1,4 +1,4 @@
-use alloc::{string::String, format};
+use alloc::{string::String, format, vec::Vec};
 use az::SaturatingAs;
 use rbop::{render::{Viewport, Area}, node::unstructured::{UnstructuredNodeRoot, Upgradable}, Number};
 
@@ -244,5 +244,58 @@ impl<F: ApplicationFramework + 'static> OperatingSystem<F> {
                 }
             }
         }
+    }
+}
+
+/// The result of `SelectorMenu::tick`, indicating whether any external handling needs to occur.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum SelectorMenuTickResult {
+    /// The tick completed with no further external action required.
+    Normal,
+
+    /// The user selected an item in the menu with the EXE key.
+    Selected,
+
+    /// The user dismissed the menu with the LIST key.
+    Cancelled,
+}
+
+pub trait SelectorMenu
+where Self: Sized
+{
+    type Item;
+
+    fn selected_index(&self) -> usize;
+    fn items(&self) -> &Vec<Self::Item>;
+    fn into_items(self) -> Vec<Self::Item>;
+
+    fn tick(&mut self) -> SelectorMenuTickResult;
+
+    /// Repeatedly draws the menu to the screen and takes a key of input, until either:
+    ///   - An item is selected, which returns `Some` with the selected item
+    ///   - The menu is dismissed, which returns `None`.
+    fn tick_until_complete(mut self) -> Option<Self::Item> {
+        let mut last_result;
+        loop {
+            last_result = self.tick();
+            match last_result {
+                SelectorMenuTickResult::Normal => continue,
+                SelectorMenuTickResult::Selected => return Some(self.into_selected()),
+                SelectorMenuTickResult::Cancelled => return None,
+            }
+        }
+    }
+
+    /// Retrieves a reference to the item currently hovered for selection.
+    fn selected(&self) -> &Self::Item {
+        &self.items()[self.selected_index()]
+    }
+
+    /// Consumes the menu and returns the item hovered for selection.
+    fn into_selected(self) -> Self::Item {
+        // Mutation won't have unintended consequences because this method consumes and drops `self`
+        // anyway
+        let index = self.selected_index();
+        self.into_items().remove(index)
     }
 }
