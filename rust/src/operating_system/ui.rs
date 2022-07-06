@@ -178,7 +178,7 @@ impl<F: ApplicationFramework + 'static> OperatingSystem<F> {
         title: &str,
         root: Option<UnstructuredNodeRoot>,
         mut redraw: impl FnMut(),
-    ) -> Number {
+    ) -> (Number, UnstructuredNodeRoot) {
         let mut unr = root;
         loop {
             redraw();
@@ -193,7 +193,7 @@ impl<F: ApplicationFramework + 'static> OperatingSystem<F> {
                     .map_err(|e| format!("{:?}", e))) {
                 
                 Ok(d) => {
-                    return d.simplify();
+                    return (d.simplify(), unr.unwrap());
                 }
                 Err(s) => {
                     redraw();

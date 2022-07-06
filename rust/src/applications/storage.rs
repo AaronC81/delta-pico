@@ -54,7 +54,7 @@ impl<F: ApplicationFramework> Application for StorageApplication<F> {
                     match self.os_mut().ui_open_menu(&["Jump".into(), "Clear memory".into(), "Save USB mass storage".into()], true) {
                         Some(0) => {
                             // TODO redraw
-                            let address_dec = self.os_mut().ui_input_expression_and_evaluate("Memory address", None, || ());
+                            let (address_dec, _) = self.os_mut().ui_input_expression_and_evaluate("Memory address", None, || ());
                             if let Some(address) = address_dec.to_decimal().to_u16() {
                                 // Bind to boundary
                                 self.address = (address / SHOW_BYTES) * SHOW_BYTES;

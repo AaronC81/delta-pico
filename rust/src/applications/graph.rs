@@ -1,5 +1,5 @@
-use alloc::{vec::Vec, string::ToString};
-use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable, UnstructuredNodeRoot}, structured::EvaluationSettings}, error::MathsError};
+use alloc::{vec, vec::Vec, string::ToString};
+use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable, UnstructuredNodeRoot}, structured::EvaluationSettings}, error::MathsError, UnstructuredNodeList, UnstructuredNode, Token};
 use rust_decimal::prelude::{One, ToPrimitive, Zero};
 
 use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}};
@@ -20,10 +20,16 @@ pub struct ViewWindow {
     /// the graph out, while values less than 1 squish it.
     scale_x: Number,
 
+    /// The unstructured node tree which the user input to get the current value of `scale_x`.
+    scale_x_tree: UnstructuredNodeRoot,
+
     /// The Y axis scaling as a multiplier. A value of 1 would map each pixel along the height of
     /// the screen to ascending integer values of Y. Values greater than 1 stretch the graph out,
     /// while values less than 1 squish it.
     scale_y: Number,
+
+    /// The unstructured node tree which the user input to get the current value of `scale_y`.
+    scale_y_tree: UnstructuredNodeRoot,
 }
 
 impl ViewWindow {
@@ -33,7 +39,21 @@ impl ViewWindow {
             pan_x: Number::zero(),
             pan_y: Number::zero(),
             scale_x: Number::one(),
+            scale_x_tree: UnstructuredNodeRoot {
+                root: UnstructuredNodeList {
+                    items: vec![
+                        UnstructuredNode::Token(Token::Digit(1)),
+                    ]
+                }
+            },
             scale_y: Number::one(),
+            scale_y_tree: UnstructuredNodeRoot {
+                root: UnstructuredNodeList {
+                    items: vec![
+                        UnstructuredNode::Token(Token::Digit(1)),
+                    ]
+                }
+            },
         }
     }
 
@@ -303,11 +323,12 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                 match idx {
                     // TODO: Doesn't redraw because Ferris was angry at me
                     Some(0) => {
-                        self.view_window.scale_x = self.os_mut().ui_input_expression_and_evaluate(
-                            "X scale:",
-                            None,
-                            || (),
-                        );
+                        (self.view_window.scale_x, self.view_window.scale_x_tree) =
+                            self.os_mut().ui_input_expression_and_evaluate(
+                                "X scale:",
+                                Some(self.view_window.scale_x_tree.clone()),
+                                || (),
+                            );
 
                         let settings = self.settings();
                         for plot in &mut self.plots {
@@ -315,11 +336,12 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                         }
                     }
                     Some(1) => {
-                        self.view_window.scale_y = self.os_mut().ui_input_expression_and_evaluate(
-                            "Y scale:",
-                            None,
-                            || (),
-                        );
+                        (self.view_window.scale_y, self.view_window.scale_y_tree) =
+                            self.os_mut().ui_input_expression_and_evaluate(
+                                "Y scale:",
+                                Some(self.view_window.scale_y_tree.clone()),
+                                || (),
+                            );
 
                         let settings = self.settings();
                         for plot in &mut self.plots {
