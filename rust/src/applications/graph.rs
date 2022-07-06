@@ -1,8 +1,8 @@
-use alloc::{vec, vec::Vec, string::ToString, format};
-use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable, UnstructuredNodeRoot}, structured::EvaluationSettings}, error::MathsError, UnstructuredNodeList, UnstructuredNode, Token};
+use alloc::{vec, vec::Vec, string::ToString, boxed::Box};
+use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable, UnstructuredNodeRoot}, structured::EvaluationSettings}, error::MathsError, UnstructuredNodeList, UnstructuredNode, Token, render::{Viewport, Area}};
 use rust_decimal::prelude::{One, ToPrimitive, Zero};
 
-use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer, ContextMenu, ContextMenuItem, SelectorMenuCallable}};
+use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer, ContextMenu, ContextMenuItem, SelectorMenuCallable}, rbop_impl::RbopSpriteRenderer};
 use super::{Application, ApplicationInfo};
 
 /// Represents the current viewport position and scale.
@@ -322,12 +322,29 @@ impl<F: ApplicationFramework> GraphApplication<F> {
         ];
 
         // Add an item to edit each existing plot
-        for (i, _plot) in self.plots.iter().enumerate() {
+        for (i, plot) in self.plots.iter_mut().enumerate() {
+            let viewport = Viewport::new(Area::new(DISPLAY_WIDTH as u64 - 10, 100));
+            let sprite = RbopSpriteRenderer::draw_to_sprite(
+                &mut plot.unstructured,
+                None,
+                Some(&viewport),
+                Colour::GREY,
+            );
+            let selected_sprite = RbopSpriteRenderer::draw_to_sprite(
+                &mut plot.unstructured,
+                None,
+                Some(&viewport),
+                Colour::BLUE,
+            );
             menu_items.push(
-                ContextMenuItem::new_common(format!("Plot {}...", i), move |this: &mut Self| {
-                    this.plot_edit_menu(i);
-                }),
-            )
+                ContextMenuItem::Sprite {
+                    sprite,
+                    selected_sprite: Some(selected_sprite),
+                    metadata: Box::new(move |this: &mut Self| {
+                        this.plot_edit_menu(i);
+                    })
+                }
+            );
         }
 
         ContextMenu::new(
