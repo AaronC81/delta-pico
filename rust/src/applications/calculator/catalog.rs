@@ -1,7 +1,7 @@
 use core::fmt::Debug;
 use alloc::{string::String, vec::Vec};
 
-use crate::{operating_system::{OperatingSystemPointer, OperatingSystem, OSInput, SelectorMenu, SelectorMenuTickResult}, interface::{ApplicationFramework, Colour, ShapeFill, ButtonInput}};
+use crate::{operating_system::{OperatingSystemPointer, OperatingSystem, OSInput, SelectorMenu, SelectorMenuTickResult, SelectorMenuItem}, interface::{ApplicationFramework, Colour, ShapeFill, ButtonInput}};
 
 /// A pop-up dialog box with multiple columns of selectable items.
 #[derive(Debug)]
@@ -36,6 +36,14 @@ where T: Debug
             metadata,
         }
     }
+}
+
+impl<T> SelectorMenuItem for CatalogItem<T>
+where T: Debug 
+{
+    type Inner = T;
+    fn inner(&self) -> &Self::Inner { &self.metadata }
+    fn into_inner(self) -> Self::Inner { self.metadata }
 }
 
 impl<F, T> Catalog<F, T>

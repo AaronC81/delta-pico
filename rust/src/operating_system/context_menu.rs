@@ -2,7 +2,7 @@ use alloc::{string::String, vec::Vec};
 
 use crate::{interface::{ApplicationFramework, DISPLAY_HEIGHT, DISPLAY_WIDTH, Colour, ShapeFill, ButtonInput}, operating_system::OSInput};
 
-use super::{OperatingSystemPointer, SelectorMenu, SelectorMenuTickResult};
+use super::{OperatingSystemPointer, SelectorMenu, SelectorMenuTickResult, SelectorMenuItem};
 
 
 pub struct ContextMenu<F, T>
@@ -21,16 +21,18 @@ pub enum ContextMenuItem<T> {
     },
 }
 
-impl<T> ContextMenuItem<T> {
-    pub fn metadata(&self) -> Option<&T> {
+impl<T> SelectorMenuItem for ContextMenuItem<T> {
+    type Inner = T;
+
+    fn inner(&self) -> &T {
         match self {
-            Self::Text { metadata, .. } => Some(metadata),
+            Self::Text { metadata, .. } => metadata,
         }
     }
 
-    pub fn into_metadata(self) -> Option<T> {
+    fn into_inner(self) -> T {
         match self {
-            Self::Text { metadata, .. } => Some(metadata),
+            Self::Text { metadata, .. } => metadata,
         }
     }
 }

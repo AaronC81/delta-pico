@@ -46,8 +46,7 @@ impl<F: ApplicationFramework + 'static> OperatingSystem<F> {
             can_close
         )
             .tick_until_complete()
-            .map(|i| i.into_metadata())
-            .flatten()
+            .map(|i| i.into_inner())
     }
 
     /// Opens an rbop input box with the given `title` and optionally starts the node tree at the
@@ -229,7 +228,7 @@ pub enum SelectorMenuTickResult {
 pub trait SelectorMenu
 where Self: Sized
 {
-    type Item;
+    type Item: SelectorMenuItem;
 
     fn selected_index(&self) -> usize;
     fn items(&self) -> &Vec<Self::Item>;
@@ -263,5 +262,38 @@ where Self: Sized
         // anyway
         let index = self.selected_index();
         self.into_items().remove(index)
+    }
+}
+
+/// An item in a selector menu.
+pub trait SelectorMenuItem {
+    type Inner;
+
+    fn inner(&self) -> &Self::Inner;
+    fn into_inner(self) -> Self::Inner;
+}
+
+/// A convenience extension trait which is implemented for `SelectorMenu`s where `Item::Inner` is
+/// a function taking one argument. This enables easier writing of menus which call functions when
+/// an item is selected.
+pub trait SelectorMenuCallable<A, R>: SelectorMenu
+{
+    fn tick_until_call(self, arg: A) -> Option<R>;
+}
+
+impl<X, XI, F, A, R> SelectorMenuCallable<A, R> for X
+where
+    X: SelectorMenu<Item = XI>,
+    XI: SelectorMenuItem<Inner = F>,
+    F: FnOnce(A) -> R
+{
+    /// The same as `tick_until_complete`, but calls the selected item, and returns the resulting
+    /// value.
+    /// 
+    /// The extra argument `arg` is passed to the called function, and is designed to be used to
+    /// pass `self` without the closures having to capture it (which the borrow checker would
+    /// disallow).
+    fn tick_until_call(self, arg: A) -> Option<R> {
+        self.tick_until_complete().map(|x| (x.into_inner())(arg))
     }
 }
