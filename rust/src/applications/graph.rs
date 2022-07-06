@@ -5,14 +5,29 @@ use rust_decimal::prelude::{One, ToPrimitive, Zero};
 use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer}};
 use super::{Application, ApplicationInfo};
 
+/// Represents the current viewport position and scale.
 pub struct ViewWindow {
+    /// The X offset of the viewport in pixels, where 0 would put the Y axis in the centre of the 
+    /// screen. Unaffected by scaling.
     pan_x: Number,
+
+    /// The Y offset of the viewport in pixels, where 0 would put the X axis in the centre of the 
+    /// screen. Unaffected by scaling.
     pan_y: Number,
+
+    /// The X axis scaling as a multiplier. A value of 1 would map each pixel along the width of the
+    /// screen to ascending integer values of X in the plot equation. Values greater than 1 stretch
+    /// the graph out, while values less than 1 squish it.
     scale_x: Number,
+
+    /// The Y axis scaling as a multiplier. A value of 1 would map each pixel along the height of
+    /// the screen to ascending integer values of Y. Values greater than 1 stretch the graph out,
+    /// while values less than 1 squish it.
     scale_y: Number,
 }
 
 impl ViewWindow {
+    /// Returns an initial view window, with no scaling or panning.
     fn new() -> ViewWindow {
         ViewWindow {
             pan_x: Number::zero(),
@@ -22,6 +37,7 @@ impl ViewWindow {
         }
     }
 
+    /// Returns the screen position of the origin (0, 0) in the graph space.
     fn axis_screen_coords(&self) -> (i16, i16) {
         (
             self.x_to_screen(Number::zero()),
@@ -72,19 +88,31 @@ impl ViewWindow {
     }
 }
 
+/// A plot on the graph space, derived from an equation entered as an rbop node tree.
 struct Plot {
+    /// The unstructured node tree, as entered by the user to construct the graph.
     unstructured: UnstructuredNodeRoot,
+
+    /// The structured node tree, as upgraded from the unstructured node tree. If the `unstructured`
+    /// field is modified, this should be modified too to match.
     structured: StructuredNode,
+
+    /// A calculated list of points on this graph. Each index is an X value on the *screen* (not the
+    /// graph space), and the value is the corresponding Y value on the *graph space* (not the
+    /// screen).
     y_values: Vec<Result<Number, MathsError>>,
 }
 
 impl Plot {
+    /// Recalculates all of the `y_values` given a viewport and settings to evaluate with.
     fn recalculate_values(&mut self, view: &ViewWindow, settings: &EvaluationSettings) {
         self.y_values = view.x_coords_on_screen()
-            .iter().map(|i| Self::recalculate_one_value(*i, &self.structured, settings)).collect::<Vec<_>>();
+            .iter().map(|i| Self::calculate_one_value(*i, &self.structured, settings)).collect::<Vec<_>>();
     }
 
-    fn recalculate_one_value(x: Number, node: &StructuredNode, settings: &EvaluationSettings) -> Result<Number, MathsError> {
+    /// Calculates one value for `y_values`, given an X value on the graph space, a node tree to
+    /// evaluate, and settings to evaluate with.
+    fn calculate_one_value(x: Number, node: &StructuredNode, settings: &EvaluationSettings) -> Result<Number, MathsError> {
         let sn_clone = node.substitute_variable(
             'x',
             &StructuredNode::Number(x)
@@ -92,6 +120,17 @@ impl Plot {
         sn_clone.evaluate(settings)
     }
 
+    /// Recalculates a slice of `y_values` by "panning" the list of calculated values.
+    /// 
+    /// If the pan value is positive, this represents a pan of the viewport right. Calculated values
+    /// are moved to lower indices of the list, and new values are calculated at the end to fill in
+    /// the gap.
+    /// 
+    /// If the pan value is negative, this represents a pan of the viewport left. Calculated values
+    /// are moved to higher indices of the list, and new values are calculated at the start to fill
+    /// in the gap.
+    /// 
+    /// A zero value makes no change.
     fn recalculate_x_pan(&mut self, pan: isize, view: &ViewWindow, settings: &EvaluationSettings) {
         let x_values = view.x_coords_on_screen();
 
@@ -104,7 +143,7 @@ impl Plot {
 
             // Insert new values
             for i in (self.y_values.len() - pan)..self.y_values.len() {
-                self.y_values[i] = Self::recalculate_one_value(x_values[i], &self.structured, settings);
+                self.y_values[i] = Self::calculate_one_value(x_values[i], &self.structured, settings);
             }
         } else if pan < 0 {
             // Moving left - copy values up
@@ -115,7 +154,7 @@ impl Plot {
             
             // Insert new values
             for i in 0..pan {
-                self.y_values[i] = Self::recalculate_one_value(x_values[i], &self.structured, settings);
+                self.y_values[i] = Self::calculate_one_value(x_values[i], &self.structured, settings);
             }
         }
     }
@@ -296,6 +335,8 @@ impl<F: ApplicationFramework> GraphApplication<F> {
         }
     }
 
+    /// Returns the settings used for evaluating values for this graph. Notably, this sets the 
+    /// `use_floats` flag, which makes evaluation use faster albeit less accurate computations.
     fn settings(&self) -> EvaluationSettings {
         EvaluationSettings {
             use_floats: true,
