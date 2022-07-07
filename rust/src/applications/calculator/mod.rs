@@ -1,6 +1,6 @@
 use core::cmp::{max, min};
 use alloc::{format, vec, vec::Vec};
-use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}, function::Function}, render::{Area, Renderer, Viewport, LayoutComputationProperties}, UnstructuredNode, UnstructuredNodeList};
+use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}, function::Function}, render::{Area, Renderer, Viewport, LayoutComputationProperties}, UnstructuredNode, UnstructuredNodeList, Token};
 
 use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput, ShapeFill, DISPLAY_WIDTH}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer, SelectorMenu, ContextMenu, ContextMenuItem, SelectorMenuCallable}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite};
 use self::catalog::{CatalogItem, Catalog};
@@ -506,7 +506,7 @@ impl<F: ApplicationFramework> CalculatorApplication<F> {
 
     pub fn catalog_items() -> Vec<CatalogItem<UnstructuredNode>> {
         vec![
-            CatalogItem::new("frac", "A fraction/division with a numerator and denominator", UnstructuredNode::Fraction(UnstructuredNodeList::new(), UnstructuredNodeList::new())),
+            CatalogItem::new("x", "Variable for graph plots", UnstructuredNode::Token(Token::Variable('x'))),
             CatalogItem::new("sqrt", "Compute square root of a value", UnstructuredNode::Sqrt(UnstructuredNodeList::new())),
             CatalogItem::new("pow", "Raise a value to a power", UnstructuredNode::Power(UnstructuredNodeList::new())),
             CatalogItem::new("sin", "Trigonometric sine", UnstructuredNode::new_function_call(Function::Sine)),
