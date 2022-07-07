@@ -1,6 +1,3 @@
-//! Blinks the LED on a Pico board
-//!
-//! This will blink an LED attached to GP25, which is the pin the Pico uses for the on-board LED.
 #![no_std]
 #![no_main]
 #![feature(alloc_error_handler)]
@@ -22,13 +19,8 @@ use cortex_m_rt::entry;
 use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, ButtonsInterface, ButtonEvent, StorageInterface, ButtonInput}, delta_pico_main, graphics::Sprite};
 use embedded_hal::{digital::v2::OutputPin, spi::MODE_0, blocking::delay::DelayMs, blocking::i2c::{Write, Read}};
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
-
 use ili9341::Ili9341;
-// Provide an alias for our BSP so we can switch targets quickly.
-// Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
 use rp_pico as bsp;
-// use sparkfun_pro_micro_rp2040 as bsp;
-
 use bsp::{hal::{
     clocks::{init_clocks_and_plls, Clock},
     pac,
