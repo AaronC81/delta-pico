@@ -1,6 +1,6 @@
-use alloc::{format, vec::Vec};
+use alloc::{format, vec::Vec, vec};
 use az::SaturatingAs;
-use rbop::{render::{Viewport, Area}, node::unstructured::{UnstructuredNodeRoot, Upgradable}, Number};
+use rbop::{render::{Viewport, Area}, node::unstructured::{UnstructuredNodeRoot, Upgradable}, Number, nav::NavPath};
 
 use crate::{interface::{ApplicationFramework, Colour, ShapeFill, DISPLAY_WIDTH, ButtonInput}, operating_system::{OSInput, OperatingSystemPointer}, rbop_impl::{RbopContext, RbopSpriteRenderer}, applications::calculator::{catalog::Catalog, CalculatorApplication}};
 
@@ -44,8 +44,10 @@ impl<F: ApplicationFramework + 'static> OperatingSystem<F> {
             ..RbopContext::<F>::new(self.ptr)
         };
 
+        // If we've been given an existing root to use, then set that and move the cursor to the end
         if let Some(unr) = root {
             rbop_ctx.root = unr;
+            rbop_ctx.nav_path = NavPath::new(vec![rbop_ctx.root.root.items.len()]);
         }
 
         // Don't let the box get any shorter than the maximum height it has achieved, or you'll get
