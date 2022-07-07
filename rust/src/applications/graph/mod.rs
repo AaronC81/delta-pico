@@ -5,6 +5,8 @@ use rust_decimal::prelude::{One, ToPrimitive, Zero};
 use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer, ContextMenu, ContextMenuItem, SelectorMenuCallable}, rbop_impl::RbopSpriteRenderer};
 use super::{Application, ApplicationInfo};
 
+mod test;
+
 /// Represents the current viewport position and scale.
 pub struct ViewWindow {
     /// The X offset of the viewport in pixels, where 0 would put the Y axis in the centre of the 
@@ -239,6 +241,10 @@ impl<F: ApplicationFramework> Application for GraphApplication<F> {
                 _ => (),
             }
         }
+    }
+
+    fn test(&mut self) {
+        test::test(self);
     }
 }
 
