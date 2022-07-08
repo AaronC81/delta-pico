@@ -93,7 +93,8 @@ impl ViewWindow {
 
         // Squash into an integer, and pan so that (0, 0) is in the middle of
         // the screen
-        x.to_decimal().to_i16().unwrap() + DISPLAY_WIDTH as i16 / 2
+        x.to_decimal().to_i16().unwrap_or(i16::MAX - DISPLAY_WIDTH as i16 / 2)
+        + DISPLAY_WIDTH as i16 / 2
     }
 
     /// Given a Y value in the graph space, returns a Y value on the screen.
@@ -106,7 +107,7 @@ impl ViewWindow {
 
         // Squash into an integer, flip around the bottom of the screen, and
         // pan so that (0, 0) is in the middle of the screen
-        DISPLAY_HEIGHT as i16 / 2 - y.to_decimal().to_i16().unwrap()
+        DISPLAY_HEIGHT as i16 / 2 - y.to_decimal().to_i16().unwrap_or(i16::MAX)
     }
 }
 
