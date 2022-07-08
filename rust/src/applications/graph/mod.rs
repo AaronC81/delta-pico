@@ -382,10 +382,7 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                             || (),
                         );
 
-                    let settings = this.settings();
-                    for plot in &mut this.plots {
-                        plot.recalculate_values(&this.view_window, &settings);
-                    }
+                    this.recalculate_all_plots();
                 }),
                 ContextMenuItem::new_common("Y scale", |this: &mut Self| {
                     (this.view_window.scale_y, _) =
@@ -395,10 +392,7 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                             || (),
                         );
 
-                    let settings = this.settings();
-                    for plot in &mut this.plots {
-                        plot.recalculate_values(&this.view_window, &settings);
-                    }
+                    this.recalculate_all_plots();
                 }),
             ],
             true,
@@ -444,8 +438,11 @@ impl<F: ApplicationFramework> GraphApplication<F> {
         // Adjust view window
         self.view_window.scale_y = Number::Rational(DISPLAY_HEIGHT as i64, 1) / y_difference;
         self.view_window.pan_y = y_midpoint * -self.view_window.scale_y;
-     
-        // Recalculate plots
+
+        self.recalculate_all_plots();
+    }
+
+    fn recalculate_all_plots(&mut self) {
         let settings = self.settings();
         for plot in &mut self.plots {
             plot.recalculate_values(&self.view_window, &settings);
