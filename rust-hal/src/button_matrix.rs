@@ -84,6 +84,15 @@ impl<
                 // Return the row too
                 let pressed_row = row;
 
+                // Sometimes, we manage to read a button press in row/column 7 - an impressive feat
+                // given that they don't exist. I've observed this several times on a Rev. 3, and
+                // it looks like a random lockup when using multicore input, because core 1 panics.
+                // Did I leave some lines floating on the PCB?
+                // Whatever the cause - guard against this explicitly!
+                if pressed_row == 7 || pressed_col == 7 {
+                    return Ok(None);
+                }
+
                 // Map row and column to actual numbers, rather than PCF8574 wiring, and return
                 return Ok(Some((
                     Self::PIN_MAPPING[pressed_row as usize],
