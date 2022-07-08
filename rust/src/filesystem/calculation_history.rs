@@ -1,5 +1,5 @@
 use alloc::{vec, vec::Vec};
-use rbop::{Number, UnstructuredNodeList, node::unstructured::{Serializable, UnstructuredNodeRoot}, error::{NodeError, MathsError}};
+use rbop::{Number, UnstructuredNodeList, node::unstructured::UnstructuredNodeRoot, error::{NodeError, MathsError}, serialize::Serializable};
 
 use crate::{filesystem::chunk_table::ChunkIndex, interface::ApplicationFramework};
 

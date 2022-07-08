@@ -1,6 +1,6 @@
 use core::cmp::{max, min};
 use alloc::{format, vec, vec::Vec};
-use rbop::{Number, StructuredNode, nav::MoveVerticalDirection, node::{unstructured::{MoveResult, Upgradable}, function::Function}, render::{Area, Renderer, Viewport, LayoutComputationProperties}, UnstructuredNode, UnstructuredNodeList, Token};
+use rbop::{Number, StructuredNode, nav::{MoveVerticalDirection, MoveResult}, node::{unstructured::Upgradable, function::Function}, render::{Area, Renderer, Viewport, LayoutComputationProperties}, UnstructuredNode, UnstructuredNodeList, Token};
 
 use crate::{filesystem::{Calculation, ChunkIndex, CalculationResult}, interface::{Colour, ApplicationFramework, DisplayInterface, ButtonInput, ShapeFill, DISPLAY_WIDTH}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer, SelectorMenu, ContextMenu, ContextMenuItem, SelectorMenuCallable}, rbop_impl::{RbopContext, RbopSpriteRenderer}, graphics::Sprite};
 use self::catalog::{CatalogItem, Catalog};
