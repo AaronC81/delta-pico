@@ -1,5 +1,5 @@
 use alloc::{vec, vec::Vec, string::ToString, boxed::Box};
-use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable, UnstructuredNodeRoot}, structured::EvaluationSettings}, error::MathsError, UnstructuredNodeList, UnstructuredNode, Token, render::{Viewport, Area}};
+use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable, UnstructuredNodeRoot}, structured::EvaluationSettings}, error::MathsError, render::{Viewport, Area}};
 use rust_decimal::prelude::{One, ToPrimitive, Zero};
 
 use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer, ContextMenu, ContextMenuItem, SelectorMenuCallable}, rbop_impl::RbopSpriteRenderer};
@@ -22,16 +22,10 @@ pub struct ViewWindow {
     /// the graph out, while values less than 1 squish it.
     scale_x: Number,
 
-    /// The unstructured node tree which the user input to get the current value of `scale_x`.
-    scale_x_tree: UnstructuredNodeRoot,
-
     /// The Y axis scaling as a multiplier. A value of 1 would map each pixel along the height of
     /// the screen to ascending integer values of Y. Values greater than 1 stretch the graph out,
     /// while values less than 1 squish it.
     scale_y: Number,
-
-    /// The unstructured node tree which the user input to get the current value of `scale_y`.
-    scale_y_tree: UnstructuredNodeRoot,
 }
 
 impl ViewWindow {
@@ -41,21 +35,7 @@ impl ViewWindow {
             pan_x: Number::zero(),
             pan_y: Number::zero(),
             scale_x: Number::one(),
-            scale_x_tree: UnstructuredNodeRoot {
-                root: UnstructuredNodeList {
-                    items: vec![
-                        UnstructuredNode::Token(Token::Digit(1)),
-                    ]
-                }
-            },
             scale_y: Number::one(),
-            scale_y_tree: UnstructuredNodeRoot {
-                root: UnstructuredNodeList {
-                    items: vec![
-                        UnstructuredNode::Token(Token::Digit(1)),
-                    ]
-                }
-            },
         }
     }
 
@@ -395,10 +375,10 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                     this.auto_view();
                 }),
                 ContextMenuItem::new_common("X scale", |this: &mut Self| {
-                    (this.view_window.scale_x, this.view_window.scale_x_tree) =
+                    (this.view_window.scale_x, _) =
                         this.os_mut().ui_input_expression_and_evaluate(
                             "X scale:",
-                            Some(this.view_window.scale_x_tree.clone()),
+                            Some(UnstructuredNodeRoot::from_number(this.view_window.scale_x)),
                             || (),
                         );
 
@@ -408,10 +388,10 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                     }
                 }),
                 ContextMenuItem::new_common("Y scale", |this: &mut Self| {
-                    (this.view_window.scale_y, this.view_window.scale_y_tree) =
+                    (this.view_window.scale_y, _) =
                         this.os_mut().ui_input_expression_and_evaluate(
                             "Y scale:",
-                            Some(this.view_window.scale_y_tree.clone()),
+                            Some(UnstructuredNodeRoot::from_number(this.view_window.scale_y)),
                             || (),
                         );
 
