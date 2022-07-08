@@ -16,7 +16,7 @@ use alloc_cortex_m::CortexMHeap;
 use button_matrix::{RawButtonEvent, ButtonMatrix};
 use cat24c::Cat24C;
 use cortex_m_rt::entry;
-use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, ButtonsInterface, ButtonEvent, StorageInterface}, delta_pico_main, graphics::Sprite};
+use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, ButtonsInterface, ButtonEvent, StorageInterface, ButtonInput}, delta_pico_main, graphics::Sprite};
 use embedded_hal::{digital::v2::{OutputPin}, spi::MODE_0, blocking::delay::DelayMs, blocking::i2c::{Write, Read}};
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
 use ili9341::Ili9341;
@@ -347,14 +347,19 @@ impl<
 
     fn should_run_tests(&mut self) -> bool {
         // Hold DEL on boot
-        // TODO
-        // if let Ok(Some((row, col))) = self.buttons.matrix.get_raw_button() {
-        //     let button = rev::BUTTON_MAPPING[row as usize][col as usize];
-        //     if button == ButtonInput::Delete {
-        //         return true;
-        //     }
-        // }
-        
+        // The OS has never queried for input before this, so if delete was pressed, it's still in
+        // the queue
+        let pac = unsafe { pac::Peripherals::steal() };
+        let mut sio = Sio::new(pac.SIO);
+        if let Some(encoded) = sio.fifo.read() {
+            if let RawButtonEvent::Press(row, col) = RawButtonEvent::from_u32(encoded) {
+                let button = rev::BUTTON_MAPPING[row as usize][col as usize];
+                if button == ButtonInput::Delete {
+                    return true;
+                }    
+            }
+        }
+                
         false
     }
 }
