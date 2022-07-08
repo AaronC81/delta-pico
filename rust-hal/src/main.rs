@@ -58,6 +58,10 @@ static mut I2C: Option<&'static mut I2C<I2C0, (Pin<Gpio20, FunctionI2C>, Pin<Gpi
 /// A spinlock with an arbitrarily-chosen number, used to sychronise access to the I2C bus.
 type I2CSpinlock = Spinlock<8>;
 
+/// The clock speed of the system clock in hertz. Global so that it can be read by core 1 to set up
+/// delay timing.
+static mut SYSTEM_CLOCK_HZ: u32 = 0;
+
 #[entry]
 fn main() -> ! {
     // Set up allocator
@@ -88,6 +92,7 @@ fn main() -> ! {
     .ok()
     .unwrap();
 
+    unsafe { SYSTEM_CLOCK_HZ = clocks.system_clock.freq().integer() };
     let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().integer());
     let timer = Timer::new(pac.TIMER, &mut pac.RESETS);
 
@@ -353,17 +358,9 @@ static mut CORE1_STACK: Stack<4096> = Stack::new();
 fn core1_task() -> ! {
     let mut pac = unsafe { pac::Peripherals::steal() };
     let core = unsafe { pac::CorePeripherals::steal() };
-
     let mut sio = Sio::new(pac.SIO);
-    let pins = bsp::Pins::new(
-        pac.IO_BANK0,
-        pac.PADS_BANK0,
-        sio.gpio_bank0,
-        &mut pac.RESETS,
-    );
 
-    let mut led_pin = pins.led.into_push_pull_output();
-    let mut delay = cortex_m::delay::Delay::new(core.SYST, 125000000); // TODO: nasty constant
+    let mut delay = cortex_m::delay::Delay::new(core.SYST, unsafe { SYSTEM_CLOCK_HZ });
 
     loop {
         unsafe {
