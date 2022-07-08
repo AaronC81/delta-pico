@@ -7,6 +7,27 @@ pub enum RawButtonEvent {
     Release(u8, u8),
 }
 
+impl RawButtonEvent {
+    pub fn to_u32(self) -> u32 {
+        let (base, a, b) = match self {
+            RawButtonEvent::Press(a, b) => (0x80000000, a, b),
+            RawButtonEvent::Release(a, b) => (0, a, b),
+        };
+        base | ((a as u32) << 8) | (b as u32)
+    }
+
+    pub fn from_u32(value: u32) -> Self {
+        let b = (value & 0xFF) as u8;
+        let a = (value >> 8 & 0xFF) as u8;
+
+        if value & 0x80000000 > 0 {
+            RawButtonEvent::Press(a, b)
+        } else {
+            RawButtonEvent::Release(a, b)
+        }
+    }
+}
+
 pub struct ButtonMatrix<
     RowI2CDevice: Write<Error = RowError> + Read<Error = RowError> + 'static,
     RowError,

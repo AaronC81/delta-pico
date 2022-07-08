@@ -17,17 +17,17 @@ use button_matrix::{RawButtonEvent, ButtonMatrix};
 use cat24c::Cat24C;
 use cortex_m_rt::entry;
 use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, ButtonsInterface, ButtonEvent, StorageInterface, ButtonInput}, delta_pico_main, graphics::Sprite};
-use embedded_hal::{digital::v2::OutputPin, spi::MODE_0, blocking::delay::DelayMs, blocking::i2c::{Write, Read}};
+use embedded_hal::{digital::v2::{OutputPin, ToggleableOutputPin}, spi::MODE_0, blocking::delay::DelayMs, blocking::i2c::{Write, Read}};
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
 use ili9341::Ili9341;
 use rp_pico as bsp;
 use bsp::{hal::{
     clocks::{init_clocks_and_plls, Clock},
     pac,
-    sio::Sio,
+    sio::{Sio, SioFifo},
     watchdog::Watchdog,
-    spi::{Spi, SpiDevice}, gpio::{FunctionSpi, PinId, FunctionI2C}, I2C, Timer,
-}};
+    spi::{Spi, SpiDevice}, gpio::{FunctionSpi, PinId, FunctionI2C, Pin, bank0::{Gpio20, Gpio21}, Function}, I2C, Timer, multicore::{Stack, Multicore},
+}, pac::I2C0};
 
 #[global_allocator]
 static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
@@ -48,6 +48,8 @@ fn lives_forever<T: ?Sized>(t: &mut T) -> &'static mut T {
     unsafe { (t as *mut T).as_mut().unwrap() }
 }
 
+static mut I2C: Option<&'static mut I2C<I2C0, (Pin<Gpio20, FunctionI2C>, Pin<Gpio21, FunctionI2C>)>> = None; 
+
 #[entry]
 fn main() -> ! {
     // Set up allocator
@@ -62,7 +64,7 @@ fn main() -> ! {
     let mut pac = pac::Peripherals::take().unwrap();
     let core = pac::CorePeripherals::take().unwrap();
     let mut watchdog = Watchdog::new(pac.WATCHDOG);
-    let sio = Sio::new(pac.SIO);
+    let mut sio = Sio::new(pac.SIO);
 
     // External high-speed crystal on the pico board is 12Mhz
     let external_xtal_freq_hz = 12_000_000u32;
@@ -80,6 +82,11 @@ fn main() -> ! {
 
     let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().integer());
     let timer = Timer::new(pac.TIMER, &mut pac.RESETS);
+
+    let mut mc = Multicore::new(&mut pac.PSM, &mut pac.PPB, &mut sio);
+    let cores = mc.cores();
+    let core1 = &mut cores[1];
+    let _test = core1.spawn(core1_task, unsafe { &mut CORE1_STACK.mem });
 
     let pins = bsp::Pins::new(
         pac.IO_BANK0,
@@ -138,15 +145,7 @@ fn main() -> ! {
         clocks.peripheral_clock,
     );
 
-    let col_pcf = pcf8574::Pcf8574::new(0x38, lives_forever(&mut i2c));
-    let row_pcf = pcf8574::Pcf8574::new(0x3E, lives_forever(&mut i2c));
-
-    // Init button matrix and wait for key
-    let buttons = ButtonMatrix::new(
-        row_pcf,
-        col_pcf, 
-        lives_forever(&mut delay),
-    );
+    unsafe { I2C = Some(lives_forever(&mut i2c)); }
 
     // Init flash storage
     let flash = Cat24C::new(
@@ -157,7 +156,7 @@ fn main() -> ! {
 
     let framework = FrameworkImpl {
         display: DisplayImpl { ili },
-        buttons: ButtonsImpl { matrix: buttons },
+        buttons: ButtonsImpl { fifo: lives_forever(&mut sio.fifo) },
         storage: StorageImpl { flash },
         
         timer,
@@ -182,37 +181,25 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
     }
 }
 
-struct ButtonsImpl<
-    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError> + 'static,
-    RowError,
-    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError> + 'static,
-    ColError,
-    Delay: DelayMs<u8> + 'static,
-> {
-    matrix: ButtonMatrix<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay>,
+struct ButtonsImpl {
+    fifo: &'static mut SioFifo,
 }
 
-impl<
-    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError>,
-    RowError,
-    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError>,
-    ColError,
-    Delay: DelayMs<u8> + 'static,
-> ButtonsInterface for ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay> {
+impl ButtonsInterface for ButtonsImpl {
     fn wait_event(&mut self) -> delta_pico_rust::interface::ButtonEvent {
         loop {
-            match self.matrix.get_event(true) {
-                Ok(Some(RawButtonEvent::Press(row, col))) => {
+            let raw_button = self.fifo.read_blocking();
+
+            match RawButtonEvent::from_u32(raw_button) {
+                RawButtonEvent::Press(row, col) => {
                     let input = rev::BUTTON_MAPPING[row as usize][col as usize];
                     return ButtonEvent::Press(input)
                 }
 
-                Ok(Some(RawButtonEvent::Release(row, col))) => {
+                RawButtonEvent::Release(row, col) => {
                     let input = rev::BUTTON_MAPPING[row as usize][col as usize];
                     return ButtonEvent::Release(input)
                 }
-
-                _ => continue,
             };
         }
     }
@@ -257,16 +244,11 @@ struct FrameworkImpl<
     RstPin: PinId,
     Delay: DelayMs<u8> + 'static,
 
-    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError> + 'static,
-    RowError,
-    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError> + 'static,
-    ColError,
-
     StorageI2CDevice: Write<Error = StorageError> + Read<Error = StorageError> + 'static,
     StorageError,
 > {
     display: DisplayImpl<SpiD, DcPin, RstPin, Delay>,
-    buttons: ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay>,
+    buttons: ButtonsImpl,
     storage: StorageImpl<StorageI2CDevice, StorageError, Delay>,
     timer: Timer,
 }
@@ -277,16 +259,11 @@ impl<
     RstPin: PinId,
     Delay: DelayMs<u8> + 'static,
 
-    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError>,
-    RowError,
-    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError>,
-    ColError,
-
     StorageI2CDevice: Write<Error = StorageError> + Read<Error = StorageError>,
     StorageError,
-> ApplicationFramework for FrameworkImpl<SpiD, DcPin, RstPin, Delay, RowI2CDevice, RowError, ColI2CDevice, ColError, StorageI2CDevice, StorageError> {
+> ApplicationFramework for FrameworkImpl<SpiD, DcPin, RstPin, Delay, StorageI2CDevice, StorageError> {
     type DisplayI = DisplayImpl<SpiD, DcPin, RstPin, Delay>;
-    type ButtonsI = ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay>;
+    type ButtonsI = ButtonsImpl;
     type StorageI = StorageImpl<StorageI2CDevice, StorageError, Delay>;
 
     fn display(&self) -> &Self::DisplayI { &self.display }
@@ -344,13 +321,56 @@ impl<
 
     fn should_run_tests(&mut self) -> bool {
         // Hold DEL on boot
-        if let Ok(Some((row, col))) = self.buttons.matrix.get_raw_button() {
-            let button = rev::BUTTON_MAPPING[row as usize][col as usize];
-            if button == ButtonInput::Delete {
-                return true;
-            }
-        }
+        // TODO
+        // if let Ok(Some((row, col))) = self.buttons.matrix.get_raw_button() {
+        //     let button = rev::BUTTON_MAPPING[row as usize][col as usize];
+        //     if button == ButtonInput::Delete {
+        //         return true;
+        //     }
+        // }
         
         false
+    }
+}
+
+static mut CORE1_STACK: Stack<4096> = Stack::new();
+fn core1_task() -> ! {
+    let mut pac = unsafe { pac::Peripherals::steal() };
+    let core = unsafe { pac::CorePeripherals::steal() };
+
+    let mut sio = Sio::new(pac.SIO);
+    let pins = bsp::Pins::new(
+        pac.IO_BANK0,
+        pac.PADS_BANK0,
+        sio.gpio_bank0,
+        &mut pac.RESETS,
+    );
+
+    let mut led_pin = pins.led.into_push_pull_output();
+    let mut delay = cortex_m::delay::Delay::new(core.SYST, 125000000); // TODO: nasty constant
+
+    loop {
+        unsafe {
+            // Who needs synchronisation?
+            delay.delay_ms(100);
+            if I2C.is_some() { break }
+        }
+    }
+    let i2c = unsafe { I2C.take().unwrap() };
+
+    let col_pcf = pcf8574::Pcf8574::new(0x38, lives_forever(i2c));
+    let row_pcf = pcf8574::Pcf8574::new(0x3E, lives_forever(i2c));
+
+    // Init button matrix
+    let mut buttons = ButtonMatrix::new(
+        row_pcf,
+        col_pcf, 
+        lives_forever(&mut delay),
+    );    
+
+    loop {
+        if let Ok(Some(btn)) = buttons.get_event(true) {
+            sio.fifo.write(btn.to_u32());
+        }
     }
 }
