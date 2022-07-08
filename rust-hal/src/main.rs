@@ -96,6 +96,11 @@ fn main() -> ! {
     let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().integer());
     let timer = Timer::new(pac.TIMER, &mut pac.RESETS);
 
+    // Kick off core 1, which gathers button presses and relays them to core 0 over a FIFO
+    // Even though this is far too early (we haven't set up I2C yet), we need to start it here
+    // because `pins` moves part of `sio`, so we can't mutably borrow it any more
+    // To prevent issues, it'll block until we drop the lock for the first time
+    let _lock = I2CSpinlock::claim();
     let mut mc = Multicore::new(&mut pac.PSM, &mut pac.PPB, &mut sio);
     let cores = mc.cores();
     let core1 = &mut cores[1];
@@ -158,7 +163,9 @@ fn main() -> ! {
         clocks.peripheral_clock,
     );
 
+    // Share the bus with the other core, and release the lock to allow it to start
     unsafe { I2C = Some(lives_forever(&mut i2c)); }
+    drop(_lock);
 
     // Init flash storage
     let flash = Cat24C::new(
@@ -354,20 +361,18 @@ impl<
 
 static mut CORE1_STACK: Stack<4096> = Stack::new();
 fn core1_task() -> ! {
+    // Grab some important peripherals
     let pac = unsafe { pac::Peripherals::steal() };
     let core = unsafe { pac::CorePeripherals::steal() };
     let mut sio = Sio::new(pac.SIO);
     let mut delay = cortex_m::delay::Delay::new(core.SYST, unsafe { SYSTEM_CLOCK_HZ });
 
-    loop {
-        unsafe {
-            // Who needs synchronisation?
-            delay.delay_ms(100);
-            if I2C.is_some() { break }
-        }
-    }
+    // Core 0 holds the I2C lock until it's shared the bus with us, so block on that
+    let _lock = I2CSpinlock::claim();
+    drop(_lock);
     let i2c = unsafe { I2C.take().unwrap() };
 
+    // Set up button matrix expanders
     let col_pcf = pcf8574::Pcf8574::new(0x38, lives_forever(i2c));
     let row_pcf = pcf8574::Pcf8574::new(0x3E, lives_forever(i2c));
 
@@ -378,6 +383,7 @@ fn core1_task() -> ! {
         lives_forever(&mut delay),
     );    
 
+    // For the rest of time, loop looking for buttons
     loop {
         let _lock = I2CSpinlock::claim();
         if let Ok(Some(btn)) = buttons.get_event(false) {
@@ -385,6 +391,8 @@ fn core1_task() -> ! {
         }
         drop(_lock);
 
+        // We need to give the storage peripheral a little bit of time to claim the lock if it's
+        // waiting
         delay.delay_ms(1);
     }
 }
