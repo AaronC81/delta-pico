@@ -16,8 +16,8 @@ use alloc_cortex_m::CortexMHeap;
 use button_matrix::{RawButtonEvent, ButtonMatrix};
 use cat24c::Cat24C;
 use cortex_m_rt::entry;
-use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, ButtonsInterface, ButtonEvent, StorageInterface, ButtonInput}, delta_pico_main, graphics::Sprite};
-use embedded_hal::{digital::v2::{OutputPin, ToggleableOutputPin}, spi::MODE_0, blocking::delay::DelayMs, blocking::i2c::{Write, Read}};
+use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, ButtonsInterface, ButtonEvent, StorageInterface}, delta_pico_main, graphics::Sprite};
+use embedded_hal::{digital::v2::{OutputPin}, spi::MODE_0, blocking::delay::DelayMs, blocking::i2c::{Write, Read}};
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
 use ili9341::Ili9341;
 use rp_pico as bsp;
@@ -26,7 +26,7 @@ use bsp::{hal::{
     pac,
     sio::{Sio, SioFifo, Spinlock},
     watchdog::Watchdog,
-    spi::{Spi, SpiDevice}, gpio::{FunctionSpi, PinId, FunctionI2C, Pin, bank0::{Gpio20, Gpio21}, Function}, I2C, Timer, multicore::{Stack, Multicore},
+    spi::{Spi, SpiDevice}, gpio::{FunctionSpi, PinId, FunctionI2C, Pin, bank0::{Gpio20, Gpio21}}, I2C, Timer, multicore::{Stack, Multicore},
 }, pac::I2C0};
 
 #[global_allocator]
@@ -200,21 +200,19 @@ struct ButtonsImpl {
 
 impl ButtonsInterface for ButtonsImpl {
     fn wait_event(&mut self) -> delta_pico_rust::interface::ButtonEvent {
-        loop {
-            let raw_button = self.fifo.read_blocking();
+        let raw_button = self.fifo.read_blocking();
 
-            match RawButtonEvent::from_u32(raw_button) {
-                RawButtonEvent::Press(row, col) => {
-                    let input = rev::BUTTON_MAPPING[row as usize][col as usize];
-                    return ButtonEvent::Press(input)
-                }
+        match RawButtonEvent::from_u32(raw_button) {
+            RawButtonEvent::Press(row, col) => {
+                let input = rev::BUTTON_MAPPING[row as usize][col as usize];
+                return ButtonEvent::Press(input)
+            }
 
-                RawButtonEvent::Release(row, col) => {
-                    let input = rev::BUTTON_MAPPING[row as usize][col as usize];
-                    return ButtonEvent::Release(input)
-                }
-            };
-        }
+            RawButtonEvent::Release(row, col) => {
+                let input = rev::BUTTON_MAPPING[row as usize][col as usize];
+                return ButtonEvent::Release(input)
+            }
+        };
     }
 
     fn poll_event(&mut self) -> Option<delta_pico_rust::interface::ButtonEvent> {
@@ -356,10 +354,9 @@ impl<
 
 static mut CORE1_STACK: Stack<4096> = Stack::new();
 fn core1_task() -> ! {
-    let mut pac = unsafe { pac::Peripherals::steal() };
+    let pac = unsafe { pac::Peripherals::steal() };
     let core = unsafe { pac::CorePeripherals::steal() };
     let mut sio = Sio::new(pac.SIO);
-
     let mut delay = cortex_m::delay::Delay::new(core.SYST, unsafe { SYSTEM_CLOCK_HZ });
 
     loop {
