@@ -390,6 +390,9 @@ impl<F: ApplicationFramework> GraphApplication<F> {
         ContextMenu::new(
             self.os,
             vec![
+                ContextMenuItem::new_common("Auto view", |this: &mut Self| {
+                    this.auto_view();
+                }),
                 ContextMenuItem::new_common("X scale", |this: &mut Self| {
                     (this.view_window.scale_x, this.view_window.scale_x_tree) =
                         this.os_mut().ui_input_expression_and_evaluate(
@@ -440,6 +443,31 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                     self.draw();
                 }
             }
+        }
+    }
+
+    /// Adjusts the view window to attempt to best display the plots on the screen.
+    fn auto_view(&mut self) {
+        // Find the min and max Y values within the X boundaries of the screen
+        let mut sorted_y_values = self.plots.iter()
+            .flat_map(|p| p.y_values.iter().filter_map(|x| x.as_ref().ok()))
+            .collect::<Vec<_>>();
+        sorted_y_values.sort_unstable();
+        let min_y_graph_value = *sorted_y_values[0];
+        let max_y_graph_value = **sorted_y_values.last().unwrap();
+    
+        // Calculate Y difference and midpoint
+        let y_difference = max_y_graph_value - min_y_graph_value;
+        let y_midpoint = min_y_graph_value + y_difference / 2.into();
+
+        // Adjust view window
+        self.view_window.scale_y = Number::Rational(DISPLAY_HEIGHT as i64, 1) / y_difference;
+        self.view_window.pan_y = y_midpoint * -self.view_window.scale_y;
+     
+        // Recalculate plots
+        let settings = self.settings();
+        for plot in &mut self.plots {
+            plot.recalculate_values(&self.view_window, &settings);
         }
     }
 }
