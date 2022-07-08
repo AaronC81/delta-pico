@@ -24,7 +24,7 @@ use rp_pico as bsp;
 use bsp::{hal::{
     clocks::{init_clocks_and_plls, Clock},
     pac,
-    sio::{Sio, SioFifo},
+    sio::{Sio, SioFifo, Spinlock},
     watchdog::Watchdog,
     spi::{Spi, SpiDevice}, gpio::{FunctionSpi, PinId, FunctionI2C, Pin, bank0::{Gpio20, Gpio21}, Function}, I2C, Timer, multicore::{Stack, Multicore},
 }, pac::I2C0};
@@ -48,7 +48,15 @@ fn lives_forever<T: ?Sized>(t: &mut T) -> &'static mut T {
     unsafe { (t as *mut T).as_mut().unwrap() }
 }
 
-static mut I2C: Option<&'static mut I2C<I2C0, (Pin<Gpio20, FunctionI2C>, Pin<Gpio21, FunctionI2C>)>> = None; 
+/// The I2C bus peripheral, used to communicate with the display and storage.
+/// 
+/// Stored in a global so that core 1 can access it too - the HAL doesn't seem to provide a method
+/// to get access to an I2C peripheral without re-initialising it, so it can't be stolen like most
+/// other peripherals can.
+static mut I2C: Option<&'static mut I2C<I2C0, (Pin<Gpio20, FunctionI2C>, Pin<Gpio21, FunctionI2C>)>> = None;
+
+/// A spinlock with an arbitrarily-chosen number, used to sychronise access to the I2C bus.
+type I2CSpinlock = Spinlock<8>;
 
 #[entry]
 fn main() -> ! {
@@ -222,18 +230,26 @@ impl<
     StorageError,
     Delay: DelayMs<u8> + 'static,
 > StorageInterface for StorageImpl<StorageI2CDevice, StorageError, Delay> {
-    fn is_connected(&mut self) -> bool { self.flash.is_connected() }
-    fn is_busy(&mut self) -> bool { self.flash.is_busy() }
+    fn is_connected(&mut self) -> bool {
+        let _lock = I2CSpinlock::claim();
+        self.flash.is_connected()
+    }
+    fn is_busy(&mut self) -> bool {
+        let _lock = I2CSpinlock::claim();
+        self.flash.is_busy()
+    }
 
     fn write(&mut self, address: u16, bytes: &[u8]) -> Option<()> {
+        let _lock = I2CSpinlock::claim();
         self.flash.write(address, bytes).ok()
     }
 
     fn read(&mut self, address: u16, bytes: &mut [u8]) -> Option<()> {
+        let _lock = I2CSpinlock::claim();
         self.flash.read(address, bytes).ok()
     }
 
-    // No-ops for now - no multicore
+    // TODO No-ops for now
     fn acquire_priority(&mut self) {}
     fn release_priority(&mut self) {}
 }
@@ -369,8 +385,12 @@ fn core1_task() -> ! {
     );    
 
     loop {
-        if let Ok(Some(btn)) = buttons.get_event(true) {
+        let _lock = I2CSpinlock::claim();
+        if let Ok(Some(btn)) = buttons.get_event(false) {
             sio.fifo.write(btn.to_u32());
         }
+        drop(_lock);
+
+        delay.delay_ms(1);
     }
 }
