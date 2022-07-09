@@ -1,4 +1,4 @@
-use alloc::{vec, vec::Vec, string::ToString, boxed::Box};
+use alloc::{format, vec, vec::Vec, string::{ToString, String}, boxed::Box};
 use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable, UnstructuredNodeRoot}, structured::EvaluationSettings}, error::MathsError, render::{Viewport, Area}};
 use rust_decimal::{prelude::{One, ToPrimitive, Zero}, Decimal};
 
@@ -403,18 +403,32 @@ impl<F: ApplicationFramework> GraphApplication<F> {
     fn view_window_menu(&mut self) {
         self.draw();
 
-        macro_rules! vw_edit {
-            ($label: expr, $this: ident, $accessor: expr) => {
-                ContextMenuItem::new_common($label, |$this: &mut Self| {
-                    ($accessor, _) =
-                            $this.os_mut().ui_input_expression_and_evaluate(
-                                $label,
-                                Some(UnstructuredNodeRoot::from_number($accessor)),
-                                || (),
-                            );
+        fn truncate_string(str: String, limit: usize) -> String {
+            if str.len() > limit {
+                str.chars().take(limit).chain("...".chars()).collect()
+            } else {
+                str
+            }
+        }
 
-                        $this.recalculate_all();
-                })
+        macro_rules! vw_edit {
+            ($label: expr, $this: ident, $accessor: expr, $outer_accessor: expr) => {
+                ContextMenuItem::new_common(
+                    format!("{} = {}",
+                        $label,
+                        truncate_string($outer_accessor.to_decimal().to_string(), 10),
+                    ),
+                    |$this: &mut Self| {
+                        ($accessor, _) =
+                                $this.os_mut().ui_input_expression_and_evaluate(
+                                    $label,
+                                    Some(UnstructuredNodeRoot::from_number($accessor)),
+                                    || (),
+                                );
+
+                            $this.recalculate_all();
+                    },
+                )
             };
         }
 
@@ -424,10 +438,10 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                 ContextMenuItem::new_common("Auto view", |this: &mut Self| {
                     this.auto_view();
                 }),
-                vw_edit!("X min.", this, this.user_view_window.x_min),
-                vw_edit!("X max.", this, this.user_view_window.x_max),
-                vw_edit!("Y min.", this, this.user_view_window.y_min),
-                vw_edit!("Y max.", this, this.user_view_window.y_max),
+                vw_edit!("X min.", this, this.user_view_window.x_min, self.user_view_window.x_min),
+                vw_edit!("X max.", this, this.user_view_window.x_max, self.user_view_window.x_max),
+                vw_edit!("Y min.", this, this.user_view_window.y_min, self.user_view_window.y_min),
+                vw_edit!("Y max.", this, this.user_view_window.y_max, self.user_view_window.y_max),
             ],
             true,
         ).tick_until_call(self);
