@@ -1,6 +1,6 @@
 use alloc::{vec, vec::Vec, string::ToString, boxed::Box};
 use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable, UnstructuredNodeRoot}, structured::EvaluationSettings}, error::MathsError, render::{Viewport, Area}};
-use rust_decimal::prelude::{One, ToPrimitive, Zero};
+use rust_decimal::{prelude::{One, ToPrimitive, Zero}, Decimal};
 
 use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer, ContextMenu, ContextMenuItem, SelectorMenuCallable}, rbop_impl::RbopSpriteRenderer};
 use super::{Application, ApplicationInfo};
@@ -8,7 +8,7 @@ use super::{Application, ApplicationInfo};
 mod test;
 
 /// Represents the current viewport position and scale.
-pub struct ViewWindow {
+pub struct CalculatedViewWindow {
     /// The X offset of the viewport in pixels, where 0 would put the Y axis in the centre of the 
     /// screen. Unaffected by scaling.
     pan_x: Number,
@@ -28,10 +28,10 @@ pub struct ViewWindow {
     scale_y: Number,
 }
 
-impl ViewWindow {
+impl CalculatedViewWindow {
     /// Returns an initial view window, with no scaling or panning.
-    fn new() -> ViewWindow {
-        ViewWindow {
+    fn new() -> CalculatedViewWindow {
+        CalculatedViewWindow {
             pan_x: Number::zero(),
             pan_y: Number::zero(),
             scale_x: Number::one(),
@@ -91,6 +91,37 @@ impl ViewWindow {
     }
 }
 
+/// Represents the user input which was used to calculate the view window, with minimum and maximum
+/// values for each axis of the graph space.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+struct UserViewWindow {
+    x_min: Number,
+    x_max: Number,
+    y_min: Number,
+    y_max: Number,
+}
+
+impl UserViewWindow {
+    fn new() -> Self {
+        Self {
+            x_min: Number::from(-10),
+            x_max: Number::from(10),
+            y_min: Number::from(-10),
+            y_max: Number::from(10),
+        }
+    }
+
+    fn to_calculated(&self) -> CalculatedViewWindow {
+        let scale_x = Number::from(DISPLAY_WIDTH as i64) / (self.x_max - self.x_min);
+        let pan_x = -((self.x_max + self.x_min) / 2.into()) * scale_x;
+        
+        let scale_y = Number::from(DISPLAY_HEIGHT as i64) / (self.y_max - self.y_min);
+        let pan_y = -((self.y_max + self.y_min) / 2.into()) * scale_y;
+
+        CalculatedViewWindow { pan_x, pan_y, scale_x, scale_y }
+    }
+}
+
 /// A plot on the graph space, derived from an equation entered as an rbop node tree.
 struct Plot {
     /// The unstructured node tree, as entered by the user to construct the graph.
@@ -108,7 +139,7 @@ struct Plot {
 
 impl Plot {
     /// Recalculates all of the `y_values` given a viewport and settings to evaluate with.
-    fn recalculate_values(&mut self, view: &ViewWindow, settings: &EvaluationSettings) {
+    fn recalculate_values(&mut self, view: &CalculatedViewWindow, settings: &EvaluationSettings) {
         self.y_values = view.x_coords_on_screen()
             .iter().map(|i| Self::calculate_one_value(*i, &self.structured, settings)).collect::<Vec<_>>();
     }
@@ -134,7 +165,7 @@ impl Plot {
     /// in the gap.
     /// 
     /// A zero value makes no change.
-    fn recalculate_x_pan(&mut self, pan: isize, view: &ViewWindow, settings: &EvaluationSettings) {
+    fn recalculate_x_pan(&mut self, pan: isize, view: &CalculatedViewWindow, settings: &EvaluationSettings) {
         let x_values = view.x_coords_on_screen();
 
         if pan > 0 {
@@ -166,7 +197,8 @@ impl Plot {
 pub struct GraphApplication<F: ApplicationFramework + 'static> {
     os: OperatingSystemPointer<F>,
     plots: Vec<Plot>,
-    view_window: ViewWindow,
+    user_view_window: UserViewWindow,
+    calculated_view_window: CalculatedViewWindow,
 }
 
 os_accessor!(GraphApplication<F>);
@@ -182,10 +214,13 @@ impl<F: ApplicationFramework> Application for GraphApplication<F> {
     }
 
     fn new(os: OperatingSystemPointer<F>) -> Self {
+        let user_view_window = UserViewWindow::new();
+
         Self {
             os,
             plots: Vec::new(),
-            view_window: ViewWindow::new(),
+            user_view_window,
+            calculated_view_window: user_view_window.to_calculated(),
         }
     }
 
@@ -197,24 +232,24 @@ impl<F: ApplicationFramework> Application for GraphApplication<F> {
             let pan_amount = Number::from(Self::PAN_AMOUNT as i64);
             match input {
                 OSInput::Button(ButtonInput::MoveLeft) => {
-                    self.view_window.pan_x += pan_amount;
+                    self.calculated_view_window.pan_x += pan_amount;
                     let settings = self.settings();
                     for plot in &mut self.plots {
-                        plot.recalculate_x_pan(-Self::PAN_AMOUNT, &self.view_window, &settings);
+                        plot.recalculate_x_pan(-Self::PAN_AMOUNT, &self.calculated_view_window, &settings);
                     }
                 },
                 OSInput::Button(ButtonInput::MoveRight) => {
-                    self.view_window.pan_x -= pan_amount;
+                    self.calculated_view_window.pan_x -= pan_amount;
                     let settings = self.settings();
                     for plot in &mut self.plots {
-                        plot.recalculate_x_pan(Self::PAN_AMOUNT, &self.view_window, &settings);
+                        plot.recalculate_x_pan(Self::PAN_AMOUNT, &self.calculated_view_window, &settings);
                     }
                 }
                 OSInput::Button(ButtonInput::MoveUp) => {
-                    self.view_window.pan_y -= pan_amount;
+                    self.calculated_view_window.pan_y -= pan_amount;
                 }
                 OSInput::Button(ButtonInput::MoveDown) => {
-                    self.view_window.pan_y += pan_amount;
+                    self.calculated_view_window.pan_y += pan_amount;
                 }
 
                 OSInput::Button(ButtonInput::List) => self.open_menu(),
@@ -236,13 +271,13 @@ impl<F: ApplicationFramework> GraphApplication<F> {
         self.os_mut().display_sprite.fill(Colour::BLACK);
 
         // Draw axes
-        let (x_axis, y_axis) = self.view_window.axis_screen_coords();
+        let (x_axis, y_axis) = self.calculated_view_window.axis_screen_coords();
         self.os_mut().display_sprite.draw_line(x_axis, 0, x_axis, DISPLAY_HEIGHT as i16, Colour::BLUE);
         self.os_mut().display_sprite.draw_line(0, y_axis, DISPLAY_WIDTH as i16, y_axis, Colour::BLUE);
 
         // Draw each graph from computed points
         for plot in &self.plots {
-            let mut next_y_screen = self.view_window.y_to_screen(plot.y_values[0].clone().unwrap_or(Number::zero()));
+            let mut next_y_screen = self.calculated_view_window.y_to_screen(plot.y_values[0].clone().unwrap_or(Number::zero()));
             for this_x in 0..(plot.y_values.len() - 1) {
                 let next_x = this_x + 1;
 
@@ -250,7 +285,7 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                 if let Ok(this_y) = plot.y_values[this_x] {
                     let next_y = plot.y_values[next_x].as_ref().unwrap_or(&this_y);
                     let this_y_screen = next_y_screen;
-                    next_y_screen = self.view_window.y_to_screen(*next_y);
+                    next_y_screen = self.calculated_view_window.y_to_screen(*next_y);
         
                     if this_y_screen == next_y_screen {
                         self.os_mut().display_sprite.draw_pixel(this_x as i16, this_y_screen, Colour::WHITE);
@@ -300,7 +335,7 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                     structured,
                     y_values: Vec::new()
                 };
-                plot.recalculate_values(&this.view_window, &this.settings());
+                plot.recalculate_values(&this.calculated_view_window, &this.settings());
 
                 // Create and push plot
                 this.plots.push(plot);
@@ -355,7 +390,7 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                     let plot = &mut this.plots[plot_index];
                     plot.unstructured = unstructured;
                     plot.structured = structured;
-                    plot.recalculate_values(&this.view_window, &settings);    
+                    plot.recalculate_values(&this.calculated_view_window, &settings);    
                 }),
                 ContextMenuItem::new_common("Delete", move |this: &mut Self| {
                     this.plots.remove(plot_index);
@@ -374,25 +409,45 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                 ContextMenuItem::new_common("Auto view", |this: &mut Self| {
                     this.auto_view();
                 }),
-                ContextMenuItem::new_common("X scale", |this: &mut Self| {
-                    (this.view_window.scale_x, _) =
+                ContextMenuItem::new_common("X min.", |this: &mut Self| {
+                    (this.user_view_window.x_min, _) =
                         this.os_mut().ui_input_expression_and_evaluate(
-                            "X scale:",
-                            Some(UnstructuredNodeRoot::from_number(this.view_window.scale_x)),
+                            "X min.:",
+                            Some(UnstructuredNodeRoot::from_number(this.user_view_window.x_min)),
                             || (),
                         );
 
-                    this.recalculate_all_plots();
+                    this.recalculate_all();
                 }),
-                ContextMenuItem::new_common("Y scale", |this: &mut Self| {
-                    (this.view_window.scale_y, _) =
+                ContextMenuItem::new_common("X max.", |this: &mut Self| {
+                    (this.user_view_window.x_max, _) =
                         this.os_mut().ui_input_expression_and_evaluate(
-                            "Y scale:",
-                            Some(UnstructuredNodeRoot::from_number(this.view_window.scale_y)),
+                            "X max.:",
+                            Some(UnstructuredNodeRoot::from_number(this.user_view_window.x_max)),
                             || (),
                         );
 
-                    this.recalculate_all_plots();
+                    this.recalculate_all();
+                }),
+                ContextMenuItem::new_common("Y min.", |this: &mut Self| {
+                    (this.user_view_window.y_min, _) =
+                        this.os_mut().ui_input_expression_and_evaluate(
+                            "Y min.:",
+                            Some(UnstructuredNodeRoot::from_number(this.user_view_window.y_min)),
+                            || (),
+                        );
+
+                    this.recalculate_all();
+                }),
+                ContextMenuItem::new_common("Y max.", |this: &mut Self| {
+                    (this.user_view_window.y_max, _) =
+                        this.os_mut().ui_input_expression_and_evaluate(
+                            "Y max.:",
+                            Some(UnstructuredNodeRoot::from_number(this.user_view_window.y_max)),
+                            || (),
+                        );
+
+                    this.recalculate_all();
                 }),
             ],
             true,
@@ -430,22 +485,20 @@ impl<F: ApplicationFramework> GraphApplication<F> {
         sorted_y_values.sort_unstable();
         let min_y_graph_value = *sorted_y_values[0];
         let max_y_graph_value = **sorted_y_values.last().unwrap();
-    
-        // Calculate Y difference and midpoint
-        let y_difference = max_y_graph_value - min_y_graph_value;
-        let y_midpoint = min_y_graph_value + y_difference / 2.into();
-
-        // Adjust view window
-        self.view_window.scale_y = Number::Rational(DISPLAY_HEIGHT as i64, 1) / y_difference;
-        self.view_window.pan_y = y_midpoint * -self.view_window.scale_y;
-
-        self.recalculate_all_plots();
+        
+        self.user_view_window.y_min = min_y_graph_value;
+        self.user_view_window.y_max = max_y_graph_value;
+        self.recalculate_all();
     }
 
-    fn recalculate_all_plots(&mut self) {
+    fn recalculate_all(&mut self) {
+        // Recalculate view window
+        self.calculated_view_window = self.user_view_window.to_calculated();
+
+        // Adjust plots
         let settings = self.settings();
         for plot in &mut self.plots {
-            plot.recalculate_values(&self.view_window, &settings);
+            plot.recalculate_values(&self.calculated_view_window, &settings);
         }
     }
 }
