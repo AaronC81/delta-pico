@@ -1,6 +1,3 @@
-use num_traits::Zero;
-use rbop::Number;
-
 use crate::{interface::{ApplicationFramework, ButtonInput}, tests, operating_system::OSInput};
 
 use super::GraphApplication;
