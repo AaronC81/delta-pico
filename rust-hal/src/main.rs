@@ -17,17 +17,17 @@ use button_matrix::{RawButtonEvent, ButtonMatrix};
 use cat24c::Cat24C;
 use cortex_m_rt::entry;
 use delta_pico_rust::{interface::{DisplayInterface, ApplicationFramework, ButtonsInterface, ButtonEvent, StorageInterface, ButtonInput}, delta_pico_main, graphics::Sprite};
-use embedded_hal::{digital::v2::OutputPin, spi::MODE_0, blocking::delay::DelayMs, blocking::i2c::{Write, Read}};
+use embedded_hal::{digital::v2::{OutputPin}, spi::MODE_0, blocking::delay::DelayMs, blocking::i2c::{Write, Read}};
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
 use ili9341::Ili9341;
 use rp_pico as bsp;
 use bsp::{hal::{
     clocks::{init_clocks_and_plls, Clock},
     pac,
-    sio::Sio,
+    sio::{Sio, SioFifo, Spinlock},
     watchdog::Watchdog,
-    spi::{Spi, SpiDevice}, gpio::{FunctionSpi, PinId, FunctionI2C}, I2C, Timer,
-}};
+    spi::{Spi, SpiDevice}, gpio::{FunctionSpi, PinId, FunctionI2C, Pin, bank0::{Gpio20, Gpio21}}, I2C, Timer, multicore::{Stack, Multicore},
+}, pac::I2C0};
 
 #[global_allocator]
 static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
@@ -48,6 +48,20 @@ fn lives_forever<T: ?Sized>(t: &mut T) -> &'static mut T {
     unsafe { (t as *mut T).as_mut().unwrap() }
 }
 
+/// The I2C bus peripheral, used to communicate with the display and storage.
+/// 
+/// Stored in a global so that core 1 can access it too - the HAL doesn't seem to provide a method
+/// to get access to an I2C peripheral without re-initialising it, so it can't be stolen like most
+/// other peripherals can.
+static mut I2C: Option<&'static mut I2C<I2C0, (Pin<Gpio20, FunctionI2C>, Pin<Gpio21, FunctionI2C>)>> = None;
+
+/// A spinlock with an arbitrarily-chosen number, used to sychronise access to the I2C bus.
+type I2CSpinlock = Spinlock<8>;
+
+/// The clock speed of the system clock in hertz. Global so that it can be read by core 1 to set up
+/// delay timing.
+static mut SYSTEM_CLOCK_HZ: u32 = 0;
+
 #[entry]
 fn main() -> ! {
     // Set up allocator
@@ -62,7 +76,7 @@ fn main() -> ! {
     let mut pac = pac::Peripherals::take().unwrap();
     let core = pac::CorePeripherals::take().unwrap();
     let mut watchdog = Watchdog::new(pac.WATCHDOG);
-    let sio = Sio::new(pac.SIO);
+    let mut sio = Sio::new(pac.SIO);
 
     // External high-speed crystal on the pico board is 12Mhz
     let external_xtal_freq_hz = 12_000_000u32;
@@ -78,8 +92,19 @@ fn main() -> ! {
     .ok()
     .unwrap();
 
+    unsafe { SYSTEM_CLOCK_HZ = clocks.system_clock.freq().integer() };
     let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().integer());
     let timer = Timer::new(pac.TIMER, &mut pac.RESETS);
+
+    // Kick off core 1, which gathers button presses and relays them to core 0 over a FIFO
+    // Even though this is far too early (we haven't set up I2C yet), we need to start it here
+    // because `pins` moves part of `sio`, so we can't mutably borrow it any more
+    // To prevent issues, it'll block until we drop the lock for the first time
+    let _lock = I2CSpinlock::claim();
+    let mut mc = Multicore::new(&mut pac.PSM, &mut pac.PPB, &mut sio);
+    let cores = mc.cores();
+    let core1 = &mut cores[1];
+    let _test = core1.spawn(core1_task, unsafe { &mut CORE1_STACK.mem });
 
     let pins = bsp::Pins::new(
         pac.IO_BANK0,
@@ -138,15 +163,9 @@ fn main() -> ! {
         clocks.peripheral_clock,
     );
 
-    let col_pcf = pcf8574::Pcf8574::new(0x38, lives_forever(&mut i2c));
-    let row_pcf = pcf8574::Pcf8574::new(0x3E, lives_forever(&mut i2c));
-
-    // Init button matrix and wait for key
-    let buttons = ButtonMatrix::new(
-        row_pcf,
-        col_pcf, 
-        lives_forever(&mut delay),
-    );
+    // Share the bus with the other core, and release the lock to allow it to start
+    unsafe { I2C = Some(lives_forever(&mut i2c)); }
+    drop(_lock);
 
     // Init flash storage
     let flash = Cat24C::new(
@@ -157,7 +176,7 @@ fn main() -> ! {
 
     let framework = FrameworkImpl {
         display: DisplayImpl { ili },
-        buttons: ButtonsImpl { matrix: buttons },
+        buttons: ButtonsImpl { fifo: lives_forever(&mut sio.fifo) },
         storage: StorageImpl { flash },
         
         timer,
@@ -182,39 +201,25 @@ impl<SpiD: SpiDevice, DcPin: PinId, RstPin: PinId, Delay: DelayMs<u8>> DisplayIn
     }
 }
 
-struct ButtonsImpl<
-    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError> + 'static,
-    RowError,
-    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError> + 'static,
-    ColError,
-    Delay: DelayMs<u8> + 'static,
-> {
-    matrix: ButtonMatrix<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay>,
+struct ButtonsImpl {
+    fifo: &'static mut SioFifo,
 }
 
-impl<
-    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError>,
-    RowError,
-    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError>,
-    ColError,
-    Delay: DelayMs<u8> + 'static,
-> ButtonsInterface for ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay> {
+impl ButtonsInterface for ButtonsImpl {
     fn wait_event(&mut self) -> delta_pico_rust::interface::ButtonEvent {
-        loop {
-            match self.matrix.get_event(true) {
-                Ok(Some(RawButtonEvent::Press(row, col))) => {
-                    let input = rev::BUTTON_MAPPING[row as usize][col as usize];
-                    return ButtonEvent::Press(input)
-                }
+        let raw_button = self.fifo.read_blocking();
 
-                Ok(Some(RawButtonEvent::Release(row, col))) => {
-                    let input = rev::BUTTON_MAPPING[row as usize][col as usize];
-                    return ButtonEvent::Release(input)
-                }
+        match RawButtonEvent::from_u32(raw_button) {
+            RawButtonEvent::Press(row, col) => {
+                let input = rev::BUTTON_MAPPING[row as usize][col as usize];
+                return ButtonEvent::Press(input)
+            }
 
-                _ => continue,
-            };
-        }
+            RawButtonEvent::Release(row, col) => {
+                let input = rev::BUTTON_MAPPING[row as usize][col as usize];
+                return ButtonEvent::Release(input)
+            }
+        };
     }
 
     fn poll_event(&mut self) -> Option<delta_pico_rust::interface::ButtonEvent> {
@@ -235,18 +240,26 @@ impl<
     StorageError,
     Delay: DelayMs<u8> + 'static,
 > StorageInterface for StorageImpl<StorageI2CDevice, StorageError, Delay> {
-    fn is_connected(&mut self) -> bool { self.flash.is_connected() }
-    fn is_busy(&mut self) -> bool { self.flash.is_busy() }
+    fn is_connected(&mut self) -> bool {
+        let _lock = I2CSpinlock::claim();
+        self.flash.is_connected()
+    }
+    fn is_busy(&mut self) -> bool {
+        let _lock = I2CSpinlock::claim();
+        self.flash.is_busy()
+    }
 
     fn write(&mut self, address: u16, bytes: &[u8]) -> Option<()> {
+        let _lock = I2CSpinlock::claim();
         self.flash.write(address, bytes).ok()
     }
 
     fn read(&mut self, address: u16, bytes: &mut [u8]) -> Option<()> {
+        let _lock = I2CSpinlock::claim();
         self.flash.read(address, bytes).ok()
     }
 
-    // No-ops for now - no multicore
+    // TODO No-ops for now
     fn acquire_priority(&mut self) {}
     fn release_priority(&mut self) {}
 }
@@ -257,16 +270,11 @@ struct FrameworkImpl<
     RstPin: PinId,
     Delay: DelayMs<u8> + 'static,
 
-    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError> + 'static,
-    RowError,
-    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError> + 'static,
-    ColError,
-
     StorageI2CDevice: Write<Error = StorageError> + Read<Error = StorageError> + 'static,
     StorageError,
 > {
     display: DisplayImpl<SpiD, DcPin, RstPin, Delay>,
-    buttons: ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay>,
+    buttons: ButtonsImpl,
     storage: StorageImpl<StorageI2CDevice, StorageError, Delay>,
     timer: Timer,
 }
@@ -277,16 +285,11 @@ impl<
     RstPin: PinId,
     Delay: DelayMs<u8> + 'static,
 
-    RowI2CDevice: Write<Error = RowError> + Read<Error = RowError>,
-    RowError,
-    ColI2CDevice: Write<Error = ColError> + Read<Error = ColError>,
-    ColError,
-
     StorageI2CDevice: Write<Error = StorageError> + Read<Error = StorageError>,
     StorageError,
-> ApplicationFramework for FrameworkImpl<SpiD, DcPin, RstPin, Delay, RowI2CDevice, RowError, ColI2CDevice, ColError, StorageI2CDevice, StorageError> {
+> ApplicationFramework for FrameworkImpl<SpiD, DcPin, RstPin, Delay, StorageI2CDevice, StorageError> {
     type DisplayI = DisplayImpl<SpiD, DcPin, RstPin, Delay>;
-    type ButtonsI = ButtonsImpl<RowI2CDevice, RowError, ColI2CDevice, ColError, Delay>;
+    type ButtonsI = ButtonsImpl;
     type StorageI = StorageImpl<StorageI2CDevice, StorageError, Delay>;
 
     fn display(&self) -> &Self::DisplayI { &self.display }
@@ -344,13 +347,57 @@ impl<
 
     fn should_run_tests(&mut self) -> bool {
         // Hold DEL on boot
-        if let Ok(Some((row, col))) = self.buttons.matrix.get_raw_button() {
-            let button = rev::BUTTON_MAPPING[row as usize][col as usize];
-            if button == ButtonInput::Delete {
-                return true;
+        // The OS has never queried for input before this, so if delete was pressed, it's still in
+        // the queue
+        let pac = unsafe { pac::Peripherals::steal() };
+        let mut sio = Sio::new(pac.SIO);
+        if let Some(encoded) = sio.fifo.read() {
+            if let RawButtonEvent::Press(row, col) = RawButtonEvent::from_u32(encoded) {
+                let button = rev::BUTTON_MAPPING[row as usize][col as usize];
+                if button == ButtonInput::Delete {
+                    return true;
+                }    
             }
         }
-        
+                
         false
+    }
+}
+
+static mut CORE1_STACK: Stack<4096> = Stack::new();
+fn core1_task() -> ! {
+    // Grab some important peripherals
+    let pac = unsafe { pac::Peripherals::steal() };
+    let core = unsafe { pac::CorePeripherals::steal() };
+    let mut sio = Sio::new(pac.SIO);
+    let mut delay = cortex_m::delay::Delay::new(core.SYST, unsafe { SYSTEM_CLOCK_HZ });
+
+    // Core 0 holds the I2C lock until it's shared the bus with us, so block on that
+    let _lock = I2CSpinlock::claim();
+    drop(_lock);
+    let i2c = unsafe { I2C.take().unwrap() };
+
+    // Set up button matrix expanders
+    let col_pcf = pcf8574::Pcf8574::new(0x38, lives_forever(i2c));
+    let row_pcf = pcf8574::Pcf8574::new(0x3E, lives_forever(i2c));
+
+    // Init button matrix
+    let mut buttons = ButtonMatrix::new(
+        row_pcf,
+        col_pcf, 
+        lives_forever(&mut delay),
+    );    
+
+    // For the rest of time, loop looking for buttons
+    loop {
+        let _lock = I2CSpinlock::claim();
+        if let Ok(Some(btn)) = buttons.get_event(false) {
+            sio.fifo.write(btn.to_u32());
+        }
+        drop(_lock);
+
+        // We need to give the storage peripheral a little bit of time to claim the lock if it's
+        // waiting
+        delay.delay_ms(1);
     }
 }

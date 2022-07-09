@@ -7,6 +7,27 @@ pub enum RawButtonEvent {
     Release(u8, u8),
 }
 
+impl RawButtonEvent {
+    pub fn to_u32(self) -> u32 {
+        let (base, a, b) = match self {
+            RawButtonEvent::Press(a, b) => (0x80000000, a, b),
+            RawButtonEvent::Release(a, b) => (0, a, b),
+        };
+        base | ((a as u32) << 8) | (b as u32)
+    }
+
+    pub fn from_u32(value: u32) -> Self {
+        let b = (value & 0xFF) as u8;
+        let a = (value >> 8 & 0xFF) as u8;
+
+        if value & 0x80000000 > 0 {
+            RawButtonEvent::Press(a, b)
+        } else {
+            RawButtonEvent::Release(a, b)
+        }
+    }
+}
+
 pub struct ButtonMatrix<
     RowI2CDevice: Write<Error = RowError> + Read<Error = RowError> + 'static,
     RowError,
@@ -62,6 +83,15 @@ impl<
 
                 // Return the row too
                 let pressed_row = row;
+
+                // Sometimes, we manage to read a button press in row/column 7 - an impressive feat
+                // given that they don't exist. I've observed this several times on a Rev. 3, and
+                // it looks like a random lockup when using multicore input, because core 1 panics.
+                // Did I leave some lines floating on the PCB?
+                // Whatever the cause - guard against this explicitly!
+                if pressed_row == 7 || pressed_col == 7 {
+                    return Ok(None);
+                }
 
                 // Map row and column to actual numbers, rather than PCF8574 wiring, and return
                 return Ok(Some((
