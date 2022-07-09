@@ -403,52 +403,31 @@ impl<F: ApplicationFramework> GraphApplication<F> {
     fn view_window_menu(&mut self) {
         self.draw();
 
+        macro_rules! vw_edit {
+            ($label: expr, $this: ident, $accessor: expr) => {
+                ContextMenuItem::new_common($label, |$this: &mut Self| {
+                    ($accessor, _) =
+                            $this.os_mut().ui_input_expression_and_evaluate(
+                                $label,
+                                Some(UnstructuredNodeRoot::from_number($accessor)),
+                                || (),
+                            );
+
+                        $this.recalculate_all();
+                })
+            };
+        }
+
         ContextMenu::new(
             self.os,
             vec![
                 ContextMenuItem::new_common("Auto view", |this: &mut Self| {
                     this.auto_view();
                 }),
-                ContextMenuItem::new_common("X min.", |this: &mut Self| {
-                    (this.user_view_window.x_min, _) =
-                        this.os_mut().ui_input_expression_and_evaluate(
-                            "X min.:",
-                            Some(UnstructuredNodeRoot::from_number(this.user_view_window.x_min)),
-                            || (),
-                        );
-
-                    this.recalculate_all();
-                }),
-                ContextMenuItem::new_common("X max.", |this: &mut Self| {
-                    (this.user_view_window.x_max, _) =
-                        this.os_mut().ui_input_expression_and_evaluate(
-                            "X max.:",
-                            Some(UnstructuredNodeRoot::from_number(this.user_view_window.x_max)),
-                            || (),
-                        );
-
-                    this.recalculate_all();
-                }),
-                ContextMenuItem::new_common("Y min.", |this: &mut Self| {
-                    (this.user_view_window.y_min, _) =
-                        this.os_mut().ui_input_expression_and_evaluate(
-                            "Y min.:",
-                            Some(UnstructuredNodeRoot::from_number(this.user_view_window.y_min)),
-                            || (),
-                        );
-
-                    this.recalculate_all();
-                }),
-                ContextMenuItem::new_common("Y max.", |this: &mut Self| {
-                    (this.user_view_window.y_max, _) =
-                        this.os_mut().ui_input_expression_and_evaluate(
-                            "Y max.:",
-                            Some(UnstructuredNodeRoot::from_number(this.user_view_window.y_max)),
-                            || (),
-                        );
-
-                    this.recalculate_all();
-                }),
+                vw_edit!("X min.", this, this.user_view_window.x_min),
+                vw_edit!("X max.", this, this.user_view_window.x_max),
+                vw_edit!("Y min.", this, this.user_view_window.y_min),
+                vw_edit!("Y max.", this, this.user_view_window.y_max),
             ],
             true,
         ).tick_until_call(self);
