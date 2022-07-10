@@ -29,16 +29,6 @@ pub struct CalculatedViewWindow {
 }
 
 impl CalculatedViewWindow {
-    /// Returns an initial view window, with no scaling or panning.
-    fn new() -> CalculatedViewWindow {
-        CalculatedViewWindow {
-            pan_x: Number::zero(),
-            pan_y: Number::zero(),
-            scale_x: Number::one(),
-            scale_y: Number::one(),
-        }
-    }
-
     /// Returns the screen position of the origin (0, 0) in the graph space.
     fn axis_screen_coords(&self) -> (i16, i16) {
         (
