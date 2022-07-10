@@ -53,7 +53,15 @@ impl<F: ApplicationFramework> Application for MenuApplication<F> {
             match btn {
                 ButtonInput::MoveUp => self.menu.move_up(),
                 ButtonInput::MoveDown => self.menu.move_down(),
-                ButtonInput::Exe => self.os_mut().launch_application(self.menu.selected_index),
+                ButtonInput::Exe => {
+                    // If the app the user selected is already open (i.e. has a marker), just close
+                    // the menu rather than re-opening it
+                    if self.menu.items[self.menu.selected_index].decorator == FullPageMenuItemDecorator::Marker {
+                        self.os_mut().showing_menu = false;
+                    } else {
+                        self.os_mut().launch_application(self.menu.selected_index);
+                    }
+                },
                 _ => (),
             }
         }
