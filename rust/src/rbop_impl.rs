@@ -281,7 +281,14 @@ impl Renderer for RbopSpriteRenderer {
             Glyph::Comma => sprite.draw_char_at(x, y, ','),
             Glyph::Variable { name } => sprite.draw_char_at(x, y, name),
             Glyph::Add => sprite.draw_char_at(x, y, '+'),
-            Glyph::Subtract => sprite.draw_char_at(x, y, '-'),
+            Glyph::Subtract => {
+                // HACK: The '-' character looks a bit too small for a subtraction symbol - draw
+                // two of them next to each other instead
+                // (We don't just draw a line, because that doesn't have anti-aliasing, so looks
+                // quite out of place compared to the other symbols)
+                sprite.draw_char_at(x + 1, y - 1, '-');
+                sprite.draw_char_at(x + 3, y - 1, '-');
+            }
             Glyph::Multiply => sprite.draw_char_at(x, y, '*'),
             Glyph::Divide => sprite.draw_char_at(x, y, '/'),
             
