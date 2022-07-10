@@ -32,8 +32,8 @@ impl CalculatedViewWindow {
     /// Returns the screen position of the origin (0, 0) in the graph space.
     fn axis_screen_coords(&self) -> (i16, i16) {
         (
-            self.x_to_screen(Number::zero()),
-            self.y_to_screen(Number::zero())
+            self.x_to_screen(Number::zero()).unwrap(),
+            self.y_to_screen(Number::zero()).unwrap(),
         )
     }
 
@@ -54,7 +54,9 @@ impl CalculatedViewWindow {
     }
 
     /// Given a X value in the graph space, returns a X value on the screen.
-    fn x_to_screen(&self, mut x: Number) -> i16 {
+    /// 
+    /// If the X value is out of the range of an i16, returns None.
+    fn x_to_screen(&self, mut x: Number) -> Option<i16> {
         // Apply scale
         x *= self.scale_x;
 
@@ -63,12 +65,13 @@ impl CalculatedViewWindow {
 
         // Squash into an integer, and pan so that (0, 0) is in the middle of
         // the screen
-        x.to_decimal().to_i16().unwrap_or(i16::MAX - DISPLAY_WIDTH as i16 / 2)
-        + DISPLAY_WIDTH as i16 / 2
+        x.to_decimal().to_i16().map(|x| x.saturating_add(DISPLAY_WIDTH as i16 / 2))
     }
 
     /// Given a Y value in the graph space, returns a Y value on the screen.
-    fn y_to_screen(&self, mut y: Number) -> i16 {
+    /// 
+    /// If the Y value is out of the range of an i16, returns None.
+    fn y_to_screen(&self, mut y: Number) -> Option<i16> {
         // Apply scale
         y *= self.scale_y;
 
@@ -77,7 +80,7 @@ impl CalculatedViewWindow {
 
         // Squash into an integer, flip around the bottom of the screen, and
         // pan so that (0, 0) is in the middle of the screen
-        DISPLAY_HEIGHT as i16 / 2 - y.to_decimal().to_i16().unwrap_or(i16::MAX)
+        y.to_decimal().to_i16().map(|y| (DISPLAY_HEIGHT as i16 / 2).saturating_sub(y))
     }
 }
 
@@ -277,9 +280,9 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                     let this_y_screen = next_y_screen;
                     next_y_screen = self.calculated_view_window.y_to_screen(*next_y);
         
-                    if this_y_screen == next_y_screen {
+                    if this_y_screen == next_y_screen && let Some(this_y_screen) = this_y_screen {
                         self.os_mut().display_sprite.draw_pixel(this_x as i16, this_y_screen, Colour::WHITE);
-                    } else {
+                    } else if let Some(this_y_screen) = this_y_screen && let Some(next_y_screen) = next_y_screen {
                         self.os_mut().display_sprite.draw_line(
                             this_x as i16, this_y_screen,
                             this_x as i16, next_y_screen,

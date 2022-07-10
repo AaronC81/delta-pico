@@ -26,7 +26,7 @@ pub fn test<F: ApplicationFramework>(app: &mut GraphApplication<F>) {
     assert_eq!(app.plots.len(), 1);
 
     // Check that value was calculated correctly into cache (when x = 3, y = 9)
-    let x_to_screen_3_before = app.calculated_view_window.x_to_screen(3.into()) as usize;
+    let x_to_screen_3_before = app.calculated_view_window.x_to_screen(3.into()).unwrap() as usize;
     assert_eq!(
         app.plots[0].y_values[x_to_screen_3_before],
         Ok(9.into()),
@@ -40,7 +40,7 @@ pub fn test<F: ApplicationFramework>(app: &mut GraphApplication<F>) {
         OSInput::Button(ButtonInput::MoveRight),
         OSInput::Button(ButtonInput::MoveRight),
     ]);
-    let x_to_screen_3_after = app.calculated_view_window.x_to_screen(3.into()) as usize;
+    let x_to_screen_3_after = app.calculated_view_window.x_to_screen(3.into()).unwrap() as usize;
     assert_ne!(x_to_screen_3_before, x_to_screen_3_after);
     assert_eq!(
         app.plots[0].y_values[x_to_screen_3_after],
