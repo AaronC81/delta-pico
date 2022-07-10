@@ -89,9 +89,8 @@ impl<F: ApplicationFramework> RbopContext<F> {
             OSInput::Button(ButtonInput::List) => return None,
             OSInput::Button(ButtonInput::None) => return None,
             OSInput::Button(ButtonInput::Shift) => return None,
-
-            // Handled earlier in the driver stack
-            OSInput::Button(ButtonInput::Menu) | OSInput::Button(ButtonInput::Text) => unreachable!(),
+            OSInput::Button(ButtonInput::Menu) => return None,
+            OSInput::Button(ButtonInput::Text) => return None,
 
             OSInput::ShiftedButton(ButtonInput::Digit(0)) => Some(UnstructuredNode::Token(Token::Variable('x'))),
             OSInput::ShiftedButton(ButtonInput::Digit(1)) => Some(UnstructuredNode::new_function_call(Function::Sine)),

@@ -168,7 +168,7 @@ where F: ApplicationFramework + 'static,
                 OSInput::Button(ButtonInput::Exe) => {
                     return SelectorMenuTickResult::Selected;
                 }
-                OSInput::Button(ButtonInput::List) if self.closeable => {
+                OSInput::Button(ButtonInput::List) | OSInput::Button(ButtonInput::Menu) if self.closeable => {
                     return SelectorMenuTickResult::Cancelled;
                 }
                 _ => (),

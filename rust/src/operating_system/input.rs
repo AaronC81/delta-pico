@@ -20,7 +20,7 @@ impl<F: ApplicationFramework + 'static> OperatingSystem<F> {
             // Special cases
             ButtonInput::Menu => {
                 self.toggle_menu();
-                return None
+                return Some(OSInput::Button(ButtonInput::Menu))
             }
             ButtonInput::Text => {
                 self.text_mode = !self.text_mode;
