@@ -33,7 +33,9 @@ impl<F: ApplicationFramework + 'static> OperatingSystem<F> {
 
     /// Opens an rbop input box with the given `title` and optionally starts the node tree at the
     /// given `root`. When the user presses EXE, returns the current node tree.
-    pub fn ui_input_expression(&mut self, title: &str, root: Option<UnstructuredNodeRoot>) -> UnstructuredNodeRoot {
+    /// 
+    /// If the user opens the menu, returns `None`.
+    pub fn ui_input_expression(&mut self, title: &str, root: Option<UnstructuredNodeRoot>) -> Option<UnstructuredNodeRoot> {
         const PADDING: i16 = 10;
         
         let mut rbop_ctx = RbopContext {
@@ -82,7 +84,8 @@ impl<F: ApplicationFramework + 'static> OperatingSystem<F> {
             // Poll for input
             if let Some(input) = self.input() {
                 match input {
-                    OSInput::Button(ButtonInput::Exe) => return rbop_ctx.root,
+                    OSInput::Button(ButtonInput::Exe) => return Some(rbop_ctx.root),
+                    OSInput::Button(ButtonInput::Menu) => return None,
                     OSInput::Button(ButtonInput::List) => {
                         // TODO: should this open a list for consistency with Calculator?
 
@@ -122,16 +125,22 @@ impl<F: ApplicationFramework + 'static> OperatingSystem<F> {
     /// If this causes an error, a dialog will be displayed with `ui_text_dialog`, which will
     /// require redrawing the screen once dismissed. As such, this takes a `redraw` function which
     /// will be called each time before displaying the input prompt (including the first time).
+    /// 
+    /// If the user opens the menu, returns `None`.
     pub fn ui_input_expression_and_evaluate(
         &mut self,
         title: &str,
         root: Option<UnstructuredNodeRoot>,
         mut redraw: impl FnMut(),
-    ) -> (Number, UnstructuredNodeRoot) {
+    ) -> Option<(Number, UnstructuredNodeRoot)> {
         let mut unr = root;
         loop {
             redraw();
-            unr = Some(self.ui_input_expression(title, unr));
+            unr = if let Some(x) = self.ui_input_expression(title, unr) {
+                Some(x)
+            } else {
+                return None
+            };
             match unr
                 .as_ref()
                 .unwrap()
@@ -142,7 +151,7 @@ impl<F: ApplicationFramework + 'static> OperatingSystem<F> {
                     .map_err(|e| format!("{:?}", e))) {
                 
                 Ok(d) => {
-                    return (d.simplify(), unr.unwrap());
+                    return Some((d.simplify(), unr.unwrap()));
                 }
                 Err(s) => {
                     redraw();

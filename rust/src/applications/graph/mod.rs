@@ -1,6 +1,6 @@
 use alloc::{format, vec, vec::Vec, string::{ToString, String}, boxed::Box};
 use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable, UnstructuredNodeRoot}, structured::EvaluationSettings}, error::MathsError, render::{Viewport, Area}};
-use rust_decimal::{prelude::{One, ToPrimitive, Zero}, Decimal};
+use rust_decimal::{prelude::{One, ToPrimitive, Zero}};
 
 use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer, ContextMenu, ContextMenuItem, SelectorMenuCallable}, rbop_impl::RbopSpriteRenderer};
 use super::{Application, ApplicationInfo};
@@ -329,16 +329,17 @@ impl<F: ApplicationFramework> GraphApplication<F> {
         // Start with the menu item to add a new plot, then a divider
         let mut menu_items = vec![
             ContextMenuItem::new_common("Add plot", |this: &mut Self| {
-                let (structured, unstructured) = this.input_expression_until_upgrade(None);
-                let mut plot = Plot {
-                    unstructured,
-                    structured,
-                    y_values: Vec::new()
-                };
-                plot.recalculate_values(&this.calculated_view_window, &this.settings());
+                if let Some((structured, unstructured)) = this.input_expression_until_upgrade(None) {
+                    let mut plot = Plot {
+                        unstructured,
+                        structured,
+                        y_values: Vec::new()
+                    };
+                    plot.recalculate_values(&this.calculated_view_window, &this.settings());
 
-                // Create and push plot
-                this.plots.push(plot);
+                    // Create and push plot
+                    this.plots.push(plot);
+                }
             }),
             ContextMenuItem::Divider,
         ];
@@ -383,14 +384,16 @@ impl<F: ApplicationFramework> GraphApplication<F> {
             self.os,
             vec![
                 ContextMenuItem::new_common("Edit", move |this: &mut Self| {
-                    let (structured, unstructured) = this.input_expression_until_upgrade(
+                    if let Some((structured, unstructured)) = this.input_expression_until_upgrade(
                         Some(this.plots[plot_index].unstructured.clone())
-                    );
-                    let settings = this.settings();
-                    let plot = &mut this.plots[plot_index];
-                    plot.unstructured = unstructured;
-                    plot.structured = structured;
-                    plot.recalculate_values(&this.calculated_view_window, &settings);    
+                    )
+                    {
+                        let settings = this.settings();
+                        let plot = &mut this.plots[plot_index];
+                        plot.unstructured = unstructured;
+                        plot.structured = structured;
+                        plot.recalculate_values(&this.calculated_view_window, &settings);    
+                    }
                 }),
                 ContextMenuItem::new_common("Delete", move |this: &mut Self| {
                     this.plots.remove(plot_index);
@@ -419,14 +422,16 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                         truncate_string($outer_accessor.to_decimal().to_string(), 10),
                     ),
                     |$this: &mut Self| {
-                        ($accessor, _) =
+                        if let Some((x, _)) =
                                 $this.os_mut().ui_input_expression_and_evaluate(
                                     $label,
                                     Some(UnstructuredNodeRoot::from_number($accessor)),
                                     || (),
-                                );
-
+                                )
+                        {
+                            $accessor = x;
                             $this.recalculate_all();
+                        }
                     },
                 )
             };
@@ -456,15 +461,22 @@ impl<F: ApplicationFramework> GraphApplication<F> {
         }
     }
 
-    fn input_expression_until_upgrade(&mut self, start: Option<UnstructuredNodeRoot>) -> (StructuredNode, UnstructuredNodeRoot) {
+    /// Repeatedly prompts the user to input an expression until it upgrades successfully, then
+    /// returns it.
+    /// 
+    /// If the user opens the menu, returns `None`.
+    fn input_expression_until_upgrade(&mut self, start: Option<UnstructuredNodeRoot>) -> Option<(StructuredNode, UnstructuredNodeRoot)> {
         loop {
-            let unstructured = self.os_mut().ui_input_expression("y =", start.clone());
-            match unstructured.upgrade() {
-                Ok(s) => return (s, unstructured),
-                Err(e) => {
-                    self.os_mut().ui_text_dialog(&e.to_string());
-                    self.draw();
+            if let Some(unstructured) = self.os_mut().ui_input_expression("y =", start.clone()) {
+                match unstructured.upgrade() {
+                    Ok(s) => return Some((s, unstructured)),
+                    Err(e) => {
+                        self.os_mut().ui_text_dialog(&e.to_string());
+                        self.draw();
+                    }
                 }
+            } else {
+                return None;
             }
         }
     }

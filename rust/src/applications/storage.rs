@@ -56,12 +56,13 @@ impl<F: ApplicationFramework> Application for StorageApplication<F> {
                         vec![
                             ContextMenuItem::new_common("Jump...", |this: &mut Self| {
                                 // TODO redraw
-                                let (address_dec, _) = this.os_mut().ui_input_expression_and_evaluate("Memory address", None, || ());
-                                if let Some(address) = address_dec.to_decimal().to_u16() {
-                                    // Bind to boundary
-                                    this.address = (address / SHOW_BYTES) * SHOW_BYTES;
-                                } else {
-                                    this.os_mut().ui_text_dialog("Invalid address");
+                                if let Some((address_dec, _)) = this.os_mut().ui_input_expression_and_evaluate("Memory address", None, || ()) {
+                                    if let Some(address) = address_dec.to_decimal().to_u16() {
+                                        // Bind to boundary
+                                        this.address = (address / SHOW_BYTES) * SHOW_BYTES;
+                                    } else {
+                                        this.os_mut().ui_text_dialog("Invalid address");
+                                    }
                                 }
                             })
                         ],
