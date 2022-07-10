@@ -4,11 +4,25 @@ use crate::interface::{ApplicationFramework, ShapeFill, Colour, DisplayInterface
 
 use super::{OperatingSystemPointer, os_accessor, OperatingSystem};
 
+/// An extra control or indicator which can appear alongside a `FullPageMenuItem`.
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+pub enum FullPageMenuItemDecorator {
+    /// No extra decorator.
+    None,
+
+    /// A toggle switch, set to the "on" position if the enclosed item is `true`, otherwise set to
+    /// the "off" position.
+    Toggle(bool),
+
+    /// A generic marker badge.
+    Marker,
+}
+
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct FullPageMenuItem {
     pub title: String,
     pub icon: String,
-    pub toggle: Option<bool>,
+    pub decorator: FullPageMenuItemDecorator,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -61,10 +75,16 @@ impl<F: ApplicationFramework> FullPageMenu<F> {
             }
             self.os_mut().display_sprite.draw_bitmap(7, y + 2, &item.icon);
 
-            // Draw toggle, if necessary
-            if let Some(toggle_position) = item.toggle {
-                let toggle_bitmap_name = if toggle_position { "toggle_on" } else { "toggle_off" };
-                self.os_mut().display_sprite.draw_bitmap(195, y + 20, toggle_bitmap_name);
+            // Draw decorator
+            match item.decorator {
+                FullPageMenuItemDecorator::Toggle(toggle_position) => {
+                    let toggle_bitmap_name = if toggle_position { "toggle_on" } else { "toggle_off" };
+                    self.os_mut().display_sprite.draw_bitmap(195, y + 20, toggle_bitmap_name);
+                }
+                FullPageMenuItemDecorator::Marker => {
+                    self.os_mut().display_sprite.draw_bitmap(205, y + 20, "menu_marker" );
+                },
+                FullPageMenuItemDecorator::None => (),
             }
 
             y += 54;

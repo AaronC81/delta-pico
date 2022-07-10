@@ -1,7 +1,7 @@
 use alloc::{vec, format};
 use rbop::node::structured::AngleUnit;
 
-use crate::{interface::{Colour, ShapeFill, ApplicationFramework, ButtonInput, DisplayInterface}, operating_system::{OSInput, FullPageMenu, FullPageMenuItem, os_accessor, OperatingSystem, OperatingSystemPointer}, timer::Timer};
+use crate::{interface::{Colour, ShapeFill, ApplicationFramework, ButtonInput, DisplayInterface}, operating_system::{OSInput, FullPageMenu, FullPageMenuItem, os_accessor, OperatingSystem, OperatingSystemPointer, FullPageMenuItemDecorator}, timer::Timer};
 use super::{Application, ApplicationInfo};
 
 // TODO: mostly unimplemented
@@ -56,22 +56,22 @@ impl<F: ApplicationFramework> SettingsApplication<F> {
             FullPageMenuItem {
                 title: format!("Angle unit: {}", self.os().filesystem.settings.values.angle_unit),
                 icon: "settings_angle_unit".into(),
-                toggle: None,
+                decorator: FullPageMenuItemDecorator::None,
             },
             FullPageMenuItem {
                 title: "Show frame time".into(),
                 icon: "settings_show_frame_time".into(),
-                toggle: Some(self.os().filesystem.settings.values.show_frame_time),
+                decorator: FullPageMenuItemDecorator::Toggle(self.os().filesystem.settings.values.show_frame_time),
             },
             FullPageMenuItem {
                 title: "Show heap usage".into(),
                 icon: "settings_show_memory_usage".into(),
-                toggle: Some(self.os().filesystem.settings.values.show_heap_usage),
+                decorator: FullPageMenuItemDecorator::Toggle(self.os().filesystem.settings.values.show_heap_usage),
             },
             FullPageMenuItem {
                 title: "Graphics benchmark".into(),
                 icon: "settings_graphics_benchmark".into(),
-                toggle: None,
+                decorator: FullPageMenuItemDecorator::None,
             },
             // UIMenuItem {
             //     title: "Run test suite".into(),
@@ -130,7 +130,7 @@ impl<F: ApplicationFramework> SettingsApplication<F> {
         }
 
         *setting_value = !*setting_value;
-        self.menu.items[index].toggle = Some(*setting_value);
+        self.menu.items[index].decorator = FullPageMenuItemDecorator::Toggle(*setting_value);
 
         self.os_mut().filesystem.settings.save();
     }

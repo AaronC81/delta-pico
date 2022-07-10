@@ -1,6 +1,6 @@
 use alloc::{vec, vec::Vec};
 
-use crate::{interface::{Colour, ApplicationFramework, ButtonInput}, operating_system::{OSInput, FullPageMenu, FullPageMenuItem, OperatingSystem, os_accessor, OperatingSystemPointer}};
+use crate::{interface::{Colour, ApplicationFramework, ButtonInput}, operating_system::{OSInput, FullPageMenu, FullPageMenuItem, OperatingSystem, os_accessor, OperatingSystemPointer, FullPageMenuItemDecorator}};
 use super::{Application, ApplicationInfo};
 
 pub struct MenuApplication<F: ApplicationFramework + 'static> {
@@ -34,10 +34,16 @@ impl<F: ApplicationFramework> Application for MenuApplication<F> {
         // Doesn't work to assign during `new` for some reason, so do this instead
         self.menu.items = self.os().application_list.applications
             .iter()
-            .map(|(app, _)| FullPageMenuItem {
+            .enumerate()
+            .map(|(i, (app, _))| FullPageMenuItem {
                 title: app.name.clone(),
                 icon: app.icon_name(),
-                toggle: None,
+                decorator: 
+                    if self.os().active_application_index == Some(i) {
+                        FullPageMenuItemDecorator::Marker
+                    } else {
+                        FullPageMenuItemDecorator::None
+                    },
             })
             .collect::<Vec<_>>();
         self.menu.draw();
