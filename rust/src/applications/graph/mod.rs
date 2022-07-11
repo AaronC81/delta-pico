@@ -1,5 +1,5 @@
 use alloc::{format, vec, vec::Vec, string::{ToString, String}, boxed::Box};
-use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable, UnstructuredNodeRoot}, structured::EvaluationSettings}, error::MathsError, render::{Viewport, Area}};
+use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable, UnstructuredNodeRoot}, structured::EvaluationSettings, compiled::CompiledNode}, error::MathsError, render::{Viewport, Area}};
 use rust_decimal::{prelude::{One, ToPrimitive, Zero}};
 
 use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer, ContextMenu, ContextMenuItem, SelectorMenuCallable}, rbop_impl::RbopSpriteRenderer};
@@ -120,9 +120,9 @@ struct Plot {
     /// The unstructured node tree, as entered by the user to construct the graph.
     unstructured: UnstructuredNodeRoot,
 
-    /// The structured node tree, as upgraded from the unstructured node tree. If the `unstructured`
-    /// field is modified, this should be modified too to match.
-    structured: StructuredNode,
+    /// The compiled node tree, as upgraded and compiled from the unstructured node tree. If the
+    /// `unstructured` field is modified, this should be modified too to match.
+    compiled: CompiledNode,
 
     /// A calculated list of points on this graph. Each index is an X value on the *screen* (not the
     /// graph space), and the value is the corresponding Y value on the *graph space* (not the
@@ -132,19 +132,15 @@ struct Plot {
 
 impl Plot {
     /// Recalculates all of the `y_values` given a viewport and settings to evaluate with.
-    fn recalculate_values(&mut self, view: &CalculatedViewWindow, settings: &EvaluationSettings) {
+    fn recalculate_values(&mut self, view: &CalculatedViewWindow) {
         self.y_values = view.x_coords_on_screen()
-            .iter().map(|i| Self::calculate_one_value(*i, &self.structured, settings)).collect::<Vec<_>>();
+            .iter().map(|i| Self::calculate_one_value(*i, &self.compiled)).collect::<Vec<_>>();
     }
 
     /// Calculates one value for `y_values`, given an X value on the graph space, a node tree to
     /// evaluate, and settings to evaluate with.
-    fn calculate_one_value(x: Number, node: &StructuredNode, settings: &EvaluationSettings) -> Result<Number, MathsError> {
-        let sn_clone = node.substitute_variable(
-            'x',
-            &StructuredNode::Number(x)
-        );
-        sn_clone.evaluate(settings)
+    fn calculate_one_value(x: Number, node: &CompiledNode) -> Result<Number, MathsError> {
+        node.evaluate_raw(x)
     }
 
     /// Recalculates a slice of `y_values` by "panning" the list of calculated values.
@@ -158,7 +154,7 @@ impl Plot {
     /// in the gap.
     /// 
     /// A zero value makes no change.
-    fn recalculate_x_pan(&mut self, pan: isize, view: &CalculatedViewWindow, settings: &EvaluationSettings) {
+    fn recalculate_x_pan(&mut self, pan: isize, view: &CalculatedViewWindow) {
         let x_values = view.x_coords_on_screen();
 
         if pan > 0 {
@@ -170,7 +166,7 @@ impl Plot {
 
             // Insert new values
             for i in (self.y_values.len() - pan)..self.y_values.len() {
-                self.y_values[i] = Self::calculate_one_value(x_values[i], &self.structured, settings);
+                self.y_values[i] = Self::calculate_one_value(x_values[i], &self.compiled);
             }
         } else if pan < 0 {
             // Moving left - copy values up
@@ -181,7 +177,7 @@ impl Plot {
             
             // Insert new values
             for i in 0..pan {
-                self.y_values[i] = Self::calculate_one_value(x_values[i], &self.structured, settings);
+                self.y_values[i] = Self::calculate_one_value(x_values[i], &self.compiled);
             }
         }
     }
@@ -226,16 +222,14 @@ impl<F: ApplicationFramework> Application for GraphApplication<F> {
             match input {
                 OSInput::Button(ButtonInput::MoveLeft) => {
                     self.calculated_view_window.pan_x += pan_amount;
-                    let settings = self.settings();
                     for plot in &mut self.plots {
-                        plot.recalculate_x_pan(-Self::PAN_AMOUNT, &self.calculated_view_window, &settings);
+                        plot.recalculate_x_pan(-Self::PAN_AMOUNT, &self.calculated_view_window);
                     }
                 },
                 OSInput::Button(ButtonInput::MoveRight) => {
                     self.calculated_view_window.pan_x -= pan_amount;
-                    let settings = self.settings();
                     for plot in &mut self.plots {
-                        plot.recalculate_x_pan(Self::PAN_AMOUNT, &self.calculated_view_window, &settings);
+                        plot.recalculate_x_pan(Self::PAN_AMOUNT, &self.calculated_view_window);
                     }
                 }
                 OSInput::Button(ButtonInput::MoveUp) => {
@@ -323,12 +317,13 @@ impl<F: ApplicationFramework> GraphApplication<F> {
         let mut menu_items = vec![
             ContextMenuItem::new_common("Add plot", |this: &mut Self| {
                 if let Some((structured, unstructured)) = this.input_expression_until_upgrade(None) {
+                    let compiled = CompiledNode::from_structured(structured, Some('x'), &this.settings());
                     let mut plot = Plot {
                         unstructured,
-                        structured,
+                        compiled,
                         y_values: Vec::new()
                     };
-                    plot.recalculate_values(&this.calculated_view_window, &this.settings());
+                    plot.recalculate_values(&this.calculated_view_window);
 
                     // Create and push plot
                     this.plots.push(plot);
@@ -383,9 +378,10 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                     {
                         let settings = this.settings();
                         let plot = &mut this.plots[plot_index];
+                        let compiled = CompiledNode::from_structured(structured, Some('x'), &settings);
                         plot.unstructured = unstructured;
-                        plot.structured = structured;
-                        plot.recalculate_values(&this.calculated_view_window, &settings);    
+                        plot.compiled = compiled;
+                        plot.recalculate_values(&this.calculated_view_window);    
                     }
                 }),
                 ContextMenuItem::new_common("Delete", move |this: &mut Self| {
@@ -494,9 +490,8 @@ impl<F: ApplicationFramework> GraphApplication<F> {
         self.calculated_view_window = self.user_view_window.to_calculated();
 
         // Adjust plots
-        let settings = self.settings();
         for plot in &mut self.plots {
-            plot.recalculate_values(&self.calculated_view_window, &settings);
+            plot.recalculate_values(&self.calculated_view_window);
         }
     }
 }
