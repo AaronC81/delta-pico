@@ -1,5 +1,5 @@
 delta_pico_width = 78.2;
-delta_pico_height = 167.2;
+delta_pico_height = 166.8;
 delta_pico_corner_radius = 4.5;
 
 border_size = 3;
