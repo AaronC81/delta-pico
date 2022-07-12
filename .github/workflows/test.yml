@@ -27,7 +27,6 @@ jobs:
         sudo apt install python3-fontforge -y
     - name: Install Pillow
       run: |
-        sudo apt build-dep python-imaging
         sudo pip3 install pillow
     - name: Checkout main
       uses: actions/checkout@v3
