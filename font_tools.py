@@ -18,7 +18,7 @@ def write_font_glyphs(font_path, size, glyphs_path) -> str:
             continue
 
         glyph_image_file_path = os.path.join(glyphs_path, f"glyph_{ascii}.png")
-        glyph.export(glyph_image_file_path, pixelsize=size)
+        glyph.export(glyph_image_file_path, size)
 
 def generate_font_source(name, glyphs_path) -> str:
     from PIL import Image
