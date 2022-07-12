@@ -43,6 +43,11 @@ jobs:
       with:
         repository: AaronC81/rbop
         path: ./rbop
-    - name: Run tests in simulator
-      run: cargo run --verbose -- --test
+    - name: Build simulator
+      run: cargo build --verbose
       working-directory: ./delta-pico-sim
+    - name: Run tests in simulator
+      uses: GabrielBB/xvfb-action@v1
+      with:
+        run: cargo run -- --test
+        working-directory: ./delta-pico-sim
