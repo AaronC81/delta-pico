@@ -125,22 +125,25 @@ struct Plot {
     compiled: CompiledNode,
 
     /// A calculated list of points on this graph. Each index is an X value on the *screen* (not the
-    /// graph space), and the value is the corresponding Y value on the *graph space* (not the
-    /// screen).
-    y_values: Vec<Result<Number, MathsError>>,
+    /// graph space), and the value is the corresponding Y value on both the graph space and the 
+    /// screen (in that order).
+    y_values: Vec<Result<(Number, i16), MathsError>>,
 }
 
 impl Plot {
     /// Recalculates all of the `y_values` given a viewport and settings to evaluate with.
     fn recalculate_values(&mut self, view: &CalculatedViewWindow) {
         self.y_values = view.x_coords_on_screen()
-            .iter().map(|i| Self::calculate_one_value(*i, &self.compiled)).collect::<Vec<_>>();
+            .iter().map(|i| Self::calculate_one_value(*i, &self.compiled, view)).collect::<Vec<_>>();
     }
 
     /// Calculates one value for `y_values`, given an X value on the graph space, a node tree to
     /// evaluate, and settings to evaluate with.
-    fn calculate_one_value(x: Number, node: &CompiledNode) -> Result<Number, MathsError> {
-        node.evaluate_raw(x)
+    fn calculate_one_value(x: Number, node: &CompiledNode, view: &CalculatedViewWindow) -> Result<(Number, i16), MathsError> {
+        let real_value = node.evaluate_raw(x)?;
+        let screen_value = view.y_to_screen(real_value).ok_or(MathsError::Overflow)?;
+
+        Ok((real_value, screen_value))
     }
 
     /// Recalculates a slice of `y_values` by "panning" the list of calculated values.
@@ -166,7 +169,7 @@ impl Plot {
 
             // Insert new values
             for i in (self.y_values.len() - pan)..self.y_values.len() {
-                self.y_values[i] = Self::calculate_one_value(x_values[i], &self.compiled);
+                self.y_values[i] = Self::calculate_one_value(x_values[i], &self.compiled, view);
             }
         } else if pan < 0 {
             // Moving left - copy values up
@@ -177,7 +180,17 @@ impl Plot {
             
             // Insert new values
             for i in 0..pan {
-                self.y_values[i] = Self::calculate_one_value(x_values[i], &self.compiled);
+                self.y_values[i] = Self::calculate_one_value(x_values[i], &self.compiled, view);
+            }
+        }
+    }
+
+    /// Recalculates the screen positions of `y_values` by "panning" the list of calculated values.
+    /// Each calculated screen position has the pan amount added to it.
+    fn recalculate_y_pan(&mut self, pan: i16, _view: &CalculatedViewWindow) {
+        for item in &mut self.y_values {
+            if let Ok((_, screen)) = item {
+                *screen += pan;
             }
         }
     }
@@ -234,9 +247,15 @@ impl<F: ApplicationFramework> Application for GraphApplication<F> {
                 }
                 OSInput::Button(ButtonInput::MoveUp) => {
                     self.calculated_view_window.pan_y -= pan_amount;
+                    for plot in &mut self.plots {
+                        plot.recalculate_y_pan(Self::PAN_AMOUNT as i16, &self.calculated_view_window);
+                    }
                 }
                 OSInput::Button(ButtonInput::MoveDown) => {
                     self.calculated_view_window.pan_y += pan_amount;
+                    for plot in &mut self.plots {
+                        plot.recalculate_y_pan(-Self::PAN_AMOUNT as i16, &self.calculated_view_window);
+                    }
                 }
 
                 OSInput::Button(ButtonInput::List) => self.open_menu(),
@@ -264,19 +283,14 @@ impl<F: ApplicationFramework> GraphApplication<F> {
 
         // Draw each graph from computed points
         for plot in &self.plots {
-            let mut next_y_screen = self.calculated_view_window.y_to_screen(plot.y_values[0].clone().unwrap_or(Number::zero()));
             for this_x in 0..(plot.y_values.len() - 1) {
-                let next_x = this_x + 1;
-
-                plot.y_values[this_x].as_ref().unwrap();
-                if let Ok(this_y) = plot.y_values[this_x] {
-                    let next_y = plot.y_values[next_x].as_ref().unwrap_or(&this_y);
-                    let this_y_screen = next_y_screen;
-                    next_y_screen = self.calculated_view_window.y_to_screen(*next_y);
+                if let Ok(this_y) = plot.y_values[this_x] && let Ok(next_y) = plot.y_values[this_x + 1] {
+                    let this_y_screen = this_y.1;
+                    let next_y_screen = next_y.1;
         
-                    if this_y_screen == next_y_screen && let Some(this_y_screen) = this_y_screen {
+                    if this_y_screen == next_y_screen {
                         self.os_mut().display_sprite.draw_pixel(this_x as i16, this_y_screen, Colour::WHITE);
-                    } else if let Some(this_y_screen) = this_y_screen && let Some(next_y_screen) = next_y_screen {
+                    } else {
                         self.os_mut().display_sprite.draw_line(
                             this_x as i16, this_y_screen,
                             this_x as i16, next_y_screen,
@@ -477,8 +491,8 @@ impl<F: ApplicationFramework> GraphApplication<F> {
             .flat_map(|p| p.y_values.iter().filter_map(|x| x.as_ref().ok()))
             .collect::<Vec<_>>();
         sorted_y_values.sort_unstable();
-        let min_y_graph_value = *sorted_y_values[0];
-        let max_y_graph_value = **sorted_y_values.last().unwrap();
+        let min_y_graph_value = sorted_y_values[0].0;
+        let max_y_graph_value = sorted_y_values.last().unwrap().0;
         
         self.user_view_window.y_min = min_y_graph_value;
         self.user_view_window.y_max = max_y_graph_value;
