@@ -48,9 +48,9 @@ impl Colour {
         let (other_r, other_g, other_b) = other.to_rgb565_parts();
 
         let interpolated565 = 
-            (self_r + (amount as u16 * (other_r - self_r)) / 16) << 11
-            | (self_g + (amount as u16 * (other_g - self_g)) / 16) << 5
-            | (self_b + (amount as u16 * (other_b - self_b)) / 16);
+            (self_r + (amount as u16 * (other_r.saturating_sub(self_r))) / 16) << 11
+            | (self_g + (amount as u16 * (other_g.saturating_sub(self_g))) / 16) << 5
+            | (self_b + (amount as u16 * (other_b.saturating_sub(self_b))) / 16);
         Self::from_rgb565(interpolated565)
     }
 
