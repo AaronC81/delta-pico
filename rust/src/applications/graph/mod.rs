@@ -1,6 +1,7 @@
 use alloc::{format, vec, vec::Vec, string::{ToString, String}, boxed::Box};
+use num_traits::FromPrimitive;
 use rbop::{Number, StructuredNode, node::{unstructured::{Upgradable, UnstructuredNodeRoot}, structured::EvaluationSettings, compiled::CompiledNode}, error::MathsError, render::{Viewport, Area}};
-use rust_decimal::{prelude::{One, ToPrimitive, Zero}};
+use rust_decimal::{prelude::{One, ToPrimitive, Zero}, Decimal};
 
 use crate::{interface::{Colour, ApplicationFramework, ButtonInput, DISPLAY_WIDTH, DISPLAY_HEIGHT}, operating_system::{OSInput, OperatingSystem, os_accessor, OperatingSystemPointer, ContextMenu, ContextMenuItem, SelectorMenuCallable}, rbop_impl::RbopSpriteRenderer};
 use super::{Application, ApplicationInfo};
@@ -196,11 +197,64 @@ impl Plot {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum MovementMode {
+    Freeform,
+    Trace(TraceState),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct TraceState {
+    plot_index: usize,
+    current_x: Number,
+}
+
+impl TraceState {
+    fn new(view: &UserViewWindow, plot_index: usize) -> Self {
+        Self {
+            plot_index,
+            current_x: (view.x_max + view.x_min).to_decimal_number() / Decimal::TWO.into(),
+        }
+    }
+
+    const TRACE_INCREMENTS_PER_SCREEN: usize = 20;
+
+    fn x_increment(view: &UserViewWindow) -> Number {
+        (view.x_max - view.x_min).to_decimal_number() / Number::from(Self::TRACE_INCREMENTS_PER_SCREEN as i64)
+    }
+
+    fn pan_for_current_x(&self, user_view: &mut UserViewWindow, calc_view: &mut CalculatedViewWindow, plots: &mut [Plot]) {
+        let inc = Self::x_increment(user_view);
+        let mut need_recalc = false;
+
+        if (user_view.x_min - self.current_x).abs() < inc * Decimal::from_f32(1.5).unwrap().into() {
+            user_view.x_min -= inc;
+            user_view.x_max -= inc;
+            need_recalc = true;
+        }
+
+        if (user_view.x_max - self.current_x).abs() < inc * Decimal::from_f32(1.5).unwrap().into() {
+            user_view.x_min += inc;
+            user_view.x_max += inc;
+            need_recalc = true;
+        }
+
+        if need_recalc {
+            *calc_view = user_view.to_calculated();
+            for plot in plots {
+                // TODO: can we partially recalculate like with freeform pans?
+                plot.recalculate_values(calc_view);
+            }
+        }
+    }
+}
+
 pub struct GraphApplication<F: ApplicationFramework + 'static> {
     os: OperatingSystemPointer<F>,
     plots: Vec<Plot>,
     user_view_window: UserViewWindow,
     calculated_view_window: CalculatedViewWindow,
+    movement_mode: MovementMode,
 }
 
 os_accessor!(GraphApplication<F>);
@@ -223,6 +277,7 @@ impl<F: ApplicationFramework> Application for GraphApplication<F> {
             plots: Vec::new(),
             user_view_window,
             calculated_view_window: user_view_window.to_calculated(),
+            movement_mode: MovementMode::Freeform,
         }
     }
 
@@ -232,32 +287,102 @@ impl<F: ApplicationFramework> Application for GraphApplication<F> {
         // Poll for input
         if let Some(input) = self.os_mut().input() {
             let pan_amount = Number::from(Self::PAN_AMOUNT as i64);
+            let is_freeform = self.movement_mode == MovementMode::Freeform;
+            let is_trace = matches!(self.movement_mode, MovementMode::Trace(_));
             match input {
-                OSInput::Button(ButtonInput::MoveLeft) => {
-                    self.calculated_view_window.pan_x += pan_amount;
+                // Freeform movement
+                OSInput::Button(ButtonInput::MoveLeft) if is_freeform => {
+                    self.user_view_window.x_min -= pan_amount / self.calculated_view_window.scale_x;
+                    self.user_view_window.x_max -= pan_amount / self.calculated_view_window.scale_x;
+                    self.calculated_view_window = self.user_view_window.to_calculated();
+
                     for plot in &mut self.plots {
                         plot.recalculate_x_pan(-Self::PAN_AMOUNT, &self.calculated_view_window);
                     }
                 },
-                OSInput::Button(ButtonInput::MoveRight) => {
-                    self.calculated_view_window.pan_x -= pan_amount;
+                OSInput::Button(ButtonInput::MoveRight) if is_freeform => {
+                    self.user_view_window.x_min += pan_amount / self.calculated_view_window.scale_x;
+                    self.user_view_window.x_max += pan_amount / self.calculated_view_window.scale_x;
+                    self.calculated_view_window = self.user_view_window.to_calculated();
+
                     for plot in &mut self.plots {
                         plot.recalculate_x_pan(Self::PAN_AMOUNT, &self.calculated_view_window);
                     }
                 }
-                OSInput::Button(ButtonInput::MoveUp) => {
-                    self.calculated_view_window.pan_y -= pan_amount;
+                OSInput::Button(ButtonInput::MoveUp) if is_freeform => {
+                    self.user_view_window.y_min += pan_amount / self.calculated_view_window.scale_y;
+                    self.user_view_window.y_max += pan_amount / self.calculated_view_window.scale_y;
+                    self.calculated_view_window = self.user_view_window.to_calculated();
+
                     for plot in &mut self.plots {
                         plot.recalculate_y_pan(Self::PAN_AMOUNT as i16, &self.calculated_view_window);
                     }
                 }
-                OSInput::Button(ButtonInput::MoveDown) => {
-                    self.calculated_view_window.pan_y += pan_amount;
+                OSInput::Button(ButtonInput::MoveDown) if is_freeform => {
+                    self.user_view_window.y_min -= pan_amount / self.calculated_view_window.scale_y;
+                    self.user_view_window.y_max -= pan_amount / self.calculated_view_window.scale_y;
+                    self.calculated_view_window = self.user_view_window.to_calculated();
+
                     for plot in &mut self.plots {
                         plot.recalculate_y_pan(-Self::PAN_AMOUNT as i16, &self.calculated_view_window);
                     }
                 }
 
+                // Trace movement
+                OSInput::Button(ButtonInput::MoveLeft) if is_trace => {
+                    if let MovementMode::Trace(ref mut state) = self.movement_mode {
+                        state.current_x -= TraceState::x_increment(&self.user_view_window);
+                        state.pan_for_current_x(
+                            &mut self.user_view_window,
+                            &mut self.calculated_view_window,
+                            &mut self.plots[..],
+                        );
+                    } else {
+                        unreachable!()
+                    }
+                },
+                OSInput::Button(ButtonInput::MoveRight) if is_trace => {
+                    if let MovementMode::Trace(ref mut state) = self.movement_mode {
+                        state.current_x += TraceState::x_increment(&self.user_view_window);
+                        state.pan_for_current_x(
+                            &mut self.user_view_window,
+                            &mut self.calculated_view_window,
+                            &mut self.plots[..],
+                        );
+                    } else {
+                        unreachable!()
+                    }
+                }
+                OSInput::Button(ButtonInput::MoveUp) if is_trace => {
+                    if let MovementMode::Trace(ref mut state) = self.movement_mode {
+                        if state.plot_index == 0 {
+                            state.plot_index = self.plots.len() - 1;
+                        } else {
+                            state.plot_index -= 1;
+                        }
+                    } else {
+                        unreachable!()
+                    }
+                }
+                OSInput::Button(ButtonInput::MoveDown) if is_trace => {
+                    if let MovementMode::Trace(ref mut state) = self.movement_mode {
+                        state.plot_index += 1;
+                        state.plot_index %= self.plots.len();
+                    } else {
+                        unreachable!()
+                    }
+                }
+
+                // Available everywhere
+                OSInput::Button(ButtonInput::Exe) => {
+                    match self.movement_mode {
+                        // Don't transition to trace mode if there are no plots
+                        MovementMode::Freeform if self.plots.is_empty() => (),
+
+                        MovementMode::Freeform => self.movement_mode = MovementMode::Trace(TraceState::new(&self.user_view_window, 0)),
+                        MovementMode::Trace(_) => self.movement_mode = MovementMode::Freeform,
+                    }
+                }
                 OSInput::Button(ButtonInput::List) => self.open_menu(),
 
                 _ => (),
@@ -300,6 +425,35 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                 }
             }
         }
+
+        // If tracing...
+        if let MovementMode::Trace(state) = self.movement_mode {
+            // Work out current Y
+            // TODO: don't hardcode to first plot
+            let current_y = self.plots[state.plot_index].compiled.evaluate_raw(state.current_x);
+
+            // Print current coordinates
+            self.os_mut().display_sprite.print_at(
+                0, 0,
+                &format!("X: {}\nY: {}",
+                    state.current_x.to_decimal_number().simplify().to_decimal(),
+                    match current_y {
+                        Ok(num) => num.to_decimal_number().simplify().to_decimal().to_string(),
+                        Err(ref e) => e.to_string(),
+                    },
+                )
+            );
+
+            // Draw a marker where we are right now
+            let screen_x = self.calculated_view_window.x_to_screen(state.current_x);
+            let screen_y = current_y.map(|y| self.calculated_view_window.y_to_screen(y));
+            if let Some(screen_x) = screen_x && let Ok(Some(screen_y)) = screen_y {
+                for i in -4..=4 {
+                    self.os_mut().display_sprite.draw_pixel(screen_x + i, screen_y + i, Colour::ORANGE);
+                    self.os_mut().display_sprite.draw_pixel(screen_x - i, screen_y + i, Colour::ORANGE);
+                }
+            }
+        }        
 
         // Push to screen
         self.os_mut().draw();
