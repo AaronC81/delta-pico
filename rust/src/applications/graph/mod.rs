@@ -553,6 +553,11 @@ impl<F: ApplicationFramework> GraphApplication<F> {
                     }
                 }),
                 ContextMenuItem::new_common("Delete", move |this: &mut Self| {
+                    // If tracing, stop - easier than logic to adjust traced plot index
+                    if let MovementMode::Trace(_) = this.movement_mode {
+                        this.movement_mode = MovementMode::Freeform;
+                    }
+
                     this.plots.remove(plot_index);
                 }),
             ],
