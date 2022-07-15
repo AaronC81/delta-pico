@@ -197,19 +197,30 @@ impl Plot {
     }
 }
 
+/// How the user is currently navigating around the graph space.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MovementMode {
+    /// The user is not using any kind of special movement mode, and can navigate freely by moving
+    /// the view window with the arrow keys.
     Freeform,
+
+    /// The user is tracing along a plot, locking their navigation to points along the graph.
     Trace(TraceState),
 }
 
+/// The state of a [MovementMode::Trace].
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TraceState {
+    /// The index into the application's list of plots which is being traced along.
     plot_index: usize,
+
+    /// The current X position (in the graph space) which the user has selected.
     current_x: Number,
 }
 
 impl TraceState {
+    /// Creates a new plot, tracing a given plot index. The given view window is used to start the
+    /// trace in the centre of the display.
     fn new(view: &UserViewWindow, plot_index: usize) -> Self {
         Self {
             plot_index,
@@ -217,13 +228,21 @@ impl TraceState {
         }
     }
 
+    /// The number of trace increments which must be navigated to cover one entire display width.
     const TRACE_INCREMENTS_PER_SCREEN: usize = 20;
 
+    /// The increment to advance the X position (in the graph space) by when moving along a traced
+    /// plot.
     fn x_increment(view: &UserViewWindow) -> Number {
         (view.x_max - view.x_min).to_decimal_number() / Number::from(Self::TRACE_INCREMENTS_PER_SCREEN as i64)
     }
 
+    /// Checks if the tracing cursor is close to the boundary of the screen, and if so, adjusts
+    /// the user and calculated view windows (and recalculates plot points accordingly) to pan
+    /// the screen.
     fn pan_for_current_x(&self, user_view: &mut UserViewWindow, calc_view: &mut CalculatedViewWindow, plots: &mut [Plot]) {
+        // TODO: some pans will need to adjust Y too!
+
         let inc = Self::x_increment(user_view);
         let mut need_recalc = false;
 
