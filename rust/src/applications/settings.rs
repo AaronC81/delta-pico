@@ -73,16 +73,6 @@ impl<F: ApplicationFramework> SettingsApplication<F> {
                 icon: "settings_graphics_benchmark".into(),
                 decorator: FullPageMenuItemDecorator::None,
             },
-            // UIMenuItem {
-            //     title: "Run test suite".into(),
-            //     icon: "settings_test".into(),
-            //     toggle: None,
-            // },
-            // UIMenuItem {
-            //     title: "Memory leak test".into(),
-            //     icon: "settings_memory_leak".into(),
-            //     toggle: None,
-            // }
         ];
     }
 
@@ -114,17 +104,6 @@ impl<F: ApplicationFramework> SettingsApplication<F> {
                 self.graphics_benchmark();
                 return
             }
-            // 2 => {
-            //     // Show a warning if we're turning it on
-            //     if !os().filesystem.settings.values.fire_button_press_only {
-            //         os().ui_text_dialog("This setting is experimental! Responsiveness will improve, but frame times will become inaccurate, and some apps may break.");
-            //     }
-                
-            //     self.toggle_setting(2, &mut os().filesystem.settings.values.fire_button_press_only)
-            // },
-            // 3 => self.graphics_benchmark(),
-            // 4 => self.run_test_suite(),
-            // 5 => self.leak_memory_until_panic(),
             
             _ => unreachable!()
         }
